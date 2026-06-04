@@ -79,7 +79,7 @@ export default function CheckEmailPage() {
             href="/auth/login"
             className="inline-flex items-center space-x-2 text-primary-300 hover:text-panda-white transition"
           >
-            <ArrowLeft className=\"h-4 w-4\" />
+            <ArrowLeft className="h-4 w-4" />
             <span>Back to Login</span>
           </Link>
         </div>
