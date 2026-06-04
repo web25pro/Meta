@@ -125,7 +125,7 @@ export default function ReferralsPage() {
         </div>
 
         <p className="text-sm text-primary-200">
-          Share this link with friends. When they join the jungle and verify their email, you'll both earn bamboo rewards!
+          Share this link with friends. When they join the jungle and verify their email, you&apos;ll both earn bamboo rewards!
         </p>
       </div>
     </div>

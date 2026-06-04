@@ -68,7 +68,7 @@ export default function ResendVerificationPage() {
             </div>
             <p className="text-white font-bold text-lg">Check Your Email</p>
             <p className="text-sm text-primary-200">
-              We've sent a verification link to <strong className="text-secondary-400">{submittedEmail}</strong>
+              We&apos;ve sent a verification link to <strong className="text-secondary-400">{submittedEmail}</strong>
             </p>
             <div className="bg-primary-700 border border-primary-600 rounded-lg p-4 text-left">
               <p className="text-sm text-primary-100">
@@ -99,7 +99,7 @@ export default function ResendVerificationPage() {
 
           {/* Help */}
           <p className="text-center text-xs text-gray-600 mt-6">
-            Still haven't received it?{' '}
+            Still haven&apos;t received it?{' '}
             <Link href="/support" className="text-primary-600 hover:underline">
               Contact support
             </Link>
@@ -173,7 +173,7 @@ export default function ResendVerificationPage() {
 
         {/* Help Text */}
         <p className="text-center text-xs text-gray-600 mt-6">
-          Don't have an account?{' '}
+          Don&apos;t have an account?{' '}
           <Link href="/register" className="text-primary-600 hover:underline font-medium">
             Sign up here
           </Link>

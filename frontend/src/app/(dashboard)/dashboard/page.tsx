@@ -56,7 +56,7 @@ export default function DashboardPage() {
       {/* Welcome Header */}
       <div className="bg-gradient-to-r from-primary-600 to-secondary-600 rounded-xl p-8 text-white">
         <h1 className="text-3xl font-bold mb-2">Welcome back, {user?.name}!</h1>
-        <p className="text-primary-100">Here's what's happening with your tasks today.</p>
+        <p className="text-primary-100">Here&apos;s what&apos;s happening with your tasks today.</p>
       </div>
 
       {/* Stats Grid */}

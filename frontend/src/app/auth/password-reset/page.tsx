@@ -68,11 +68,11 @@ export default function PasswordResetPage() {
             </div>
             <p className="text-white font-bold text-lg">Password Reset Email Sent</p>
             <p className="text-sm text-primary-200">
-              We've sent a password reset link to <strong className="text-secondary-400">{submittedEmail}</strong>
+              We&apos;ve sent a password reset link to <strong className="text-secondary-400">{submittedEmail}</strong>
             </p>
             <div className="bg-primary-700 border border-primary-600 rounded-lg p-4 text-left">
               <p className="text-sm text-primary-100">
-                <strong className="text-secondary-400">🔐 Note:</strong> The link will expire in 1 hour. If you don't receive the email,
+                <strong className="text-secondary-400">🔐 Note:</strong> The link will expire in 1 hour. If you don&apos;t receive the email,
                 check your spam folder or request a new one.
               </p>
             </div>
@@ -161,7 +161,7 @@ export default function PasswordResetPage() {
 
         {/* Help Text */}
         <p className="text-center text-xs text-gray-600 mt-6">
-          Don't have an account?{' '}
+          Don&apos;t have an account?{' '}
           <Link href="/register" className="text-primary-600 hover:underline font-medium">
             Sign up here
           </Link>
