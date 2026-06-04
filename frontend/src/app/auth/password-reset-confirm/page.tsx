@@ -246,7 +246,7 @@ export default function PasswordResetConfirmPage() {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={isLoading || status === 'error'}
+              disabled={isLoading}
               className="w-full px-6 py-3 bg-gradient-to-r from-secondary-600 to-secondary-700 text-white font-medium rounded-lg hover:from-secondary-700 hover:to-secondary-800 transition-all flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
             >
               {isLoading ? (
