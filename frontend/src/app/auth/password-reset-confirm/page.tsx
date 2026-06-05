@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
@@ -29,7 +29,7 @@ const resetConfirmSchema = z
 
 type ResetConfirmFormData = z.infer<typeof resetConfirmSchema>;
 
-export default function PasswordResetConfirmPage() {
+function PasswordResetConfirmContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
@@ -275,5 +275,13 @@ export default function PasswordResetConfirmPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function PasswordResetConfirmPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+      <PasswordResetConfirmContent />
+    </Suspense>
   );
 }
