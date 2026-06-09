@@ -1,30 +1,22 @@
 """Initial schema with users, tasks, and task_assignments
 
-Revision ID: 001
+Revision ID: a1b2c3d4e5f6
 Revises: 
 Create Date: 2024-01-01 00:00:00.000000
 
 """
-from typing import Sequence, Union
-
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision: str = 'a1b2c3d4e5f6'
-down_revision: Union[str, None] = None
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
-
+revision = 'a1b2c3d4e5f6'
+down_revision = None
+branch_labels = None
+depends_on = None
 
 def upgrade() -> None:
-    # Create enum types
-    op.execute("CREATE TYPE user_role AS ENUM ('Overall_Admin', 'Ambassador_Admin', 'Team_Member', 'Ambassador')")
-    op.execute("CREATE TYPE user_type AS ENUM ('Team_Member', 'Ambassador')")
-    op.execute("CREATE TYPE assigned_group AS ENUM ('Team_Members', 'Ambassadors', 'All')")
-    
-    # Create users table
+    # 1. Create users table (SQLAlchemy automatically creates user_role and user_type ENUMs here)
     op.create_table(
         'users',
         sa.Column('id', postgresql.UUID(as_uuid=True), primary_key=True),
@@ -32,9 +24,9 @@ def upgrade() -> None:
         sa.Column('email', sa.String(255), nullable=False, unique=True),
         sa.Column('password_hash', sa.String(255), nullable=False),
         sa.Column('role', sa.Enum('Overall_Admin', 'Ambassador_Admin', 'Team_Member', 'Ambassador', 
-                                  name='user_role', create_type=False), nullable=False),
+                                  name='user_role'), nullable=False),
         sa.Column('user_type', sa.Enum('Team_Member', 'Ambassador', 
-                                       name='user_type', create_type=False), nullable=False),
+                                       name='user_type'), nullable=False),
         sa.Column('points', sa.Numeric(10, 2), nullable=False, server_default='0.0'),
         sa.Column('created_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.text('now()')),
         sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.text('now()')),
@@ -47,14 +39,14 @@ def upgrade() -> None:
     op.create_index('ix_users_role', 'users', ['role'])
     op.create_index('ix_users_user_type', 'users', ['user_type'])
     
-    # Create tasks table
+    # 2. Create tasks table (SQLAlchemy automatically creates assigned_group ENUM here)
     op.create_table(
         'tasks',
         sa.Column('id', postgresql.UUID(as_uuid=True), primary_key=True),
         sa.Column('title', sa.String(255), nullable=False),
         sa.Column('description', sa.Text, nullable=False),
         sa.Column('assigned_to_group', sa.Enum('Team_Members', 'Ambassadors', 'All', 
-                                               name='assigned_group', create_type=False), nullable=False),
+                                               name='assigned_group'), nullable=False),
         sa.Column('deadline', sa.DateTime(timezone=True), nullable=False),
         sa.Column('point_value', sa.Numeric(10, 2), nullable=False),
         sa.Column('created_by_id', postgresql.UUID(as_uuid=True), nullable=False),
@@ -72,7 +64,7 @@ def upgrade() -> None:
     op.create_index('ix_tasks_created_at', 'tasks', ['created_at'])
     op.create_index('ix_tasks_deleted_at', 'tasks', ['deleted_at'])
     
-    # Create task_assignments table
+    # 3. Create task_assignments table
     op.create_table(
         'task_assignments',
         sa.Column('id', postgresql.UUID(as_uuid=True), primary_key=True),
@@ -97,6 +89,7 @@ def downgrade() -> None:
     op.drop_table('users')
     
     # Drop enum types
-    op.execute("DROP TYPE assigned_group")
-    op.execute("DROP TYPE user_type")
-    op.execute("DROP TYPE user_role")
+    op.execute("DROP TYPE IF EXISTS assigned_group CASCADE")
+    op.execute("DROP TYPE IF EXISTS user_type CASCADE")
+    op.execute("DROP TYPE IF EXISTS user_role CASCADE")
+    

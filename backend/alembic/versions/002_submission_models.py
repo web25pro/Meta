@@ -5,24 +5,18 @@ Revises: 001
 Create Date: 2024-01-02 00:00:00.000000
 
 """
-from typing import Sequence, Union
-
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision: str = 'b2c3d4e5f6a7'
-down_revision: Union[str, None] = 'a1b2c3d4e5f6'
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+revision = 'b2c3d4e5f6a7'
+down_revision = 'a1b2c3d4e5f6'
+branch_labels = None
+depends_on = None
 
 
 def upgrade() -> None:
-    # Create enum types
-    op.execute("CREATE TYPE submission_status AS ENUM ('Pending', 'Approved', 'Rejected')")
-    op.execute("CREATE TYPE file_scan_status AS ENUM ('Pending', 'Scanned', 'Infected', 'Failed')")
-    
     # Create task_submissions table
     op.create_table(
         'task_submissions',
@@ -31,7 +25,7 @@ def upgrade() -> None:
         sa.Column('user_id', postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column('content', sa.Text, nullable=False),
         sa.Column('status', sa.Enum('Pending', 'Approved', 'Rejected', 
-                                    name='submission_status', create_type=False), 
+                                    name='submission_status'), 
                   nullable=False, server_default='Pending'),
         sa.Column('submitted_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.text('now()')),
         sa.Column('reviewed_by_id', postgresql.UUID(as_uuid=True), nullable=True),
@@ -62,7 +56,7 @@ def upgrade() -> None:
         sa.Column('file_data', sa.LargeBinary, nullable=False),
         sa.Column('mime_type', sa.String(100), nullable=False),
         sa.Column('scan_status', sa.Enum('Pending', 'Scanned', 'Infected', 'Failed', 
-                                         name='file_scan_status', create_type=False), 
+                                         name='file_scan_status'), 
                   nullable=False, server_default='Pending'),
         sa.Column('scan_error', sa.Text, nullable=True),
         sa.Column('created_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.text('now()')),
@@ -81,5 +75,5 @@ def downgrade() -> None:
     op.drop_table('task_submissions')
     
     # Drop enum types
-    op.execute("DROP TYPE file_scan_status")
-    op.execute("DROP TYPE submission_status")
+    op.execute("DROP TYPE IF EXISTS file_scan_status CASCADE")
+    op.execute("DROP TYPE IF EXISTS submission_status CASCADE")

@@ -78,11 +78,12 @@ async def run_async_migrations() -> None:
     and associate a connection with the context.
 
     """
-
+    # Create engine with statement_cache_size=0 for pgbouncer compatibility
     connectable = async_engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
+        connect_args={"statement_cache_size": 0}
     )
 
     async with connectable.connect() as connection:

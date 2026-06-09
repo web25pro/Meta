@@ -18,19 +18,19 @@ depends_on = None
 
 def upgrade() -> None:
     """Add public task fields to tasks table"""
-    # Create new enum types
+    # 1. Manually create the ENUM types first
     op.execute("CREATE TYPE task_category AS ENUM ('Social_Media', 'Content_Creation', 'Community_Engagement', 'Surveys', 'Referrals')")
     op.execute("CREATE TYPE difficulty_level AS ENUM ('Easy', 'Medium', 'Hard')")
-    
+
     # Add new columns for Public Task functionality
     # All fields are nullable or have defaults for backward compatibility
     op.add_column('tasks', sa.Column('is_public', sa.Boolean(), nullable=False, server_default='false'))
-    op.add_column('tasks', sa.Column('category', postgresql.ENUM('Social_Media', 'Content_Creation', 'Community_Engagement', 'Surveys', 'Referrals', name='task_category', create_type=False), nullable=True))
+    op.add_column('tasks', sa.Column('category', sa.Enum('Social_Media', 'Content_Creation', 'Community_Engagement', 'Surveys', 'Referrals', name='task_category'), nullable=True))
     op.add_column('tasks', sa.Column('max_submissions', sa.Integer(), nullable=True))
     op.add_column('tasks', sa.Column('current_submissions', sa.Integer(), nullable=False, server_default='0'))
     op.add_column('tasks', sa.Column('is_active', sa.Boolean(), nullable=False, server_default='true'))
     op.add_column('tasks', sa.Column('featured', sa.Boolean(), nullable=False, server_default='false'))
-    op.add_column('tasks', sa.Column('difficulty_level', postgresql.ENUM('Easy', 'Medium', 'Hard', name='difficulty_level', create_type=False), nullable=True))
+    op.add_column('tasks', sa.Column('difficulty_level', sa.Enum('Easy', 'Medium', 'Hard', name='difficulty_level'), nullable=True))
     op.add_column('tasks', sa.Column('estimated_time_minutes', sa.Integer(), nullable=True))
     
     # Create indexes for performance
@@ -57,5 +57,5 @@ def downgrade() -> None:
     op.drop_column('tasks', 'is_public')
     
     # Drop enum types
-    op.execute("DROP TYPE IF EXISTS difficulty_level")
-    op.execute("DROP TYPE IF EXISTS task_category")
+    op.execute("DROP TYPE IF EXISTS difficulty_level CASCADE")
+    op.execute("DROP TYPE IF EXISTS task_category CASCADE")

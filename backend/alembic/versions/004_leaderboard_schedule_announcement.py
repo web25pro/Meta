@@ -5,17 +5,15 @@ Revises: 003
 Create Date: 2024-01-04 00:00:00.000000
 
 """
-from typing import Sequence, Union
-
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision: str = 'e5f6a7b8c9da'
-down_revision: Union[str, None] = 'd4e5f6a7b8c9'
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+revision = 'e5f6a7b8c9da'
+down_revision = 'd4e5f6a7b8c9'
+branch_labels = None
+depends_on = None
 
 
 def upgrade() -> None:
@@ -46,7 +44,7 @@ def upgrade() -> None:
         sa.Column('description', sa.Text, nullable=False),
         sa.Column('event_date', sa.DateTime(timezone=True), nullable=False),
         sa.Column('target_group', sa.Enum('Team_Members', 'Ambassadors', 'All',
-                                          name='target_group', create_type=True), nullable=False),
+                                          name='target_group'), nullable=False),
         sa.Column('created_by_id', postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column('created_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.text('now()')),
         sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.text('now()')),
@@ -67,7 +65,7 @@ def upgrade() -> None:
         sa.Column('title', sa.String(255), nullable=False),
         sa.Column('content', sa.Text, nullable=False),
         sa.Column('target_group', sa.Enum('Team_Members', 'Ambassadors', 'All',
-                                          name='target_group', create_type=False), nullable=False),
+                                          name='target_group'), nullable=False),
         sa.Column('created_by_id', postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column('created_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.text('now()')),
         sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.text('now()')),
@@ -87,3 +85,6 @@ def downgrade() -> None:
     op.drop_table('announcements')
     op.drop_table('schedules')
     op.drop_table('leaderboard_cache')
+    
+    # Drop enum types
+    op.execute("DROP TYPE IF EXISTS target_group CASCADE")

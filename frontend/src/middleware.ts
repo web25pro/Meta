@@ -7,7 +7,7 @@ export function middleware(request: NextRequest) {
 
   // Public routes that don't require authentication
   // Include the auth group paths so /auth/register and /auth/login are public
-  const publicRoutes = ['/', '/login', '/register', '/forgot-password'];
+  const publicRoutes = ['/', '/auth/login', '/auth/register', '/forgot-password'];
   const isPublicRoute =
     publicRoutes.includes(pathname) ||
     pathname.startsWith('/auth') ||
@@ -15,11 +15,11 @@ export function middleware(request: NextRequest) {
 
   // If trying to access protected route without token, redirect to login
   if (!isPublicRoute && !token && pathname.startsWith('/dashboard')) {
-    return NextResponse.redirect(new URL('/login', request.url));
+    return NextResponse.redirect(new URL('/auth/login', request.url));
   }
 
   // If logged in and trying to access auth pages, redirect to dashboard
-  if (token && (pathname === '/login' || pathname === '/register')) {
+  if (token && (pathname === '/auth/login' || pathname === '/auth/register')) {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 

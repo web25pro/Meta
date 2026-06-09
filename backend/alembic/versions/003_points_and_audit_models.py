@@ -5,24 +5,18 @@ Revises: 002
 Create Date: 2024-01-03 00:00:00.000000
 
 """
-from typing import Sequence, Union
-
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision: str = 'd4e5f6a7b8c9'
-down_revision: Union[str, None] = 'b2c3d4e5f6a7'
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+revision = 'd4e5f6a7b8c9'
+down_revision = 'b2c3d4e5f6a7'
+branch_labels = None
+depends_on = None
 
 
 def upgrade() -> None:
-    # Create enum types
-    op.execute("CREATE TYPE transaction_type AS ENUM ('Task_Approval', 'Deadline_Penalty', 'Admin_Bonus', 'Admin_Penalty')")
-    op.execute("CREATE TYPE audit_action_type AS ENUM ('Create', 'Update', 'Delete', 'Approve', 'Reject', 'Assign_Points', 'Deduct_Points', 'Reset_Password')")
-    
     # Create points_transactions table
     op.create_table(
         'points_transactions',
@@ -30,7 +24,7 @@ def upgrade() -> None:
         sa.Column('user_id', postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column('amount', sa.Numeric(10, 2), nullable=False),
         sa.Column('transaction_type', sa.Enum('Task_Approval', 'Deadline_Penalty', 'Admin_Bonus', 'Admin_Penalty',
-                                              name='transaction_type', create_type=False), nullable=False),
+                                              name='transaction_type'), nullable=False),
         sa.Column('reason', sa.String(255), nullable=False),
         sa.Column('related_task_id', postgresql.UUID(as_uuid=True), nullable=True),
         sa.Column('related_submission_id', postgresql.UUID(as_uuid=True), nullable=True),
@@ -72,7 +66,7 @@ def upgrade() -> None:
         sa.Column('id', postgresql.UUID(as_uuid=True), primary_key=True),
         sa.Column('admin_user_id', postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column('action', sa.Enum('Create', 'Update', 'Delete', 'Approve', 'Reject', 'Assign_Points', 'Deduct_Points', 'Reset_Password',
-                                    name='audit_action_type', create_type=False), nullable=False),
+                                    name='audit_action_type'), nullable=False),
         sa.Column('resource_type', sa.String(50), nullable=False),
         sa.Column('resource_id', postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column('changes', postgresql.JSONB, nullable=True),
@@ -98,5 +92,5 @@ def downgrade() -> None:
     op.drop_table('points_transactions')
     
     # Drop enum types
-    op.execute("DROP TYPE audit_action_type")
-    op.execute("DROP TYPE transaction_type")
+    op.execute("DROP TYPE IF EXISTS audit_action_type CASCADE")
+    op.execute("DROP TYPE IF EXISTS transaction_type CASCADE")
