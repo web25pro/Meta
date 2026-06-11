@@ -37,13 +37,9 @@ class Settings(BaseSettings):
     # Site
     SITE_BASE_URL: str = "http://localhost:3000"
 
-    # SMTP / Email
-    SMTP_HOST: str = ""
-    SMTP_PORT: int = 587
-    SMTP_USER: str = ""
-    SMTP_PASSWORD: str = ""
-    SMTP_USE_TLS: bool = True
-    EMAIL_FROM: str = "noreply@lpanda.com"
+    # Email (Resend)
+    RESEND_API_KEY: str = ""
+    EMAIL_FROM: str = "onboarding@resend.dev"
     
     # Logging
     LOG_LEVEL: str = "INFO"

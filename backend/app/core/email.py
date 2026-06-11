@@ -1,31 +1,11 @@
-"""SMTP-based email utilities for the LPanda backend."""
-from __future__ import annotations
-
-import smtplib
-from email.message import EmailMessage
+"""Resend-based email utilities for the LPanda backend."""
 from typing import Optional
+import resend
 
 from app.core.config import settings
 from app.core.logging import get_logger
 
 logger = get_logger(__name__)
-
-
-def build_email_message(
-    subject: str,
-    to_email: str,
-    html_body: str,
-    text_body: Optional[str] = None,
-    from_email: str = None,
-) -> EmailMessage:
-    """Build an email message object."""
-    message = EmailMessage()
-    message["Subject"] = subject
-    message["From"] = from_email or settings.EMAIL_FROM
-    message["To"] = to_email
-    message.set_content(text_body or html_body)
-    message.add_alternative(html_body, subtype="html")
-    return message
 
 
 def send_email(
@@ -34,28 +14,27 @@ def send_email(
     html_body: str,
     text_body: Optional[str] = None,
 ) -> None:
-    """Send an email message using configured SMTP settings."""
-    if not settings.SMTP_HOST or not settings.SMTP_USER or not settings.SMTP_PASSWORD:
-        logger.warning("SMTP is not fully configured, skipping email send")
+    """Send an email message using Resend SDK."""
+    if not settings.RESEND_API_KEY:
+        logger.warning("RESEND_API_KEY is not configured, skipping email send")
         return
 
-    message = build_email_message(
-        subject=subject,
-        to_email=to_email,
-        html_body=html_body,
-        text_body=text_body,
-        from_email=settings.EMAIL_FROM,
-    )
+    resend.api_key = settings.RESEND_API_KEY
 
     try:
-        with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=30) as smtp:
-            if settings.SMTP_USE_TLS:
-                smtp.starttls()
-            smtp.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
-            smtp.send_message(message)
-            logger.info("Email sent", extra={"to": to_email, "subject": subject})
+        params = {
+            "from": settings.EMAIL_FROM,
+            "to": [to_email],
+            "subject": subject,
+            "html": html_body,
+        }
+        if text_body:
+            params["text"] = text_body
+
+        response = resend.Emails.send(params)
+        logger.info("Email sent via Resend", extra={"to": to_email, "subject": subject, "id": response.get("id")})
     except Exception as exc:
-        logger.error("Failed to send email", extra={"to": to_email, "subject": subject, "error": str(exc)})
+        logger.error("Failed to send email via Resend", extra={"to": to_email, "subject": subject, "error": str(exc)})
         raise
 
 
