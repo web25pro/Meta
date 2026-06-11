@@ -79,12 +79,19 @@ export function setTokens(accessToken: string, refreshToken: string): void {
   if (typeof window === 'undefined') return;
   localStorage.setItem('access_token', accessToken);
   localStorage.setItem('refresh_token', refreshToken);
+  
+  // Also set cookie for Next.js middleware
+  // max-age=86400 is 1 day (matches access token expiry or general session length)
+  document.cookie = `access_token=${accessToken}; path=/; max-age=86400; SameSite=Lax`;
 }
 
 export function clearTokens(): void {
   if (typeof window === 'undefined') return;
   localStorage.removeItem('access_token');
   localStorage.removeItem('refresh_token');
+  
+  // Clear cookie for Next.js middleware
+  document.cookie = 'access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
 }
 
 export function isAuthenticated(): boolean {
