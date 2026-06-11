@@ -46,7 +46,8 @@ class UserCreate(UserBase):
     password: str = Field(
         ...,
         min_length=12,
-        description="User's password (minimum 12 characters)",
+        max_length=72,
+        description="User's password (min 12, max 72 characters for bcrypt)",
         examples=["SecurePassword123!"]
     )
     role: UserRole = Field(

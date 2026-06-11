@@ -8,13 +8,11 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.core.config import settings
 from app.core.logging import setup_logging, get_logger
-from app.core.redis import init_redis, close_redis
 from app.core.sentry import init_sentry
 from app.core.openapi import setup_openapi
 from app.core.exceptions import APIException
 from app.middleware.request_logging import RequestLoggingMiddleware
 from app.middleware.error_handler import ErrorHandlerMiddleware
-from app.middleware.rate_limiting import RateLimitingMiddleware
 from app.api import leaderboard, schedule, announcement, community, auth, user, task, submission, points
 
 # Setup logging
@@ -31,16 +29,10 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info("Starting application", extra={"environment": settings.APP_ENV})
     
-    # Initialize Redis
-    await init_redis()
-    logger.info("Redis initialized")
-    
     yield
     
     # Shutdown
     logger.info("Shutting down application")
-    await close_redis()
-    logger.info("Redis connection closed")
 
 
 # Create FastAPI application with comprehensive OpenAPI documentation
@@ -185,9 +177,6 @@ app.add_middleware(
 
 # Add error handler middleware (must be added before request logging)
 app.add_middleware(ErrorHandlerMiddleware)
-
-# Add rate limiting middleware
-app.add_middleware(RateLimitingMiddleware)
 
 # Add request/response logging middleware
 app.add_middleware(RequestLoggingMiddleware)

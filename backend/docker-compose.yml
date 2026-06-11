@@ -19,20 +19,6 @@ services:
       timeout: 5s
       retries: 5
 
-  # Redis Cache
-  redis:
-    image: redis:7-alpine
-    container_name: lpanda_redis
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   # FastAPI Application
   api:
     build:
@@ -48,44 +34,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      redis:
-        condition: service_healthy
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-
-  # Celery Worker
-  celery_worker:
-    build:
-      context: .
-      target: development
-    container_name: lpanda_celery_worker
-    env_file:
-      - .env
-    volumes:
-      - .:/app
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    command: celery -A app.celery_app worker --loglevel=info
-
-  # Celery Beat (Scheduler)
-  celery_beat:
-    build:
-      context: .
-      target: development
-    container_name: lpanda_celery_beat
-    env_file:
-      - .env
-    volumes:
-      - .:/app
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    command: celery -A app.celery_app beat --loglevel=info
 
 volumes:
   postgres_data:
-  redis_data:

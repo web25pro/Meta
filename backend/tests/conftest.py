@@ -14,23 +14,6 @@ from app.models import User, UserRole, UserType
 
 # Test database URL (use separate test database)
 TEST_DATABASE_URL = settings.DATABASE_URL.replace("/lpanda_db", "/lpanda_test_db")
-settings.REDIS_URL = "redis://localhost:6379/1"  # Use different DB for tests
-
-from app.core.redis import init_redis, close_redis
-
-@pytest.fixture(scope="session", autouse=True)
-async def initialize_redis():
-    """Initialize Redis for tests"""
-    # Only try to initialize if not already connected (prevents errors)
-    try:
-        await init_redis()
-    except Exception:
-        pass # Ignore if Redis is not available, middleware handles it
-    yield
-    try:
-        await close_redis()
-    except Exception:
-        pass
 
 @pytest.fixture(scope="session")
 async def test_engine():

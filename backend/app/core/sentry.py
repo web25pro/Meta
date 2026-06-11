@@ -4,8 +4,6 @@ from typing import Optional
 import sentry_sdk
 from sentry_sdk.integrations.fastapi import FastApiIntegration
 from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
-from sentry_sdk.integrations.redis import RedisIntegration
-from sentry_sdk.integrations.celery import CeleryIntegration
 from sentry_sdk.integrations.logging import LoggingIntegration
 
 from app.core.config import settings
@@ -52,8 +50,6 @@ def init_sentry() -> None:
             integrations=[
                 FastApiIntegration(transaction_style="endpoint"),
                 SqlalchemyIntegration(),
-                RedisIntegration(),
-                CeleryIntegration(),
                 logging_integration,
             ],
             

@@ -1,6 +1,7 @@
 """Security utilities for authentication and authorization"""
+import bcrypt
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Optional, Union
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel
@@ -9,6 +10,11 @@ from app.core.config import settings
 from app.core.logging import get_logger
 
 logger = get_logger(__name__)
+
+# Workaround for passlib/bcrypt compatibility issue with bcrypt >= 4.0.0
+# bcrypt 4.0.0 removed __about__ which passlib 1.7.4 expects
+if not hasattr(bcrypt, "__about__"):
+    bcrypt.__about__ = type('About', (object,), {'__version__': bcrypt.__version__})
 
 # Password hashing context
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -23,31 +29,52 @@ class TokenData(BaseModel):
     exp: datetime
 
 
-def hash_password(password: str) -> str:
+def hash_password(password: Union[str, bytes]) -> str:
     """
     Hash a password using bcrypt.
     
+    Bcrypt has a 72-byte limit for passwords. If exceeded, passlib raises a ValueError.
+    We truncate the password to 72 bytes to avoid this and maintain compatibility.
+    
     Args:
-        password: Plain text password
+        password: Plain text password (str or bytes)
         
     Returns:
         str: Hashed password
     """
-    return pwd_context.hash(password)
+    if isinstance(password, str):
+        pw_bytes = password.encode("utf-8")
+    else:
+        pw_bytes = password
+        
+    # Truncate to 72 bytes for bcrypt compatibility
+    if len(pw_bytes) > 72:
+        pw_bytes = pw_bytes[:72]
+        
+    return pwd_context.hash(pw_bytes)
 
 
-def verify_password(plain_password: str, hashed_password: str) -> bool:
+def verify_password(plain_password: Union[str, bytes], hashed_password: str) -> bool:
     """
     Verify a plain text password against a hashed password.
     
     Args:
-        plain_password: Plain text password
+        plain_password: Plain text password (str or bytes)
         hashed_password: Hashed password
         
     Returns:
         bool: True if password matches, False otherwise
     """
-    return pwd_context.verify(plain_password, hashed_password)
+    if isinstance(plain_password, str):
+        pw_bytes = plain_password.encode("utf-8")
+    else:
+        pw_bytes = plain_password
+        
+    # Truncate to 72 bytes for bcrypt compatibility
+    if len(pw_bytes) > 72:
+        pw_bytes = pw_bytes[:72]
+        
+    return pwd_context.verify(pw_bytes, hashed_password)
 
 
 def create_access_token(user_id: str, role: str, user_type: str) -> str:

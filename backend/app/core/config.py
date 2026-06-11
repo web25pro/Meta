@@ -23,10 +23,6 @@ class Settings(BaseSettings):
     DATABASE_POOL_SIZE: int = 10
     DATABASE_MAX_OVERFLOW: int = 10
     
-    # Redis
-    REDIS_URL: str
-    REDIS_POOL_SIZE: int = 10
-    
     # JWT
     JWT_SECRET_KEY: str
     JWT_ALGORITHM: str = "HS256"
@@ -48,10 +44,6 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: str = ""
     SMTP_USE_TLS: bool = True
     EMAIL_FROM: str = "noreply@lpanda.com"
-    
-    # Celery
-    CELERY_BROKER_URL: str
-    CELERY_RESULT_BACKEND: str
     
     # Logging
     LOG_LEVEL: str = "INFO"

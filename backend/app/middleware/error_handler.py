@@ -8,7 +8,6 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from sqlalchemy.exc import SQLAlchemyError
-from redis.exceptions import RedisError
 
 from app.core.logging import get_logger
 from app.core.sentry import capture_exception, set_user_context, set_tag
@@ -26,7 +25,7 @@ class ErrorHandlerMiddleware(BaseHTTPMiddleware):
     - Logs errors with full context
     - Sends errors to Sentry with user context
     - Returns standardized error responses
-    - Handles database and Redis errors gracefully
+    - Handles database errors gracefully
     """
     
     def __init__(self, app: ASGIApp):
@@ -141,40 +140,6 @@ class ErrorHandlerMiddleware(BaseHTTPMiddleware):
                     "error": {
                         "code": "DATABASE_ERROR",
                         "message": "A database error occurred. Please try again later.",
-                        "details": {}
-                    }
-                }
-            )
-            
-        except RedisError as e:
-            # Redis/cache errors
-            logger.error(
-                "Redis error occurred",
-                extra={
-                    "error": str(e),
-                    "error_type": type(e).__name__,
-                    "endpoint": request.url.path,
-                    "method": request.method,
-                },
-                exc_info=True
-            )
-            
-            # Send to Sentry
-            capture_exception(
-                e,
-                tags={
-                    "error_category": "cache",
-                    "endpoint": request.url.path,
-                }
-            )
-            
-            return JSONResponse(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                content={
-                    "success": False,
-                    "error": {
-                        "code": "CACHE_ERROR",
-                        "message": "A caching error occurred. Please try again later.",
                         "details": {}
                     }
                 }
