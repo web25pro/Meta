@@ -47,11 +47,13 @@ def send_email(
 
 
 def build_verification_link(token: str) -> str:
-    return f"{settings.SITE_BASE_URL}/verify-email?token={token}"
+    base_url = settings.SITE_BASE_URL.rstrip('/')
+    return f"{base_url}/auth/verify-email?token={token}"
 
 
 def build_password_reset_link(token: str) -> str:
-    return f"{settings.SITE_BASE_URL}/reset-password?token={token}"
+    base_url = settings.SITE_BASE_URL.rstrip('/')
+    return f"{base_url}/auth/password-reset-confirm?token={token}"
 
 
 async def send_verification_email(to_email: str, token: str) -> None:
