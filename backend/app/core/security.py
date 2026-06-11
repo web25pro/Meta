@@ -31,16 +31,16 @@ class TokenData(BaseModel):
 
 def hash_password(password: Union[str, bytes]) -> str:
     """
-    Hash a password using bcrypt.
+    Hash a password using bcrypt directly.
     
-    Bcrypt has a 72-byte limit for passwords. If exceeded, passlib raises a ValueError.
-    We truncate the password to 72 bytes to avoid this and maintain compatibility.
+    Bcrypt has a 72-byte limit for passwords. Newer versions raise ValueError 
+    if exceeded. We truncate to 72 bytes to maintain compatibility.
     
     Args:
         password: Plain text password (str or bytes)
         
     Returns:
-        str: Hashed password
+        str: Hashed password (encoded as string)
     """
     if isinstance(password, str):
         pw_bytes = password.encode("utf-8")
@@ -51,16 +51,20 @@ def hash_password(password: Union[str, bytes]) -> str:
     if len(pw_bytes) > 72:
         pw_bytes = pw_bytes[:72]
         
-    return pwd_context.hash(pw_bytes)
+    # Generate salt and hash
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(pw_bytes, salt)
+    
+    return hashed.decode("utf-8")
 
 
 def verify_password(plain_password: Union[str, bytes], hashed_password: str) -> bool:
     """
-    Verify a plain text password against a hashed password.
+    Verify a plain text password against a hashed password using bcrypt directly.
     
     Args:
         plain_password: Plain text password (str or bytes)
-        hashed_password: Hashed password
+        hashed_password: Hashed password (string)
         
     Returns:
         bool: True if password matches, False otherwise
@@ -74,7 +78,12 @@ def verify_password(plain_password: Union[str, bytes], hashed_password: str) -> 
     if len(pw_bytes) > 72:
         pw_bytes = pw_bytes[:72]
         
-    return pwd_context.verify(pw_bytes, hashed_password)
+    try:
+        # Bcrypt expects hashed_password as bytes
+        return bcrypt.checkpw(pw_bytes, hashed_password.encode("utf-8"))
+    except Exception as e:
+        logger.error(f"Password verification failed: {str(e)}")
+        return False
 
 
 def create_access_token(user_id: str, role: str, user_type: str) -> str:
