@@ -21,9 +21,17 @@ def send_email(
 
     resend.api_key = settings.RESEND_API_KEY
 
+    # Ensure a valid 'from' address is used, falling back to Resend's testing default if necessary
+    from_email = settings.EMAIL_FROM
+    if not from_email or "@" not in from_email:
+        from_email = "onboarding@resend.dev"
+        
+    # Format as 'Name <email@domain.com>' which Resend prefers
+    formatted_from = f"LPanda Platform <{from_email}>" if "<" not in from_email else from_email
+
     try:
         params = {
-            "from": settings.EMAIL_FROM,
+            "from": formatted_from,
             "to": [to_email],
             "subject": subject,
             "html": html_body,
