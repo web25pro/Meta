@@ -4,7 +4,6 @@ import { toast } from 'sonner';
 import { authAPI } from '@/api/auth';
 import { useAuthStore } from '@/store/authStore';
 import { setTokens, clearTokens } from '@/lib/api';
-import { LoginRequest } from '@/types';
 
 export function useAuth() {
   const router = useRouter();
