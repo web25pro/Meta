@@ -1,11 +1,7 @@
 import axios, { AxiosError, AxiosInstance, AxiosRequestConfig } from 'axios';
 import { APIError } from '@/types';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
-
-if (!API_URL && typeof window !== 'undefined') {
-  console.error('NEXT_PUBLIC_API_URL is not defined in the environment!');
-}
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://meta-4bck.onrender.com/api/v1';
 
 // Create axios instance
 const apiClient: AxiosInstance = axios.create({
