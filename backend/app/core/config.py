@@ -73,6 +73,14 @@ class Settings(BaseSettings):
         extra="ignore"
     )
     
+    @field_validator("DATABASE_URL", mode="before")
+    @classmethod
+    def fix_database_url(cls, v: str) -> str:
+        """Fix database URL to use asyncpg driver if missing"""
+        if v and v.startswith("postgresql://"):
+            return v.replace("postgresql://", "postgresql+asyncpg://", 1)
+        return v
+
     @property
     def cors_origins_list(self) -> List[str]:
         """Get CORS origins as a list"""

@@ -9,7 +9,7 @@ import re
 class CommunityUserRegisterRequest(BaseModel):
     """Schema for community user registration request"""
     email: EmailStr = Field(..., description="User's email address")
-    password: str = Field(..., min_length=8, description="User's password (min 8 characters)")
+    password: str = Field(..., min_length=8, max_length=72, description="User's password (min 8 characters, max 72 for bcrypt)")
     username: str = Field(..., min_length=3, max_length=20, description="Public display name")
     referral_code: Optional[str] = Field(None, min_length=8, max_length=8, description="Optional referral code")
     
@@ -96,7 +96,7 @@ class PasswordResetResponse(BaseModel):
 class PasswordResetConfirmRequest(BaseModel):
     """Schema for password reset confirmation"""
     token: str = Field(..., description="Password reset JWT token")
-    new_password: str = Field(..., min_length=8, description="New password")
+    new_password: str = Field(..., min_length=8, max_length=72, description="New password")
     
     @field_validator('new_password')
     @classmethod
