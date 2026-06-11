@@ -166,6 +166,9 @@ Responses include pagination metadata:
     redoc_url="/api/v1/redoc",
 )
 
+# Add error handler middleware (must be added before request logging)
+app.add_middleware(ErrorHandlerMiddleware)
+
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
@@ -174,9 +177,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Add error handler middleware (must be added before request logging)
-app.add_middleware(ErrorHandlerMiddleware)
 
 # Add request/response logging middleware
 app.add_middleware(RequestLoggingMiddleware)

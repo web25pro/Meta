@@ -55,12 +55,12 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     role: Mapped[UserRole] = mapped_column(
-        SQLEnum(UserRole, name="user_role", create_type=True),
+        SQLEnum(UserRole, name="user_role", create_type=False, values_callable=lambda x: [e.value for e in x]),
         nullable=False,
         index=True
     )
     user_type: Mapped[UserType] = mapped_column(
-        SQLEnum(UserType, name="user_type", create_type=True),
+        SQLEnum(UserType, name="user_type", create_type=False, values_callable=lambda x: [e.value for e in x]),
         nullable=False,
         index=True
     )
