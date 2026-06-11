@@ -174,8 +174,8 @@ class ErrorHandlerMiddleware(BaseHTTPMiddleware):
                     "success": False,
                     "error": {
                         "code": "INTERNAL_SERVER_ERROR",
-                        "message": "An unexpected error occurred. Please try again later.",
-                        "details": {}
+                        "message": f"An unexpected error occurred: {type(e).__name__}",
+                        "details": {"error_type": type(e).__name__, "error_msg": str(e)}
                     }
                 }
             )
