@@ -139,8 +139,8 @@ class ErrorHandlerMiddleware(BaseHTTPMiddleware):
                     "success": False,
                     "error": {
                         "code": "DATABASE_ERROR",
-                        "message": "A database error occurred. Please try again later.",
-                        "details": {}
+                        "message": f"A database error occurred: {type(e).__name__}",
+                        "details": {"error_type": type(e).__name__, "error_msg": str(e)}
                     }
                 }
             )
