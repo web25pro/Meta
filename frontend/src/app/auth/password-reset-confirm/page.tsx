@@ -73,7 +73,7 @@ function PasswordResetConfirmContent() {
 
       // Redirect to login after 2 seconds
       setTimeout(() => {
-        router.push('/login');
+        router.push('/auth/login');
       }, 2000);
     } catch (error: any) {
       setStatus('error');
@@ -268,7 +268,7 @@ function PasswordResetConfirmContent() {
           {/* Back to Login */}
           <p className="text-center text-sm text-primary-300 mt-6">
             Remember your password?{' '}
-            <Link href="/login" className="text-primary-600 hover:underline font-medium">
+            <Link href="/auth/login" className="text-primary-600 hover:underline font-medium">
               Back to Login
             </Link>
           </p>

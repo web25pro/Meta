@@ -2,7 +2,7 @@
 import asyncio
 import pytest
 from typing import AsyncGenerator, Generator
-from httpx import AsyncClient
+from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 
 from app.main import app
@@ -14,15 +14,23 @@ from app.models import User, UserRole, UserType
 
 # Test database URL (use separate test database)
 TEST_DATABASE_URL = settings.DATABASE_URL.replace("/lpanda_db", "/lpanda_test_db")
+settings.REDIS_URL = "redis://localhost:6379/1"  # Use different DB for tests
 
+from app.core.redis import init_redis, close_redis
 
-@pytest.fixture(scope="session")
-def event_loop() -> Generator:
-    """Create event loop for async tests"""
-    loop = asyncio.get_event_loop_policy().new_event_loop()
-    yield loop
-    loop.close()
-
+@pytest.fixture(scope="session", autouse=True)
+async def initialize_redis():
+    """Initialize Redis for tests"""
+    # Only try to initialize if not already connected (prevents errors)
+    try:
+        await init_redis()
+    except Exception:
+        pass # Ignore if Redis is not available, middleware handles it
+    yield
+    try:
+        await close_redis()
+    except Exception:
+        pass
 
 @pytest.fixture(scope="session")
 async def test_engine():
@@ -67,7 +75,7 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     
     app.dependency_overrides[get_db] = override_get_db
     
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac
     
     app.dependency_overrides.clear()

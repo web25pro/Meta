@@ -1,6 +1,7 @@
 """Service for community user operations"""
 import secrets
 import string
+import uuid
 from datetime import datetime, timedelta
 from typing import Optional
 from uuid import UUID
@@ -257,8 +258,12 @@ async def create_community_user(
     # Hash password
     password_hash = hash_password(password)
     
+    # Generate ID for verification token
+    user_id = uuid.uuid4()
+    
     # Create user
     new_user = User(
+        id=user_id,
         name=username,  # Use username as name for community users
         email=email,
         password_hash=password_hash,
@@ -277,7 +282,7 @@ async def create_community_user(
     )
     # Generate and persist email verification token and timestamp
     try:
-        new_user.email_verification_token = generate_verification_token(new_user.id)
+        new_user.email_verification_token = generate_verification_token(user_id)
         new_user.email_verification_sent_at = datetime.utcnow()
     except Exception:
         # If token generation fails for any reason, proceed without blocking user creation

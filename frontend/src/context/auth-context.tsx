@@ -58,7 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('user');
     setUser(null);
-    router.push('/login');
+    router.push('/auth/login');
   };
 
   return (

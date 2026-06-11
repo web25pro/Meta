@@ -153,7 +153,7 @@ export default function PasswordResetPage() {
           {/* Back to Login */}
           <p className="text-center text-sm text-gray-600 mt-6">
             Remember your password?{' '}
-            <Link href="/login" className="text-primary-600 hover:underline font-medium">
+            <Link href="/auth/login" className="text-primary-600 hover:underline font-medium">
               Back to Login
             </Link>
           </p>
@@ -162,7 +162,7 @@ export default function PasswordResetPage() {
         {/* Help Text */}
         <p className="text-center text-xs text-gray-600 mt-6">
           Don&apos;t have an account?{' '}
-          <Link href="/register" className="text-primary-600 hover:underline font-medium">
+          <Link href="/auth/register" className="text-primary-600 hover:underline font-medium">
             Sign up here
           </Link>
         </p>

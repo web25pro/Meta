@@ -120,7 +120,7 @@ export default function LoginPage() {
                 </label>
               </div>
               <Link
-                href="/password-reset"
+                href="/auth/password-reset"
                 className="text-sm text-blue-300 hover:text-blue-200 font-medium"
               >
                 Forgot password?
@@ -151,7 +151,7 @@ export default function LoginPage() {
           <div className="mt-6 text-center">
             <p className="text-sm text-blue-300">
               New to the jungle?{' '}
-              <Link href="/register" className="text-blue-300 hover:text-blue-200 font-semibold">
+              <Link href="/auth/register" className="text-blue-300 hover:text-blue-200 font-semibold">
                 Start your quest
               </Link>
             </p>

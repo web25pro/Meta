@@ -80,7 +80,10 @@ function RegisterContent() {
       }, 1500);
     } catch (error: any) {
       const message =
-        error.response?.data?.detail || error.message || 'Registration failed';
+        error.response?.data?.error?.message ||
+        error.response?.data?.detail ||
+        error.message ||
+        'Registration failed';
       toast.error(message);
     } finally {
       setIsLoading(false);
@@ -261,7 +264,7 @@ function RegisterContent() {
           <div className="mt-6 text-center">
             <p className="text-sm text-blue-300">
               Already have an account?{' '}
-              <Link href="/login" className="text-blue-300 hover:text-blue-200 font-semibold">
+              <Link href="/auth/login" className="text-blue-300 hover:text-blue-200 font-semibold">
                 Sign in here
               </Link>
             </p>

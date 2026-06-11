@@ -22,7 +22,7 @@ export default function HomePage() {
           </div>
           <div className="flex items-center space-x-4">
             <Link
-              href="/login"
+              href="/auth/login"
               className="text-blue-200 hover:text-panda-white transition-colors font-medium"
             >
               Login
@@ -57,7 +57,7 @@ export default function HomePage() {
               <ArrowRight className="h-5 w-5" />
             </Link>
             <Link
-              href="/login"
+              href="/auth/login"
               className="border-2 border-blue-400 text-blue-300 px-8 py-4 rounded-lg hover:bg-blue-400 hover:text-jungle-900 transition-all text-lg font-semibold"
             >
               Sign In

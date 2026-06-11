@@ -25,13 +25,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   useEffect(() => {
     if (!isAuthenticated()) {
-      router.push('/login');
+      router.push('/auth/login');
     }
   }, [router]);
 
   const handleLogout = () => {
     clearTokens();
-    router.push('/login');
+    router.push('/auth/login');
   };
 
   const navigation = [

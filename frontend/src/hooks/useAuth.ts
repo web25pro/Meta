@@ -40,7 +40,7 @@ export function useAuth() {
       logoutStore();
       clearTokens();
       queryClient.clear();
-      router.push('/login');
+      router.push('/auth/login');
       toast.success('Logged out successfully');
     },
   });

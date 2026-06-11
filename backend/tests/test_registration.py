@@ -52,7 +52,9 @@ async def test_public_registration_restricted_roles(db_session: AsyncSession, cl
     response = await client.post("/api/v1/users", json=registration_data)
     
     assert response.status_code == 403
-    assert "Public registration is only allowed for 'USER' role" in response.json()["detail"]
+    data = response.json()
+    error_message = data["error"]["message"] if "error" in data else data["detail"]
+    assert "Public registration is only allowed for 'USER' role" in error_message
 
 
 @pytest.mark.asyncio
