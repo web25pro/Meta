@@ -1,7 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import { useQuery } from 'react-query';
 import { toast } from 'sonner';
+import { metajungleAPI } from '@/api/metajungle';
 import {
   NFTVaultTile,
   Modal,
@@ -63,9 +65,32 @@ const TIER_TONE: Record<NFTTier, 'cobalt' | 'sky' | 'gold'> = {
   common: 'cobalt', rare: 'sky', epic: 'gold', legendary: 'gold',
 };
 
+const TIER_RANK: NFTTier[] = ['common', 'rare', 'epic', 'legendary'];
+function topTier(nfts: { tier: NFTTier }[]): string {
+  if (!nfts.length) return '—';
+  const best = nfts.reduce((b, n) => Math.max(b, TIER_RANK.indexOf(n.tier)), 0);
+  const label = TIER_RANK[best];
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
 export default function NFTVaultPage() {
   const [selected, setSelected] = useState<VaultNFT | null>(null);
-  const totalDaily = NFTS.reduce((s, n) => s + n.dailyPP, 0);
+
+  // Live holdings from the backend; falls back to demo NFTs offline / empty.
+  const { data } = useQuery('mjNfts', metajungleAPI.listNFTs, { retry: false });
+  const nfts: VaultNFT[] =
+    data && data.nfts.length > 0
+      ? data.nfts.map((n) => ({
+          id: n.id,
+          name: n.name,
+          tier: n.tier,
+          dailyPP: n.daily_pp_rate,
+          collection: 'LPanda Genesis',
+          traits: n.traits ?? [],
+          utilities: n.utilities ?? [],
+        }))
+      : NFTS;
+  const totalDaily = nfts.reduce((s, n) => s + n.dailyPP, 0);
 
   return (
     <div className="animate-page-in space-y-xl">
@@ -77,13 +102,13 @@ export default function NFTVaultPage() {
       </div>
 
       <div className="grid grid-cols-2 gap-lg lg:grid-cols-3">
-        <StatCard icon={<Sparkles className="h-6 w-6" />} label="NFTs Held" value={NFTS.length} />
+        <StatCard icon={<Sparkles className="h-6 w-6" />} label="NFTs Held" value={nfts.length} />
         <StatCard icon={<Sparkles className="h-6 w-6" />} label="Daily PP Yield" value={totalDaily} isPP />
-        <StatCard icon={<Sparkles className="h-6 w-6" />} label="Top Tier" value="Legendary" />
+        <StatCard icon={<Sparkles className="h-6 w-6" />} label="Top Tier" value={topTier(nfts)} />
       </div>
 
       <div className="grid grid-cols-2 gap-lg sm:grid-cols-3 lg:grid-cols-4">
-        {NFTS.map((n) => (
+        {nfts.map((n) => (
           <NFTVaultTile
             key={n.id}
             name={n.name}

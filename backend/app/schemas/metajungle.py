@@ -127,6 +127,7 @@ class StakeCreate(BaseModel):
 class CampaignResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: uuid.UUID
+    brand: Optional[str] = None
     title: str
     blurb: str
     pp_budget: int

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQuery } from 'react-query';
 import { CheckCircle, Mail, Loader2, Target, Flame, Users, Award } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -10,8 +11,17 @@ import {
   RoleBadge,
   Skeleton,
   cn,
+  type Role,
 } from '@meta-jungle/ui';
+import { metajungleAPI } from '@/api/metajungle';
 import { useAuth } from '@/context/auth-context';
+
+const DEFAULT_REP = {
+  activity_score: 620,
+  reputation_score: 540,
+  influence_score: 310,
+  role: 'Hunter' as Role,
+};
 
 interface CommunityUserStats {
   user_id: string;
@@ -34,6 +44,12 @@ export default function ProfilePage() {
   const { user, isLoading: authLoading } = useAuth();
   const [stats, setStats] = useState<CommunityUserStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  const { data: rep } = useQuery('mjReputation', metajungleAPI.getReputation, {
+    retry: false,
+    enabled: !!user,
+  });
+  const r = rep ?? DEFAULT_REP;
 
   useEffect(() => {
     if (authLoading) return;
@@ -87,10 +103,15 @@ export default function ProfilePage() {
       <div className="relative overflow-hidden rounded-card bg-bg-dark p-xl text-center text-ink-inverse">
         <div className="bamboo-texture pointer-events-none absolute inset-0" />
         <div className="relative flex flex-col items-center">
-          <ReputationRings activity={620} reputation={540} influence={310} size={108} />
+          <ReputationRings
+            activity={r.activity_score}
+            reputation={r.reputation_score}
+            influence={r.influence_score}
+            size={108}
+          />
           <h1 className="mt-md font-display text-h1 text-ink-inverse">{stats.username}</h1>
           <div className="mt-sm flex items-center gap-sm">
-            <RoleBadge role="Hunter" />
+            <RoleBadge role={r.role as Role} />
             {stats.email_verified ? (
               <span className="flex items-center gap-1 rounded-pill bg-success/15 px-sm py-[2px] text-label text-success">
                 <CheckCircle className="h-4 w-4" /> Verified
@@ -107,9 +128,9 @@ export default function ProfilePage() {
 
       {/* Score legend */}
       <div className="flex flex-wrap gap-lg text-label">
-        <Legend color="bg-brand-sky" label="Activity" value={620} />
-        <Legend color="bg-brand-cobalt" label="Reputation" value={540} />
-        <Legend color="bg-reward-gold" label="Influence" value={310} />
+        <Legend color="bg-brand-sky" label="Activity" value={r.activity_score} />
+        <Legend color="bg-brand-cobalt" label="Reputation" value={r.reputation_score} />
+        <Legend color="bg-reward-gold" label="Influence" value={r.influence_score} />
       </div>
 
       {/* Stats */}

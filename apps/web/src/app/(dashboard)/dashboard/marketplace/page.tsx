@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { useQuery } from 'react-query';
+import { useQuery, useQueryClient } from 'react-query';
 import {
   Phone,
   Wifi,
@@ -24,6 +24,7 @@ import {
   cn,
 } from '@meta-jungle/ui';
 import apiClient from '@/lib/api';
+import { metajungleAPI } from '@/api/metajungle';
 import { PointsTransaction, PaginatedResponse } from '@/types';
 import {
   CATEGORIES,
@@ -51,6 +52,8 @@ export default function MarketplacePage() {
   const [inputValue, setInputValue] = useState('');
   const [voucher, setVoucher] = useState('');
 
+  const queryClient = useQueryClient();
+
   // Current PP balance (sum of ledger) — mirrors the Panda Wallet page.
   const { data: ledger } = useQuery<PaginatedResponse<PointsTransaction>>(
     'pointsHistory',
@@ -61,7 +64,12 @@ export default function MarketplacePage() {
     [ledger],
   );
 
-  const items = PRODUCTS.filter((p) => p.category === active);
+  // Live catalog from the backend; falls back to the bundled catalog offline.
+  const { data: catalog } = useQuery('mjCatalog', metajungleAPI.getCatalog, {
+    retry: false,
+  });
+  const products = (catalog as Product[] | undefined) ?? PRODUCTS;
+  const items = products.filter((p) => p.category === active);
 
   const openRedeem = (p: Product) => {
     setSelected(p);
@@ -90,18 +98,20 @@ export default function MarketplacePage() {
     runProcessing();
   };
 
-  const runProcessing = () => {
+  const runProcessing = async () => {
+    if (!selected) return;
     setStep('processing');
-    // Simulated provider call.
-    setTimeout(() => {
-      const code =
-        'MJ-' +
-        Math.random().toString(36).slice(2, 7).toUpperCase() +
-        '-' +
-        Math.random().toString(36).slice(2, 7).toUpperCase();
-      setVoucher(code);
+    try {
+      const result = await metajungleAPI.redeem(selected.id, inputValue || undefined);
+      setVoucher(result.voucher_code);
+      // Refresh balance after the PP debit settles.
+      queryClient.invalidateQueries('pointsHistory');
       setStep('success');
-    }, 1600);
+    } catch (err: any) {
+      const msg = err?.response?.data?.detail || err?.message || 'Redemption failed';
+      toast.error(msg);
+      setStep('confirm');
+    }
   };
 
   return (

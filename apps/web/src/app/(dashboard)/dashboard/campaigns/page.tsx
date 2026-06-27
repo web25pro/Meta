@@ -1,5 +1,6 @@
 'use client';
 
+import { useQuery, useQueryClient } from 'react-query';
 import { toast } from 'sonner';
 import { Clock, Users } from 'lucide-react';
 import {
@@ -10,6 +11,7 @@ import {
   ProgressBar,
   cn,
 } from '@meta-jungle/ui';
+import { metajungleAPI, type ApiCampaign } from '@/api/metajungle';
 
 interface Campaign {
   id: string;
@@ -32,9 +34,41 @@ const CAMPAIGNS: Campaign[] = [
   { id: '4', brand: 'Duolingo', title: 'Learn a language streak', blurb: 'Hit a 7-day streak in any course to claim the reward.', pool: 80000, perTask: 150, daysLeft: 20, participants: 540, filled: 23, regions: ['Global'] },
 ];
 
+function fromApi(c: ApiCampaign): Campaign {
+  const daysLeft = c.ends_at
+    ? Math.max(0, Math.ceil((new Date(c.ends_at).getTime() - Date.now()) / 86400000))
+    : 0;
+  return {
+    id: c.id,
+    brand: c.brand || 'Partner',
+    title: c.title,
+    blurb: c.blurb,
+    pool: c.pp_budget,
+    perTask: c.pp_per_task,
+    daysLeft,
+    participants: c.total_participants,
+    filled: c.pp_budget > 0 ? Math.round((c.pp_claimed / c.pp_budget) * 100) : 0,
+    regions: ['Global'],
+    featured: c.featured,
+  };
+}
+
 export default function CampaignsPage() {
-  const featured = CAMPAIGNS.find((c) => c.featured);
-  const rest = CAMPAIGNS.filter((c) => !c.featured);
+  const queryClient = useQueryClient();
+  const { data } = useQuery('mjCampaigns', metajungleAPI.listCampaigns, { retry: false });
+  const all: Campaign[] = data && data.length > 0 ? data.map(fromApi) : CAMPAIGNS;
+  const featured = all.find((c) => c.featured);
+  const rest = all.filter((c) => !c.featured);
+
+  const join = async (c: Campaign) => {
+    try {
+      await metajungleAPI.joinCampaign(c.id);
+      toast.success(`Joined ${c.brand} campaign`);
+      queryClient.invalidateQueries('mjCampaigns');
+    } catch (err: any) {
+      toast.error(err?.response?.data?.detail || `Could not join ${c.brand}`);
+    }
+  };
 
   return (
     <div className="animate-page-in space-y-xl">
@@ -71,7 +105,7 @@ export default function CampaignsPage() {
                 <Clock className="h-4 w-4" /> {featured.daysLeft} days left
               </div>
             </div>
-            <Button variant="gold" onClick={() => toast.success(`Joined ${featured.brand} campaign`)}>
+            <Button variant="gold" onClick={() => join(featured)}>
               Join Campaign
             </Button>
           </div>
@@ -100,7 +134,7 @@ export default function CampaignsPage() {
             </div>
             <div className="mt-auto flex items-center justify-between">
               <PPAmount value={c.perTask} size="sm" />
-              <Button size="sm" onClick={() => toast.success(`Joined ${c.brand} campaign`)}>Join</Button>
+              <Button size="sm" onClick={() => join(c)}>Join</Button>
             </div>
           </Card>
         ))}

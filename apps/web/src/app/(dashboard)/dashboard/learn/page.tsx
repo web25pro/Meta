@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useQuery, useQueryClient } from 'react-query';
 import { toast } from 'sonner';
 import { BookOpen, Check, Trophy } from 'lucide-react';
 import {
@@ -12,6 +13,7 @@ import {
   ProgressBar,
   cn,
 } from '@meta-jungle/ui';
+import { metajungleAPI } from '@/api/metajungle';
 
 interface Course {
   id: string;
@@ -22,6 +24,7 @@ interface Course {
   level: 'Beginner' | 'Intermediate' | 'Advanced';
   progress: number;
   quiz: { q: string; options: string[]; answer: number };
+  real?: boolean;
 }
 
 const COURSES: Course[] = [
@@ -46,9 +49,31 @@ const COURSES: Course[] = [
 const LEVEL_TONE = { Beginner: 'success', Intermediate: 'cobalt', Advanced: 'gold' } as const;
 
 export default function LearnPage() {
+  const queryClient = useQueryClient();
   const [active, setActive] = useState<Course | null>(null);
   const [picked, setPicked] = useState<number | null>(null);
   const [result, setResult] = useState<'idle' | 'correct' | 'wrong'>('idle');
+
+  // Live courses from the backend; reuse local quiz questions (the list endpoint
+  // does not expose answers) matched by title, and submit answers server-side.
+  const { data } = useQuery('mjCourses', metajungleAPI.listCourses, { retry: false });
+  const courses: Course[] =
+    data && data.length > 0
+      ? data.map((c) => {
+          const local = COURSES.find((l) => l.title === c.title) ?? COURSES[0];
+          return {
+            id: c.id,
+            title: c.title,
+            blurb: c.blurb,
+            lessons: c.lessons,
+            pp: c.pp_reward,
+            level: c.level,
+            progress: 0,
+            quiz: local.quiz,
+            real: true,
+          };
+        })
+      : COURSES;
 
   const open = (c: Course) => {
     setActive(c);
@@ -56,8 +81,21 @@ export default function LearnPage() {
     setResult('idle');
   };
 
-  const submit = () => {
+  const submit = async () => {
     if (picked === null || !active) return;
+    if (active.real) {
+      try {
+        const res = await metajungleAPI.submitQuiz(active.id, [picked]);
+        setResult(res.passed ? 'correct' : 'wrong');
+        if (res.passed) {
+          toast.success(res.pp_awarded > 0 ? `Quiz passed! +${res.pp_awarded} PP` : 'Quiz already completed');
+          queryClient.invalidateQueries('pointsHistory');
+        }
+        return;
+      } catch {
+        // fall through to local grading
+      }
+    }
     const ok = picked === active.quiz.answer;
     setResult(ok ? 'correct' : 'wrong');
     if (ok) toast.success(`Quiz passed! +${active.pp} PP`);
@@ -73,7 +111,7 @@ export default function LearnPage() {
       </div>
 
       <div className="grid gap-lg sm:grid-cols-2">
-        {COURSES.map((c) => (
+        {courses.map((c) => (
           <Card key={c.id} className="flex flex-col gap-md">
             <div className="flex items-start justify-between">
               <div className="rounded-card bg-brand-ice p-3 text-brand-cobalt">

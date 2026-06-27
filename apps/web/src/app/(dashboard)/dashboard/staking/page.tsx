@@ -1,8 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import { useQuery, useQueryClient } from 'react-query';
 import { Lock, Plus, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
+import { metajungleAPI, type ApiStake } from '@/api/metajungle';
 import {
   Card,
   Button,
@@ -36,11 +38,83 @@ const TIERS = [
   { days: 180, mult: '2.0×', apr: '22%' },
 ];
 
+interface DisplayStake {
+  id: string;
+  asset: string;
+  amount: number;
+  multiplier: string;
+  lockDays: number;
+  elapsedDays: number;
+  accrued: number;
+  real: boolean;
+}
+
+function fromApi(s: ApiStake): DisplayStake {
+  const started = new Date(s.started_at).getTime();
+  const elapsed = Math.min(s.lock_days, Math.max(0, Math.floor((Date.now() - started) / 86400000)));
+  return {
+    id: s.id,
+    asset: s.asset,
+    amount: s.pp_amount,
+    multiplier: `${s.multiplier}×`,
+    lockDays: s.lock_days,
+    elapsedDays: elapsed,
+    accrued: Number(s.accrued),
+    real: true,
+  };
+}
+
 export default function StakingPage() {
+  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [tier, setTier] = useState(TIERS[1]);
-  const totalStaked = STAKES.reduce((s, x) => s + x.amount, 0);
-  const totalAccrued = STAKES.reduce((s, x) => s + x.accrued, 0);
+  const [amount, setAmount] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const { data } = useQuery('mjStakes', metajungleAPI.listStakes, { retry: false });
+  const stakes: DisplayStake[] =
+    data && data.stakes.length > 0
+      ? data.stakes.map(fromApi)
+      : STAKES.map((s) => ({ ...s, real: false }));
+
+  const totalStaked = stakes.reduce((s, x) => s + x.amount, 0);
+  const totalAccrued = stakes.reduce((s, x) => s + x.accrued, 0);
+
+  const confirmStake = async () => {
+    const pp = parseInt(amount, 10);
+    if (!pp || pp <= 0) {
+      toast.error('Enter a valid PP amount');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await metajungleAPI.createStake(pp, tier.days);
+      toast.success(`Staked ${pp.toLocaleString()} PP at ${tier.mult} for ${tier.days} days`);
+      queryClient.invalidateQueries('mjStakes');
+      queryClient.invalidateQueries('pointsHistory');
+      setOpen(false);
+      setAmount('');
+    } catch (err: any) {
+      toast.error(err?.response?.data?.detail || 'Could not create stake');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const claim = async (s: DisplayStake) => {
+    if (!s.real) {
+      toast.success('Rewards claimed');
+      return;
+    }
+    try {
+      await metajungleAPI.claimStake(s.id);
+      toast.success('Staking rewards claimed');
+      queryClient.invalidateQueries('mjStakes');
+      queryClient.invalidateQueries('pointsHistory');
+    } catch (err: any) {
+      toast.error(err?.response?.data?.detail || 'Could not claim');
+    }
+  };
 
   return (
     <div className="animate-page-in space-y-xl">
@@ -59,12 +133,12 @@ export default function StakingPage() {
       <div className="grid grid-cols-2 gap-lg lg:grid-cols-3">
         <StatCard icon={<Lock className="h-6 w-6" />} label="PP Staked" value={totalStaked} isPP />
         <StatCard icon={<TrendingUp className="h-6 w-6" />} label="Rewards Accrued" value={totalAccrued} isPP />
-        <StatCard icon={<TrendingUp className="h-6 w-6" />} label="Active Stakes" value={STAKES.length} />
+        <StatCard icon={<TrendingUp className="h-6 w-6" />} label="Active Stakes" value={stakes.length} />
       </div>
 
       <div className="space-y-lg">
         <h2 className="font-display text-h2 text-ink-primary">Active stakes</h2>
-        {STAKES.map((s) => {
+        {stakes.map((s) => {
           const pct = Math.round((s.elapsedDays / s.lockDays) * 100);
           return (
             <Card key={s.id} className="space-y-md border-l-4 border-l-brand-cobalt">
@@ -87,7 +161,7 @@ export default function StakingPage() {
                 <PPAmount value={s.accrued} size="sm" />
               </div>
               <div className="flex gap-sm">
-                <Button variant="ghost" className="flex-1" onClick={() => toast.success('Rewards claimed')}>
+                <Button variant="ghost" className="flex-1" onClick={() => claim(s)}>
                   Claim
                 </Button>
                 <Button variant="ghost" className="flex-1" onClick={() => toast('Early exit incurs a penalty', { icon: '⚠️' })}>
@@ -101,7 +175,13 @@ export default function StakingPage() {
 
       <Modal open={open} onClose={() => setOpen(false)} title="New stake">
         <div className="space-y-lg">
-          <Input label="Amount (PP)" type="number" placeholder="5000" />
+          <Input
+            label="Amount (PP)"
+            type="number"
+            placeholder="5000"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+          />
           <div>
             <p className="mb-sm text-label font-medium text-ink-primary">Lock duration</p>
             <div className="grid grid-cols-3 gap-sm">
@@ -123,14 +203,8 @@ export default function StakingPage() {
               ))}
             </div>
           </div>
-          <Button
-            className="w-full"
-            onClick={() => {
-              setOpen(false);
-              toast.success(`Staked with a ${tier.mult} multiplier for ${tier.days} days`);
-            }}
-          >
-            Confirm Stake
+          <Button className="w-full" onClick={confirmStake} disabled={submitting}>
+            {submitting ? 'Staking…' : 'Confirm Stake'}
           </Button>
         </div>
       </Modal>

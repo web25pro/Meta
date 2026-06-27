@@ -302,10 +302,17 @@ class MetaJungleService:
     # ── Campaigns (Chapter 11) ──────────────────────────────────────────────
     @staticmethod
     async def list_campaigns(db: AsyncSession) -> list[Campaign]:
-        r = await db.execute(
-            select(Campaign).where(Campaign.status == "active").order_by(Campaign.featured.desc(), Campaign.created_at.desc())
-        )
-        return list(r.scalars().all())
+        rows = (await db.execute(
+            select(Campaign, Partner.name)
+            .join(Partner, Partner.id == Campaign.partner_id)
+            .where(Campaign.status == "active")
+            .order_by(Campaign.featured.desc(), Campaign.created_at.desc())
+        )).all()
+        campaigns = []
+        for campaign, brand in rows:
+            campaign.brand = brand  # transient attr for the response schema
+            campaigns.append(campaign)
+        return campaigns
 
     @staticmethod
     async def join_campaign(db: AsyncSession, user: User, campaign_id: uuid.UUID) -> CampaignParticipation:

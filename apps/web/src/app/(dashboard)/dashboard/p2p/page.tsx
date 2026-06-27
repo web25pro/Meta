@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useQuery, useQueryClient } from 'react-query';
 import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -11,6 +12,7 @@ import {
   Badge,
   cn,
 } from '@meta-jungle/ui';
+import { metajungleAPI, type ApiP2POrder } from '@/api/metajungle';
 
 interface Order {
   id: string;
@@ -32,12 +34,65 @@ const ORDERS: Order[] = [
   { id: '5', trader: 'ivory_paw', verified: true, reputation: 4, ppAmount: 3000, price: '$29.10', methods: ['PayPal'], postedAgo: '2h ago', side: 'buy' },
 ];
 
+function fromApi(o: ApiP2POrder): Order {
+  const sym = o.currency === 'NGN' ? '₦' : o.currency === 'USD' ? '$' : '';
+  return {
+    id: o.id,
+    trader: `Trader ${o.id.slice(0, 4)}`,
+    verified: false,
+    reputation: 4,
+    ppAmount: o.pp_amount,
+    price: `${sym}${Number(o.price).toLocaleString()}`,
+    methods: o.payment_method ? o.payment_method.split(',').map((m) => m.trim()) : [],
+    postedAgo: new Date(o.created_at).toLocaleDateString(),
+    side: o.side,
+  };
+}
+
 export default function P2PPage() {
+  const queryClient = useQueryClient();
   const [side, setSide] = useState<'buy' | 'sell'>('buy');
   const [createOpen, setCreateOpen] = useState(false);
+  const [form, setForm] = useState({ pp_amount: '', price: '', payment_method: '' });
+  const [posting, setPosting] = useState(false);
 
-  // On the Buy tab, show traders selling PP; on Sell, show traders buying PP.
-  const list = ORDERS.filter((o) => (side === 'buy' ? o.side === 'sell' : o.side === 'buy'));
+  // Buy tab shows sell-side orders (traders selling PP) and vice versa.
+  const apiSide = side === 'buy' ? 'sell' : 'buy';
+  const { data: apiOrders } = useQuery(['mjOrders', apiSide], () => metajungleAPI.listOrders(apiSide), {
+    retry: false,
+  });
+  const list: Order[] =
+    apiOrders && apiOrders.length > 0
+      ? apiOrders.map(fromApi)
+      : ORDERS.filter((o) => o.side === apiSide);
+
+  const postOrder = async () => {
+    const pp = parseInt(form.pp_amount, 10);
+    const price = parseFloat(form.price);
+    if (!pp || !price || !form.payment_method.trim()) {
+      toast.error('Fill in amount, price and payment method');
+      return;
+    }
+    setPosting(true);
+    try {
+      await metajungleAPI.createOrder({
+        side,
+        pp_amount: pp,
+        price,
+        currency: 'NGN',
+        payment_method: form.payment_method,
+      });
+      toast.success('Order posted to the P2P book');
+      queryClient.invalidateQueries(['mjOrders']);
+      queryClient.invalidateQueries('pointsHistory');
+      setCreateOpen(false);
+      setForm({ pp_amount: '', price: '', payment_method: '' });
+    } catch (err: any) {
+      toast.error(err?.response?.data?.detail || 'Could not post order');
+    } finally {
+      setPosting(false);
+    }
+  };
 
   return (
     <div className="animate-page-in space-y-xl">
@@ -109,18 +164,28 @@ export default function P2PPage() {
               </button>
             ))}
           </div>
-          <Input label="PP amount" type="number" placeholder="5000" />
-          <Input label="Price per 1,000 PP" placeholder="₦1,850" />
-          <Input label="Payment method" placeholder="Bank transfer, OPay…" />
+          <Input
+            label="PP amount"
+            type="number"
+            placeholder="5000"
+            value={form.pp_amount}
+            onChange={(e) => setForm({ ...form, pp_amount: e.target.value })}
+          />
+          <Input
+            label="Total price"
+            placeholder="9250"
+            value={form.price}
+            onChange={(e) => setForm({ ...form, price: e.target.value })}
+          />
+          <Input
+            label="Payment method"
+            placeholder="Bank transfer, OPay…"
+            value={form.payment_method}
+            onChange={(e) => setForm({ ...form, payment_method: e.target.value })}
+          />
           <p className="text-label text-ink-muted">A 50 PP listing fee applies (refunded on completion).</p>
-          <Button
-            className="w-full"
-            onClick={() => {
-              setCreateOpen(false);
-              toast.success('Order posted to the P2P book');
-            }}
-          >
-            Post Order
+          <Button className="w-full" onClick={postOrder} disabled={posting}>
+            {posting ? 'Posting…' : 'Post Order'}
           </Button>
         </div>
       </Modal>
