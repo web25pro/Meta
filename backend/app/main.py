@@ -14,6 +14,7 @@ from app.core.exceptions import APIException
 from app.middleware.request_logging import RequestLoggingMiddleware
 from app.middleware.error_handler import ErrorHandlerMiddleware
 from app.api import leaderboard, schedule, announcement, community, auth, user, task, submission, points
+from app.api import metajungle
 
 # Setup logging
 setup_logging()
@@ -322,6 +323,11 @@ app.include_router(leaderboard.router)
 app.include_router(schedule.router)
 app.include_router(announcement.router)
 app.include_router(community.router)
+
+# Meta-Jungle ecosystem routers (reputation, quests, NFT vault, P2P, staking,
+# campaigns, learn-to-earn, marketplace)
+for mj_router in metajungle.routers:
+    app.include_router(mj_router)
 
 # Setup custom OpenAPI schema
 setup_openapi(app)
