@@ -26,7 +26,10 @@
       "@/hooks/*": ["./src/hooks/*"],
       "@/types/*": ["./src/types/*"],
       "@/api/*": ["./src/api/*"],
-      "@/store/*": ["./src/store/*"]
+      "@/store/*": ["./src/store/*"],
+      "@meta-jungle/ui": ["../../packages/ui/src/index.ts"],
+      "@meta-jungle/ui/*": ["../../packages/ui/src/*"],
+      "@meta-jungle/types": ["../../packages/types/src/index.ts"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],

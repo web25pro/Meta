@@ -1,8 +1,8 @@
 {
-  "name": "lpanda-frontend",
-  "version": "1.0.0",
+  "name": "@meta-jungle/web",
+  "version": "3.0.0",
   "private": true,
-  "description": "LPanda Meta-Jungle Task & Reward Management Platform - Frontend",
+  "description": "Meta-Jungle web app (Next.js 14) — White & Blue Panda in the Jungle",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -12,6 +12,8 @@
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\""
   },
   "dependencies": {
+    "@meta-jungle/ui": "*",
+    "@meta-jungle/types": "*",
     "next": "^14.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

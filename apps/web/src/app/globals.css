@@ -1,0 +1,82 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/**
+ * Meta-Jungle — White & Blue · Panda in the Jungle (Master Prompt v3.0, Ch. 3).
+ * Token source of truth: packages/ui/styles/tokens.css (kept in sync).
+ */
+@layer base {
+  :root {
+    /* Brand tokens (Chapter 3.2) */
+    --bg-primary: #ffffff;
+    --bg-surface: #f8faff;
+    --bg-elevated: #eff6ff;
+    --bg-dark: #0a1628;
+    --bg-dark-mid: #1a3a5c;
+    --brand-cobalt: #1e5fa8;
+    --brand-sky: #3b82f6;
+    --brand-ice: #dbeafe;
+    --reward-gold: #b8860b;
+    --reward-amber: #d97706;
+    --success: #10b981;
+    --danger: #dc2626;
+    --text-primary: #0f172a;
+    --text-muted: #64748b;
+    --text-inverse: #ffffff;
+    --border: #cbd5e1;
+    --border-blue: #bfdbfe;
+
+    /* shadcn/ui bridge (HSL channels) */
+    --background: 0 0% 100%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 212 69% 39%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 217 91% 60%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 214 32% 91%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 214 95% 93%;
+    --accent-foreground: 212 69% 39%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border-hsl: 213 27% 84%;
+    --input: 213 27% 84%;
+    --ring: 212 69% 39%;
+    --radius: 0.75rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+  }
+  /* Display numbers / headings use Space Grotesk; body uses Inter. */
+  h1 {
+    font-family: var(--font-space-grotesk), 'Space Grotesk', sans-serif;
+  }
+}
+
+@layer utilities {
+  /* Diagonal bamboo line texture (Chapter 3.5) — apply with adjustable opacity */
+  .bamboo-texture {
+    background-image: repeating-linear-gradient(
+      45deg,
+      rgba(30, 95, 168, 0.06) 0px,
+      rgba(30, 95, 168, 0.06) 1px,
+      transparent 1px,
+      transparent 14px
+    );
+  }
+  .text-balance {
+    text-wrap: balance;
+  }
+}

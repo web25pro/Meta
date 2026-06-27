@@ -1,0 +1,64 @@
+/**
+ * Meta-Jungle Design Tokens — CSS Custom Properties
+ * White & Blue · Panda in the Jungle (Master Prompt v3.0, Chapter 3.2)
+ *
+ * Canonical token source. apps/web/globals.css mirrors these values so the
+ * Next.js CSS loader can resolve them without cross-package @import; keep the
+ * two in sync. Future consumers (mobile web views, partner storefronts) import
+ * this file directly.
+ */
+:root {
+  /* Backgrounds */
+  --bg-primary: #ffffff;
+  --bg-surface: #f8faff;
+  --bg-elevated: #eff6ff;
+  --bg-dark: #0a1628;
+  --bg-dark-mid: #1a3a5c;
+
+  /* Brand */
+  --brand-cobalt: #1e5fa8;
+  --brand-sky: #3b82f6;
+  --brand-ice: #dbeafe;
+
+  /* Reward — bamboo gold for PP / prizes / premium ONLY */
+  --reward-gold: #b8860b;
+  --reward-amber: #d97706;
+
+  /* Semantic */
+  --success: #10b981;
+  --danger: #dc2626;
+
+  /* Text */
+  --text-primary: #0f172a;
+  --text-muted: #64748b;
+  --text-inverse: #ffffff;
+
+  /* Borders */
+  --border: #cbd5e1;
+  --border-blue: #bfdbfe;
+
+  /* Radius / spacing anchors */
+  --radius-card: 12px;
+
+  /* shadcn/ui bridge tokens (HSL channels) so existing components keep working */
+  --background: 0 0% 100%;
+  --foreground: 222 47% 11%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 11%;
+  --primary: 212 69% 39%; /* cobalt #1E5FA8 */
+  --primary-foreground: 0 0% 100%;
+  --secondary: 217 91% 60%; /* sky #3B82F6 */
+  --secondary-foreground: 0 0% 100%;
+  --muted: 214 32% 91%;
+  --muted-foreground: 215 16% 47%;
+  --accent: 214 95% 93%; /* ice #DBEAFE */
+  --accent-foreground: 212 69% 39%;
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+  --border-hsl: 213 27% 84%;
+  --input: 213 27% 84%;
+  --ring: 212 69% 39%;
+  --radius: 0.75rem;
+}

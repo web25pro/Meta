@@ -1,0 +1,66 @@
+import * as React from 'react';
+import { cn } from '../lib/cn';
+import { PPAmount } from './PPAmount';
+
+export interface StatCardProps {
+  icon?: React.ReactNode;
+  label: string;
+  /** Numeric value. Rendered in bamboo gold when `isPP`. */
+  value: number | string;
+  /** True if the stat is a PP amount (drives bamboo-gold styling). */
+  isPP?: boolean;
+  /** Percentage change badge, e.g. +12.4 or -3.1. */
+  change?: number;
+  className?: string;
+}
+
+/**
+ * Stat Card (Chapter 3.6): white card, 1px border, 12px radius, 24px padding.
+ * Cobalt icon top-left, Display number, muted label, change badge bottom-right,
+ * cobalt left-border accent on hover.
+ */
+export function StatCard({
+  icon,
+  label,
+  value,
+  isPP = false,
+  change,
+  className,
+}: StatCardProps) {
+  return (
+    <div
+      className={cn(
+        'group relative overflow-hidden rounded-card border border-line bg-bg-primary p-lg shadow-card',
+        'transition-all hover:shadow-card-hover',
+        'before:absolute before:left-0 before:top-0 before:h-full before:w-[4px] before:bg-brand-cobalt',
+        'before:scale-y-0 before:transition-transform before:duration-200 hover:before:scale-y-100',
+        className,
+      )}
+    >
+      {icon && <div className="mb-sm text-brand-cobalt">{icon}</div>}
+      <div className="font-display text-display leading-none text-ink-primary">
+        {isPP && typeof value === 'number' ? (
+          <PPAmount value={value} size="display" showUnit={false} />
+        ) : (
+          <span className="tabular-nums">{value}</span>
+        )}
+      </div>
+      <div className="mt-sm text-label uppercase tracking-wide text-ink-muted">
+        {label}
+      </div>
+      {typeof change === 'number' && (
+        <span
+          className={cn(
+            'absolute bottom-lg right-lg rounded-pill px-sm py-[2px] text-label font-medium',
+            change >= 0
+              ? 'bg-success/10 text-success'
+              : 'bg-danger/10 text-danger',
+          )}
+        >
+          {change >= 0 ? '+' : ''}
+          {change}%
+        </span>
+      )}
+    </div>
+  );
+}
