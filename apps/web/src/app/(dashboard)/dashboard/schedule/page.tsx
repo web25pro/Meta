@@ -1,7 +1,8 @@
 'use client';
 
 import { useQuery } from 'react-query';
-import { Calendar as CalendarIcon, Clock, Users } from 'lucide-react';
+import { Clock, Users } from 'lucide-react';
+import { Card, Skeleton, EmptyState, cn } from '@meta-jungle/ui';
 import apiClient from '@/lib/api';
 import { Schedule, PaginatedResponse } from '@/types';
 import { format, isFuture, isPast, isToday } from 'date-fns';
@@ -12,92 +13,80 @@ export default function SchedulePage() {
     return response.data;
   });
 
-  const upcomingEvents = data?.items.filter((event) => isFuture(new Date(event.event_date))) || [];
-  const pastEvents = data?.items.filter((event) => isPast(new Date(event.event_date))) || [];
+  const upcoming = data?.items.filter((e) => isFuture(new Date(e.event_date))) || [];
+  const past = data?.items.filter((e) => isPast(new Date(e.event_date))) || [];
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <div className="animate-page-in space-y-xl">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Schedule</h1>
-        <p className="text-gray-600 mt-1">View upcoming events and deadlines</p>
+        <h1 className="font-display text-h1 text-ink-primary">Schedule</h1>
+        <p className="mt-1 text-body text-ink-muted">
+          Upcoming events, drops and deadlines.
+        </p>
       </div>
 
-      {/* Upcoming Events */}
-      <div>
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Upcoming Events</h2>
-        <div className="grid gap-4">
-          {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-            </div>
-          ) : upcomingEvents.length > 0 ? (
-            upcomingEvents.map((event) => <EventCard key={event.id} event={event} />)
-          ) : (
-            <div className="bg-white rounded-xl p-8 text-center">
-              <CalendarIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600">No upcoming events</p>
-            </div>
+      {isLoading ? (
+        <div className="space-y-lg">
+          {[0, 1].map((i) => (
+            <Skeleton key={i} className="h-28" />
+          ))}
+        </div>
+      ) : (
+        <>
+          <section className="space-y-md">
+            <h2 className="font-display text-h2 text-ink-primary">Upcoming</h2>
+            {upcoming.length > 0 ? (
+              upcoming.map((e) => <EventCard key={e.id} event={e} />)
+            ) : (
+              <EmptyState
+                title="Nothing scheduled"
+                description="New events and drops will appear here."
+              />
+            )}
+          </section>
+
+          {past.length > 0 && (
+            <section className="space-y-md">
+              <h2 className="font-display text-h2 text-ink-primary">Past</h2>
+              {past.map((e) => (
+                <EventCard key={e.id} event={e} isPast />
+              ))}
+            </section>
           )}
-        </div>
-      </div>
-
-      {/* Past Events */}
-      {pastEvents.length > 0 && (
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Past Events</h2>
-          <div className="grid gap-4">
-            {pastEvents.map((event) => (
-              <EventCard key={event.id} event={event} isPast />
-            ))}
-          </div>
-        </div>
+        </>
       )}
     </div>
   );
 }
 
 function EventCard({ event, isPast = false }: { event: Schedule; isPast?: boolean }) {
-  const eventDate = new Date(event.event_date);
-  const isEventToday = isToday(eventDate);
-
+  const date = new Date(event.event_date);
   return (
-    <div
-      className={`bg-white rounded-xl shadow-sm p-6 ${
-        isPast ? 'opacity-60' : 'hover:shadow-md'
-      } transition-shadow`}
-    >
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <div className="flex items-center space-x-3 mb-2">
-            <h3 className="text-xl font-semibold text-gray-900">{event.title}</h3>
-            {isEventToday && (
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800">
-                Today
-              </span>
-            )}
-          </div>
-          <p className="text-gray-600 mb-4">{event.description}</p>
-          <div className="flex items-center space-x-6 text-sm text-gray-600">
-            <div className="flex items-center space-x-2">
-              <Clock className="h-4 w-4" />
-              <span>{format(eventDate, 'MMM d, yyyy h:mm a')}</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Users className="h-4 w-4" />
-              <span>{event.target_group}</span>
-            </div>
-          </div>
+    <Card className={cn('flex items-start gap-lg', isPast && 'opacity-60')}>
+      {/* Date chip */}
+      <div className="flex w-16 shrink-0 flex-col items-center rounded-card bg-brand-ice py-sm">
+        <span className="font-display text-h1 text-brand-cobalt">{format(date, 'd')}</span>
+        <span className="text-label uppercase text-brand-cobalt">{format(date, 'MMM')}</span>
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-sm">
+          <h3 className="font-display text-h2 text-ink-primary">{event.title}</h3>
+          {isToday(date) && (
+            <span className="rounded-pill bg-brand-cobalt px-sm py-[2px] text-label font-medium text-ink-inverse">
+              Today
+            </span>
+          )}
         </div>
-        <div className="ml-4">
-          <div className="bg-primary-50 rounded-lg p-4 text-center">
-            <div className="text-3xl font-bold text-primary-600">
-              {format(eventDate, 'd')}
-            </div>
-            <div className="text-sm text-primary-600">{format(eventDate, 'MMM')}</div>
-          </div>
+        <p className="mt-1 text-body text-ink-muted">{event.description}</p>
+        <div className="mt-md flex flex-wrap items-center gap-md text-label text-ink-muted">
+          <span className="flex items-center gap-sm">
+            <Clock className="h-4 w-4" /> {format(date, 'MMM d, yyyy h:mm a')}
+          </span>
+          <span className="flex items-center gap-sm">
+            <Users className="h-4 w-4" /> {event.target_group}
+          </span>
         </div>
       </div>
-    </div>
+    </Card>
   );
 }

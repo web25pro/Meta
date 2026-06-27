@@ -2,6 +2,7 @@
 
 import { useQuery } from 'react-query';
 import { Bell, Calendar, Users } from 'lucide-react';
+import { Card, Skeleton, EmptyState } from '@meta-jungle/ui';
 import apiClient from '@/lib/api';
 import { Announcement, PaginatedResponse } from '@/types';
 import { format } from 'date-fns';
@@ -9,66 +10,62 @@ import { format } from 'date-fns';
 export default function AnnouncementsPage() {
   const { data, isLoading } = useQuery<PaginatedResponse<Announcement>>(
     'announcements',
-    async () => {
-      const response = await apiClient.get('/announcements');
-      return response.data;
-    }
+    async () => (await apiClient.get('/announcements')).data,
   );
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <div className="animate-page-in space-y-xl">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Announcements</h1>
-        <p className="text-gray-600 mt-1">Stay updated with the latest news</p>
+        <h1 className="font-display text-h1 text-ink-primary">Announcements</h1>
+        <p className="mt-1 text-body text-ink-muted">
+          The latest from the Meta-Jungle team.
+        </p>
       </div>
 
-      {/* Announcements */}
-      <div className="space-y-4">
-        {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-          </div>
-        ) : data?.items && data.items.length > 0 ? (
-          data.items.map((announcement) => (
-            <AnnouncementCard key={announcement.id} announcement={announcement} />
-          ))
-        ) : (
-          <div className="bg-white rounded-xl p-12 text-center">
-            <Bell className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No announcements</h3>
-            <p className="text-gray-600">Check back later for updates</p>
-          </div>
-        )}
-      </div>
+      {isLoading ? (
+        <div className="space-y-lg">
+          {[0, 1, 2].map((i) => (
+            <Skeleton key={i} className="h-28" />
+          ))}
+        </div>
+      ) : data && data.items.length > 0 ? (
+        <div className="space-y-lg">
+          {data.items.map((a) => (
+            <AnnouncementCard key={a.id} announcement={a} />
+          ))}
+        </div>
+      ) : (
+        <EmptyState
+          title="No announcements"
+          description="Check back later for news, drops and campaign updates."
+          icon={<Bell className="h-12 w-12 text-brand-cobalt" />}
+        />
+      )}
     </div>
   );
 }
 
 function AnnouncementCard({ announcement }: { announcement: Announcement }) {
   return (
-    <div className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow">
-      <div className="flex items-start space-x-4">
-        <div className="flex-shrink-0">
-          <div className="bg-primary-100 rounded-full p-3">
-            <Bell className="h-6 w-6 text-primary-600" />
-          </div>
-        </div>
-        <div className="flex-1 min-w-0">
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">{announcement.title}</h3>
-          <p className="text-gray-700 mb-4 whitespace-pre-wrap">{announcement.content}</p>
-          <div className="flex items-center space-x-6 text-sm text-gray-600">
-            <div className="flex items-center space-x-2">
-              <Calendar className="h-4 w-4" />
-              <span>{format(new Date(announcement.created_at), 'MMM d, yyyy h:mm a')}</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Users className="h-4 w-4" />
-              <span>{announcement.target_group}</span>
-            </div>
-          </div>
+    <Card className="flex items-start gap-md border-l-4 border-l-brand-cobalt">
+      <div className="shrink-0 rounded-full bg-brand-ice p-3">
+        <Bell className="h-6 w-6 text-brand-cobalt" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <h3 className="font-display text-h2 text-ink-primary">{announcement.title}</h3>
+        <p className="mt-sm whitespace-pre-wrap text-body text-ink-primary">
+          {announcement.content}
+        </p>
+        <div className="mt-md flex flex-wrap items-center gap-md text-label text-ink-muted">
+          <span className="flex items-center gap-sm">
+            <Calendar className="h-4 w-4" />
+            {format(new Date(announcement.created_at), 'MMM d, yyyy h:mm a')}
+          </span>
+          <span className="flex items-center gap-sm">
+            <Users className="h-4 w-4" /> {announcement.target_group}
+          </span>
         </div>
       </div>
-    </div>
+    </Card>
   );
 }

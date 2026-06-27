@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Copy, Check, Users, Loader2, Share2 } from 'lucide-react';
+import { Copy, Check, Users, Loader2, Gift, UserCheck } from 'lucide-react';
 import { toast } from 'sonner';
+import { Card, StatCard, Button, Skeleton } from '@meta-jungle/ui';
 import { communityAPI } from '@/api/community';
 import { useAuth } from '@/context/auth-context';
 
@@ -17,116 +18,106 @@ interface ReferralData {
 
 export default function ReferralsPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const [referralData, setReferralData] = useState<ReferralData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
+    if (authLoading) return;
     if (!user) {
       router.push('/auth/login');
       return;
     }
-
     const fetchReferralData = async () => {
+      const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
       try {
-        try {
-          const response = await communityAPI.getReferralCode();
-          const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-
-          setReferralData({
-            referral_code: response.referral_code,
-            referral_link: `${baseUrl}/register?ref=${response.referral_code}`,
-            total_referrals: 2,
-            successful_referrals: 1,
-            referral_earnings: 500,
-          });
-        } catch (error) {
-          const mockCode = `REF${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
-          const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-
-          setReferralData({
-            referral_code: mockCode,
-            referral_link: `${baseUrl}/register?ref=${mockCode}`,
-            total_referrals: 2,
-            successful_referrals: 1,
-            referral_earnings: 500,
-          });
-        }
-      } catch (error) {
-        toast.error('Failed to load referral data');
+        const response = await communityAPI.getReferralCode();
+        setReferralData({
+          referral_code: response.referral_code,
+          referral_link: `${baseUrl}/auth/register?ref=${response.referral_code}`,
+          total_referrals: 2,
+          successful_referrals: 1,
+          referral_earnings: 500,
+        });
+      } catch {
+        const mockCode = `REF${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
+        setReferralData({
+          referral_code: mockCode,
+          referral_link: `${baseUrl}/auth/register?ref=${mockCode}`,
+          total_referrals: 2,
+          successful_referrals: 1,
+          referral_earnings: 500,
+        });
       } finally {
         setIsLoading(false);
       }
     };
-
     fetchReferralData();
-  }, [user, router]);
+  }, [user, authLoading, router]);
 
   const copyToClipboard = async () => {
     if (!referralData) return;
-
     try {
       await navigator.clipboard.writeText(referralData.referral_link);
       setCopied(true);
       toast.success('Referral link copied!');
       setTimeout(() => setCopied(false), 2000);
-    } catch (error) {
+    } catch {
       toast.error('Failed to copy link');
     }
   };
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 text-primary-600 animate-spin" />
+      <div className="space-y-xl">
+        <Skeleton className="h-40 w-full" />
+        <div className="grid grid-cols-1 gap-lg sm:grid-cols-3">
+          {[0, 1, 2].map((i) => (
+            <Skeleton key={i} className="h-32" />
+          ))}
+        </div>
       </div>
     );
   }
 
   if (!referralData) {
-    return <div className="text-center text-gray-600">Failed to load referral data</div>;
+    return <div className="text-center text-ink-muted">Failed to load referral data</div>;
   }
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
+    <div className="animate-page-in space-y-xl">
       <div>
-        <h1 className="text-3xl font-bold text-white">🎯 Referral Program</h1>
-        <p className="text-primary-200 mt-2">Invite friends to the jungle and earn rewards together</p>
+        <h1 className="font-display text-h1 text-ink-primary">Referrals</h1>
+        <p className="mt-1 text-body text-ink-muted">
+          Invite friends to the jungle — you both earn when they get active.
+        </p>
       </div>
 
-      {/* Referral Link Card */}
-      <div className="bg-gradient-to-r from-secondary-900 to-secondary-800 rounded-lg border border-secondary-700 p-8">
-        <h2 className="text-lg font-bold text-white mb-4">Your Referral Link</h2>
-
-        <div className="bg-primary-800 rounded-lg p-4 mb-4">
-          <div className="flex items-center justify-between gap-2">
-            <code className="text-sm font-mono text-secondary-400 flex-1 break-all">
+      {/* Referral link card — navy + bamboo */}
+      <div className="relative overflow-hidden rounded-card bg-bg-dark p-xl text-ink-inverse">
+        <div className="bamboo-texture pointer-events-none absolute inset-0" />
+        <div className="relative">
+          <h2 className="font-display text-h2 text-ink-inverse">Your referral link</h2>
+          <div className="mt-md flex items-center gap-sm rounded-card bg-white/10 p-sm">
+            <code className="flex-1 break-all px-sm font-mono text-label text-brand-ice">
               {referralData.referral_link}
             </code>
-            <button
-              onClick={copyToClipboard}
-              className="ml-2 px-4 py-2 bg-secondary-600 text-white rounded-lg hover:bg-secondary-700 transition flex items-center space-x-2 whitespace-nowrap"
-            >
-              {copied ? (
-                <>
-                  <Check className="h-4 w-4" />
-                  <span>Copied</span>
-                </>
-              ) : (
-                <>
-                  <Copy className="h-4 w-4" />
-                  <span>Copy</span>
-                </>
-              )}
-            </button>
+            <Button size="sm" variant="gold" onClick={copyToClipboard}>
+              {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              {copied ? 'Copied' : 'Copy'}
+            </Button>
           </div>
+          <p className="mt-md text-label text-brand-ice">
+            Referral reward: 300 PP when your friend completes 3 quests in 7 days.
+          </p>
         </div>
+      </div>
 
-        <p className="text-sm text-primary-200">
-          Share this link with friends. When they join the jungle and verify their email, you&apos;ll both earn bamboo rewards!
-        </p>
+      <div className="grid grid-cols-1 gap-lg sm:grid-cols-3">
+        <StatCard icon={<Users className="h-6 w-6" />} label="Total Referrals" value={referralData.total_referrals} />
+        <StatCard icon={<UserCheck className="h-6 w-6" />} label="Successful" value={referralData.successful_referrals} />
+        <StatCard icon={<Gift className="h-6 w-6" />} label="PP Earned" value={referralData.referral_earnings} isPP />
       </div>
     </div>
   );

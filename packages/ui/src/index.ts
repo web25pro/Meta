@@ -9,6 +9,12 @@ export type { ButtonProps } from './components/Button';
 
 export { Card } from './components/Card';
 
+export { Input } from './components/Input';
+export type { InputProps } from './components/Input';
+
+export { EmptyState } from './components/EmptyState';
+export type { EmptyStateProps } from './components/EmptyState';
+
 export { PPAmount } from './components/PPAmount';
 export type { PPAmountProps } from './components/PPAmount';
 

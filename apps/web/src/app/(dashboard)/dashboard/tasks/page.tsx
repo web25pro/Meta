@@ -1,12 +1,13 @@
 'use client';
 
 import { useQuery } from 'react-query';
-import { Plus, Clock, CheckCircle, AlertCircle } from 'lucide-react';
+import { Clock } from 'lucide-react';
+import { Button, PPAmount, Skeleton, EmptyState } from '@meta-jungle/ui';
 import apiClient from '@/lib/api';
 import { Task, PaginatedResponse } from '@/types';
 import { format } from 'date-fns';
 
-export default function TasksPage() {
+export default function QuestsPage() {
   const { data, isLoading } = useQuery<PaginatedResponse<Task>>('tasks', async () => {
     const response = await apiClient.get('/tasks/my-tasks');
     return {
@@ -17,71 +18,63 @@ export default function TasksPage() {
     };
   });
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-96">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">My Tasks</h1>
-          <p className="text-gray-600 mt-1">View and manage your assigned tasks</p>
-        </div>
+    <div className="animate-page-in space-y-xl">
+      <div>
+        <h1 className="font-display text-h1 text-ink-primary">Quests</h1>
+        <p className="mt-1 text-body text-ink-muted">
+          Complete verified actions to earn Panda Points.
+        </p>
       </div>
 
-      {/* Tasks Grid */}
-      <div className="grid gap-6">
-        {data?.items.map((task) => (
-          <TaskCard key={task.id} task={task} />
-        ))}
-        {data?.items.length === 0 && (
-          <div className="text-center py-12 bg-white rounded-xl">
-            <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No tasks assigned</h3>
-            <p className="text-gray-600">You don&apos;t have any tasks assigned yet.</p>
-          </div>
-        )}
-      </div>
+      {isLoading ? (
+        <div className="space-y-lg">
+          {[0, 1, 2].map((i) => (
+            <Skeleton key={i} className="h-32" />
+          ))}
+        </div>
+      ) : data && data.items.length > 0 ? (
+        <div className="space-y-lg">
+          {data.items.map((task) => (
+            <QuestRow key={task.id} task={task} />
+          ))}
+        </div>
+      ) : (
+        <EmptyState
+          title="No quests assigned yet"
+          description="New quests appear here as they go live. Check back soon to start earning."
+        />
+      )}
     </div>
   );
 }
 
-function TaskCard({ task }: { task: Task }) {
+function QuestRow({ task }: { task: Task }) {
   const isOverdue = new Date(task.deadline) < new Date();
 
   return (
-    <div className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow">
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex-1">
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">{task.title}</h3>
-          <p className="text-gray-600">{task.description}</p>
+    <div className="overflow-hidden rounded-card border border-line border-l-4 border-l-brand-cobalt bg-bg-primary p-lg shadow-card transition-shadow hover:shadow-card-hover">
+      <div className="flex items-start justify-between gap-md">
+        <div className="min-w-0 flex-1">
+          <h3 className="font-display text-h2 text-ink-primary">{task.title}</h3>
+          <p className="mt-1 text-body text-ink-muted">{task.description}</p>
         </div>
-        <div className="ml-4">
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-primary-100 text-primary-800">
-            {task.point_value} PP
-          </span>
-        </div>
+        <PPAmount value={task.point_value} size="sm" className="shrink-0" />
       </div>
 
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4 text-sm text-gray-600">
-          <div className="flex items-center space-x-1">
+      <div className="mt-lg flex flex-wrap items-center justify-between gap-md">
+        <div className="flex items-center gap-md text-label text-ink-muted">
+          <span className="flex items-center gap-sm">
             <Clock className="h-4 w-4" />
-            <span>Due {format(new Date(task.deadline), 'MMM d, yyyy')}</span>
-          </div>
+            Due {format(new Date(task.deadline), 'MMM d, yyyy')}
+          </span>
           {isOverdue && (
-            <span className="text-red-600 font-medium">Overdue</span>
+            <span className="rounded-pill bg-danger/10 px-sm py-[2px] font-medium text-danger">
+              Overdue
+            </span>
           )}
         </div>
-        <button className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors">
-          Submit Task
-        </button>
+        <Button size="sm">Submit Quest</Button>
       </div>
     </div>
   );

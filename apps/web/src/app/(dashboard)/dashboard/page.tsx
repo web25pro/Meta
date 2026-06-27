@@ -2,15 +2,26 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useQuery } from 'react-query';
 import {
   Trophy,
   Target,
-  TrendingUp,
-  Clock,
+  Wallet,
+  Flame,
+  ArrowRight,
   CheckCircle,
+  Clock,
   AlertCircle,
 } from 'lucide-react';
+import {
+  StatCard,
+  Card,
+  Button,
+  Skeleton,
+  QuestCard,
+  PandaMascot,
+} from '@meta-jungle/ui';
 import apiClient, { isAuthenticated } from '@/lib/api';
 import { User, DashboardStats } from '@/types';
 
@@ -18,148 +29,150 @@ export default function DashboardPage() {
   const router = useRouter();
 
   useEffect(() => {
-    if (!isAuthenticated()) {
-      router.push('/auth/login');
-    }
+    if (!isAuthenticated()) router.push('/auth/login');
   }, [router]);
 
-  const { data: user, isLoading: userLoading } = useQuery<User>('currentUser', async () => {
-    const response = await apiClient.get('/users/me');
-    return response.data;
-  });
+  const { data: user, isLoading: userLoading } = useQuery<User>(
+    'currentUser',
+    async () => (await apiClient.get('/users/me')).data,
+  );
 
   const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>(
     'dashboardStats',
-    async () => {
-      // Mock data for now - replace with actual API call when endpoint is ready
-      return {
-        total_tasks: 12,
-        pending_submissions: 3,
-        total_points: 450,
-        current_rank: 5,
-        tasks_completed: 8,
-        tasks_pending: 4,
-      };
-    }
+    async () => ({
+      total_tasks: 12,
+      pending_submissions: 3,
+      total_points: 450,
+      current_rank: 5,
+      tasks_completed: 8,
+      tasks_pending: 4,
+    }),
   );
 
   if (userLoading || statsLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      <div className="space-y-lg">
+        <Skeleton className="h-28 w-full" />
+        <div className="grid grid-cols-2 gap-lg lg:grid-cols-4">
+          {[0, 1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-32" />
+          ))}
+        </div>
+        <Skeleton className="h-64 w-full" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Welcome Header */}
-      <div className="bg-gradient-to-r from-primary-600 to-secondary-600 rounded-xl p-8 text-white">
-        <h1 className="text-3xl font-bold mb-2">Welcome back, {user?.name}!</h1>
-        <p className="text-primary-100">Here&apos;s what&apos;s happening with your tasks today.</p>
+    <div className="animate-page-in space-y-xl">
+      {/* Welcome hero — navy + bamboo texture */}
+      <div className="relative overflow-hidden rounded-card bg-bg-dark p-xl text-ink-inverse">
+        <div className="bamboo-texture pointer-events-none absolute inset-0" />
+        <div className="relative flex items-center justify-between gap-lg">
+          <div>
+            <h1 className="font-display text-h1 text-ink-inverse">
+              Welcome back, {user?.name || 'Panda'}
+            </h1>
+            <p className="mt-sm text-brand-ice">
+              Your actions have value here. Keep your streak alive and climb the jungle.
+            </p>
+            <Link href="/dashboard/tasks" className="mt-lg inline-block">
+              <Button variant="gradient">
+                Continue Earning <ArrowRight className="h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
+          <div className="hidden shrink-0 sm:block">
+            <PandaMascot size={120} />
+          </div>
+        </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* Hero stats row */}
+      <div className="grid grid-cols-2 gap-lg lg:grid-cols-4">
         <StatCard
-          icon={<Target className="h-6 w-6" />}
-          title="Total Tasks"
-          value={stats?.total_tasks || 0}
-          color="bg-blue-500"
-        />
-        <StatCard
-          icon={<Clock className="h-6 w-6" />}
-          title="Pending"
-          value={stats?.tasks_pending || 0}
-          color="bg-yellow-500"
+          icon={<Wallet className="h-6 w-6" />}
+          label="PP Balance"
+          value={stats?.total_points ?? 0}
+          isPP
         />
         <StatCard
           icon={<Trophy className="h-6 w-6" />}
-          title="Total Points"
-          value={stats?.total_points || 0}
-          color="bg-primary-500"
+          label="Rank"
+          value={`#${stats?.current_rank ?? '—'}`}
         />
         <StatCard
-          icon={<TrendingUp className="h-6 w-6" />}
-          title="Rank"
-          value={`#${stats?.current_rank || '-'}`}
-          color="bg-secondary-500"
+          icon={<Target className="h-6 w-6" />}
+          label="Quests Done"
+          value={stats?.tasks_completed ?? 0}
+        />
+        <StatCard
+          icon={<Flame className="h-6 w-6" />}
+          label="Streak Days"
+          value={5}
         />
       </div>
 
-      {/* Recent Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Tasks Overview */}
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Tasks Overview</h2>
-          <div className="space-y-4">
-            <TaskStatusItem
-              icon={<CheckCircle className="h-5 w-5 text-green-500" />}
-              label="Completed"
-              count={stats?.tasks_completed || 0}
-            />
-            <TaskStatusItem
-              icon={<Clock className="h-5 w-5 text-yellow-500" />}
-              label="In Progress"
-              count={stats?.tasks_pending || 0}
-            />
-            <TaskStatusItem
-              icon={<AlertCircle className="h-5 w-5 text-red-500" />}
-              label="Pending Submissions"
-              count={stats?.pending_submissions || 0}
-            />
+      <div className="grid gap-lg lg:grid-cols-3">
+        {/* Active quests */}
+        <div className="space-y-md lg:col-span-2">
+          <div className="flex items-center justify-between">
+            <h2 className="font-display text-h2 text-ink-primary">Continue Earning</h2>
+            <Link href="/dashboard/tasks" className="text-label font-medium text-brand-cobalt">
+              View all quests →
+            </Link>
           </div>
+          <QuestCard
+            title="Follow @LPanda on X"
+            description="Connect your X account and follow to earn your first reward."
+            ppReward={50}
+            status="available"
+          />
+          <QuestCard
+            title="Daily check-in"
+            description="Log in every day to grow your streak bonus."
+            ppReward={10}
+            progress={70}
+            status="in-progress"
+          />
+          <QuestCard
+            title="Refer a friend"
+            description="Invite a friend who completes 3 tasks in 7 days."
+            ppReward={300}
+            status="available"
+          />
         </div>
 
-        {/* Quick Actions */}
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
-          <div className="space-y-3">
-            <QuickActionButton
-              href="/dashboard/tasks"
-              label="View All Tasks"
-              icon={<Target className="h-5 w-5" />}
-            />
-            <QuickActionButton
-              href="/dashboard/leaderboard"
-              label="Check Leaderboard"
-              icon={<Trophy className="h-5 w-5" />}
-            />
-            <QuickActionButton
-              href="/dashboard/points"
-              label="Points History"
-              icon={<TrendingUp className="h-5 w-5" />}
-            />
-          </div>
-        </div>
+        {/* Task overview */}
+        <Card className="space-y-md">
+          <h2 className="font-display text-h2 text-ink-primary">Quest Overview</h2>
+          <OverviewItem
+            icon={<CheckCircle className="h-5 w-5 text-success" />}
+            label="Completed"
+            count={stats?.tasks_completed ?? 0}
+          />
+          <OverviewItem
+            icon={<Clock className="h-5 w-5 text-reward-amber" />}
+            label="In Progress"
+            count={stats?.tasks_pending ?? 0}
+          />
+          <OverviewItem
+            icon={<AlertCircle className="h-5 w-5 text-brand-sky" />}
+            label="Pending Review"
+            count={stats?.pending_submissions ?? 0}
+          />
+          <Link href="/dashboard/leaderboard">
+            <Button variant="ghost" className="w-full">
+              Check Leaderboard
+            </Button>
+          </Link>
+        </Card>
       </div>
     </div>
   );
 }
 
-function StatCard({
-  icon,
-  title,
-  value,
-  color,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  value: number | string;
-  color: string;
-}) {
-  return (
-    <div className="bg-white rounded-xl shadow-sm p-6">
-      <div className="flex items-center justify-between mb-4">
-        <div className={`${color} p-3 rounded-lg text-white`}>{icon}</div>
-      </div>
-      <div className="text-3xl font-bold text-gray-900 mb-1">{value}</div>
-      <div className="text-sm text-gray-600">{title}</div>
-    </div>
-  );
-}
-
-function TaskStatusItem({
+function OverviewItem({
   icon,
   label,
   count,
@@ -169,32 +182,12 @@ function TaskStatusItem({
   count: number;
 }) {
   return (
-    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-      <div className="flex items-center space-x-3">
+    <div className="flex items-center justify-between rounded-card bg-bg-surface px-md py-3">
+      <div className="flex items-center gap-md">
         {icon}
-        <span className="text-gray-700">{label}</span>
+        <span className="text-body text-ink-primary">{label}</span>
       </div>
-      <span className="font-semibold text-gray-900">{count}</span>
+      <span className="font-display text-body text-ink-primary">{count}</span>
     </div>
-  );
-}
-
-function QuickActionButton({
-  href,
-  label,
-  icon,
-}: {
-  href: string;
-  label: string;
-  icon: React.ReactNode;
-}) {
-  return (
-    <a
-      href={href}
-      className="flex items-center space-x-3 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
-    >
-      {icon}
-      <span className="text-gray-700 font-medium">{label}</span>
-    </a>
   );
 }

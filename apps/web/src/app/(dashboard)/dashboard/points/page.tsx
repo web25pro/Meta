@@ -1,138 +1,110 @@
 'use client';
 
 import { useQuery } from 'react-query';
-import { TrendingUp, TrendingDown, DollarSign, Calendar } from 'lucide-react';
+import { Send, Download, Repeat, Lock } from 'lucide-react';
+import {
+  WalletBalanceCard,
+  Card,
+  Skeleton,
+  EmptyState,
+  cn,
+} from '@meta-jungle/ui';
 import apiClient from '@/lib/api';
 import { PointsTransaction, PaginatedResponse, TransactionType } from '@/types';
 import { format } from 'date-fns';
 
-export default function PointsPage() {
+export default function PandaWalletPage() {
   const { data, isLoading } = useQuery<PaginatedResponse<PointsTransaction>>(
     'pointsHistory',
-    async () => {
-      const response = await apiClient.get('/points/transactions');
-      return response.data;
-    }
+    async () => (await apiClient.get('/points/transactions')).data,
   );
 
   const totalPoints = data?.items.reduce((sum, t) => sum + t.amount, 0) || 0;
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <div className="animate-page-in space-y-xl">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Points History</h1>
-        <p className="text-gray-600 mt-1">Track your Panda Points transactions</p>
+        <h1 className="font-display text-h1 text-ink-primary">Panda Wallet</h1>
+        <p className="mt-1 text-body text-ink-muted">
+          Your Panda Points balance and earn history.
+        </p>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <StatCard
-          icon={<DollarSign className="h-6 w-6" />}
-          title="Total Points"
-          value={totalPoints}
-          color="bg-primary-500"
-        />
-        <StatCard
-          icon={<TrendingUp className="h-6 w-6" />}
-          title="Earned"
-          value={data?.items.filter((t) => t.amount > 0).reduce((sum, t) => sum + t.amount, 0) || 0}
-          color="bg-green-500"
-        />
-        <StatCard
-          icon={<TrendingDown className="h-6 w-6" />}
-          title="Penalties"
-          value={Math.abs(data?.items.filter((t) => t.amount < 0).reduce((sum, t) => sum + t.amount, 0) || 0)}
-          color="bg-red-500"
-        />
-      </div>
+      <WalletBalanceCard
+        ppBalance={totalPoints}
+        actions={[
+          { label: 'Send', icon: <Send className="h-4 w-4" /> },
+          { label: 'Receive', icon: <Download className="h-4 w-4" /> },
+          { label: 'Swap', icon: <Repeat className="h-4 w-4" /> },
+          { label: 'Stake', icon: <Lock className="h-4 w-4" /> },
+        ]}
+      />
 
-      {/* Transactions */}
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">Transaction History</h2>
+      <Card className="p-0">
+        <div className="border-b border-line px-lg py-md">
+          <h2 className="font-display text-h2 text-ink-primary">History</h2>
         </div>
         {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+          <div className="space-y-px">
+            {[0, 1, 2, 3].map((i) => (
+              <Skeleton key={i} className="m-md h-14" />
+            ))}
+          </div>
+        ) : data && data.items.length > 0 ? (
+          <div className="divide-y divide-line">
+            {data.items.map((t) => (
+              <TransactionRow key={t.id} transaction={t} />
+            ))}
           </div>
         ) : (
-          <div className="divide-y divide-gray-200">
-            {data?.items.map((transaction) => (
-              <TransactionRow key={transaction.id} transaction={transaction} />
-            ))}
-            {data?.items.length === 0 && (
-              <div className="text-center py-12">
-                <p className="text-gray-600">No transactions yet</p>
-              </div>
-            )}
+          <div className="p-lg">
+            <EmptyState
+              title="No transactions yet"
+              description="Complete quests to start earning Panda Points."
+            />
           </div>
         )}
-      </div>
+      </Card>
     </div>
   );
 }
 
-function StatCard({
-  icon,
-  title,
-  value,
-  color,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  value: number;
-  color: string;
-}) {
-  return (
-    <div className="bg-white rounded-xl shadow-sm p-6">
-      <div className="flex items-center justify-between mb-4">
-        <div className={`${color} p-3 rounded-lg text-white`}>{icon}</div>
-      </div>
-      <div className="text-3xl font-bold text-gray-900 mb-1">{value}</div>
-      <div className="text-sm text-gray-600">{title}</div>
-    </div>
-  );
-}
+const typeBadge: Record<TransactionType, string> = {
+  [TransactionType.TASK_APPROVAL]: 'bg-success/10 text-success',
+  [TransactionType.DEADLINE_PENALTY]: 'bg-danger/10 text-danger',
+  [TransactionType.ADMIN_BONUS]: 'bg-brand-ice text-brand-cobalt',
+  [TransactionType.ADMIN_PENALTY]: 'bg-reward-amber/10 text-reward-amber',
+};
 
 function TransactionRow({ transaction }: { transaction: PointsTransaction }) {
   const isPositive = transaction.amount > 0;
-  const typeColors: Record<TransactionType, string> = {
-    [TransactionType.TASK_APPROVAL]: 'bg-green-100 text-green-800',
-    [TransactionType.DEADLINE_PENALTY]: 'bg-red-100 text-red-800',
-    [TransactionType.ADMIN_BONUS]: 'bg-blue-100 text-blue-800',
-    [TransactionType.ADMIN_PENALTY]: 'bg-orange-100 text-orange-800',
-  };
-
   return (
-    <div className="px-6 py-4 hover:bg-gray-50 transition-colors">
-      <div className="flex items-center justify-between">
-        <div className="flex-1">
-          <div className="flex items-center space-x-3 mb-1">
-            <span
-              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                typeColors[transaction.transaction_type]
-              }`}
-            >
-              {transaction.transaction_type.replace('_', ' ')}
-            </span>
-            <span className="text-sm text-gray-600">
-              {format(new Date(transaction.created_at), 'MMM d, yyyy h:mm a')}
-            </span>
-          </div>
-          <p className="text-gray-900">{transaction.reason}</p>
-        </div>
-        <div className="ml-4 text-right">
-          <div
-            className={`text-2xl font-bold ${
-              isPositive ? 'text-green-600' : 'text-red-600'
-            }`}
+    <div className="flex items-center justify-between gap-md px-lg py-md transition-colors hover:bg-bg-surface">
+      <div className="min-w-0 flex-1">
+        <div className="mb-1 flex items-center gap-sm">
+          <span
+            className={cn(
+              'rounded-pill px-sm py-[2px] text-label font-medium',
+              typeBadge[transaction.transaction_type],
+            )}
           >
-            {isPositive ? '+' : ''}
-            {transaction.amount}
-          </div>
-          <div className="text-sm text-gray-600">PP</div>
+            {transaction.transaction_type.replace(/_/g, ' ')}
+          </span>
+          <span className="text-label text-ink-muted">
+            {format(new Date(transaction.created_at), 'MMM d, yyyy h:mm a')}
+          </span>
         </div>
+        <p className="truncate text-body text-ink-primary">{transaction.reason}</p>
+      </div>
+      <div
+        className={cn(
+          'shrink-0 font-display text-h2 tabular-nums',
+          isPositive ? 'text-reward-gold' : 'text-danger',
+        )}
+      >
+        {isPositive ? '+' : ''}
+        {transaction.amount.toLocaleString('en-US')}
+        <span className="ml-1 text-label font-sans">PP</span>
       </div>
     </div>
   );

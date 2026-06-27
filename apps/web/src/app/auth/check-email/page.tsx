@@ -5,91 +5,63 @@ export const dynamic = 'force-dynamic';
 import { Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { Mail, ArrowLeft } from 'lucide-react';
+import { Mail } from 'lucide-react';
+import { Button } from '@meta-jungle/ui';
+import { AuthShell } from '@/components/auth-shell';
 
 function CheckEmailContent() {
   const searchParams = useSearchParams();
   const email = searchParams.get('email') || 'your email';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-jungle-900 via-blue-900 to-primary-900 flex items-center justify-center p-4 relative overflow-hidden">
-      <div className="absolute top-0 right-0 text-9xl opacity-5">🌿</div>
-      <div className="absolute bottom-0 left-0 text-9xl opacity-5">📬</div>
-      <div className="absolute top-1/3 left-10 text-8xl opacity-5">🐼</div>
+    <AuthShell
+      title="Check your email"
+      subtitle="Jungle quest started!"
+      footer={
+        <Link href="/auth/login" className="font-semibold text-ice underline">
+          Back to login
+        </Link>
+      }
+    >
+      <div className="space-y-lg text-center">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-brand-ice">
+          <Mail className="h-8 w-8 text-brand-cobalt" />
+        </div>
+        <p className="text-body text-ink-muted">
+          We sent a verification link to{' '}
+          <strong className="text-ink-primary">{email}</strong>
+        </p>
 
-      <div className="w-full max-w-md relative z-10">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 bg-gradient-to-br from-blue-400 to-blue-300 rounded-full shadow-lg shadow-blue-400/50 mb-4">
-            <span className="text-3xl">🐼</span>
-          </div>
-          <span className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-panda-white bg-clip-text text-transparent block">LPanda</span>
-          <p className="text-blue-200 mt-2">Jungle Quest Started!</p>
+        <div className="rounded-card bg-bg-surface p-md text-left">
+          <p className="text-label font-medium text-ink-primary">Next steps</p>
+          <ol className="mt-sm list-inside list-decimal space-y-1 text-label text-ink-muted">
+            <li>Check your email inbox</li>
+            <li>Open the verification email</li>
+            <li>Click the verification link</li>
+            <li>Start earning Panda Points</li>
+          </ol>
         </div>
 
-        <div className="bg-gradient-to-br from-blue-800 to-jungle-800 bg-opacity-80 backdrop-blur border border-blue-600 rounded-2xl shadow-2xl shadow-blue-900/50 p-8 text-center space-y-6">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-700 rounded-full shadow-lg shadow-blue-600/50">
-            <Mail className="h-8 w-8 text-panda-white" />
-          </div>
+        <p className="text-label text-ink-muted">
+          Tip: if you don&apos;t see it, check your spam folder. The link expires in 24 hours.
+        </p>
 
-          <div>
-            <h2 className="text-lg font-bold text-panda-white mb-2">Check Your Email</h2>
-            <p className="text-sm text-blue-100">
-              We sent a verification link to <strong className="text-blue-300">{email}</strong>
-            </p>
-          </div>
-
-          <div className="bg-blue-700 border border-blue-600 rounded-lg p-4 text-left space-y-2">
-            <p className="text-sm font-semibold text-blue-200">Next Steps:</p>
-            <ol className="text-sm text-blue-100 space-y-2 list-decimal list-inside">
-              <li>Check your email inbox</li>
-              <li>Look for the verification email</li>
-              <li>Click the verification link</li>
-              <li>Start earning rewards</li>
-            </ol>
-          </div>
-
-          <div className="bg-blue-600 bg-opacity-50 border border-blue-500 rounded-lg p-4 text-sm text-blue-100">
-            <strong className="text-blue-200">Tip:</strong> If you do not see the email, check your spam folder. The link expires in 24 hours.
-          </div>
-
-          <div className="space-y-3 pt-4">
-            <p className="text-xs text-primary-300">Did not receive the email?</p>
-            <Link
-              href="/auth/resend-verification"
-              className="inline-block px-6 py-2 bg-primary-600 text-panda-white font-medium rounded-lg hover:bg-primary-700 transition text-sm"
-            >
-              Resend Verification Email
-            </Link>
-          </div>
-
-          <div className="border-t border-primary-600 pt-6">
-            <p className="text-sm text-primary-200 mb-3">Already verified?</p>
-            <Link
-              href="/auth/login"
-              className="inline-block w-full px-6 py-3 bg-primary-600 text-panda-white font-medium rounded-lg hover:bg-primary-700 transition"
-            >
-              Go to Login
-            </Link>
-          </div>
-        </div>
-
-        <div className="text-center mt-6">
-          <Link
-            href="/auth/login"
-            className="inline-flex items-center space-x-2 text-primary-300 hover:text-panda-white transition"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <span>Back to Login</span>
+        <div className="space-y-sm">
+          <Link href="/auth/login" className="block">
+            <Button className="w-full">Go to Login</Button>
+          </Link>
+          <Link href="/auth/resend-verification" className="block">
+            <Button variant="ghost" className="w-full">Resend verification email</Button>
           </Link>
         </div>
       </div>
-    </div>
+    </AuthShell>
   );
 }
 
 export default function CheckEmailPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-bg-dark text-ink-inverse">Loading…</div>}>
       <CheckEmailContent />
     </Suspense>
   );

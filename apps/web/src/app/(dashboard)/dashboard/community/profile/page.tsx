@@ -2,9 +2,15 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Star, Award, Zap, Flame, Mail, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { CheckCircle, Mail, Loader2, Target, Flame, Users, Award } from 'lucide-react';
 import { toast } from 'sonner';
-import { communityAPI } from '@/api/community';
+import {
+  ReputationRings,
+  StatCard,
+  RoleBadge,
+  Skeleton,
+  cn,
+} from '@meta-jungle/ui';
 import { useAuth } from '@/context/auth-context';
 
 interface CommunityUserStats {
@@ -25,87 +31,103 @@ interface CommunityUserStats {
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const [stats, setStats] = useState<CommunityUserStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    if (authLoading) return;
     if (!user) {
       router.push('/auth/login');
       return;
     }
-
-    // Fetch user stats from community API
-    const fetchStats = async () => {
-      try {
-        // For now, we'll create mock stats since the endpoint might not exist yet
-        setStats({
-          user_id: user.id,
-          username: user.username || 'User',
-          email: user.email,
-          email_verified: user.email_verified || false,
-          points: 1250,
-          xp: 4560,
-          level: 3,
-          current_streak: 5,
-          best_streak: 12,
-          total_submissions: 8,
-          total_tasks_completed: 15,
-          referrals_count: 2,
-          created_at: new Date().toISOString(),
-        });
-      } catch (error) {
-        toast.error('Failed to load profile');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchStats();
-  }, [user, router]);
+    try {
+      setStats({
+        user_id: user.id,
+        username: user.username || 'User',
+        email: user.email,
+        email_verified: user.email_verified || false,
+        points: 1250,
+        xp: 4560,
+        level: 3,
+        current_streak: 5,
+        best_streak: 12,
+        total_submissions: 8,
+        total_tasks_completed: 15,
+        referrals_count: 2,
+        created_at: new Date().toISOString(),
+      });
+    } catch {
+      toast.error('Failed to load profile');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user, authLoading, router]);
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 text-primary-600 animate-spin" />
+      <div className="space-y-xl">
+        <Skeleton className="h-48 w-full" />
+        <div className="grid grid-cols-2 gap-lg lg:grid-cols-4">
+          {[0, 1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-32" />
+          ))}
+        </div>
       </div>
     );
   }
 
   if (!stats) {
-    return <div className="text-center text-gray-600">Failed to load profile</div>;
+    return <div className="text-center text-ink-muted">Failed to load profile</div>;
   }
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-white">🐼 Your Profile</h1>
-        <p className="text-primary-200 mt-2">Your jungle warrior statistics and account information</p>
-      </div>
-
-      {/* User Info Card */}
-      <div className="bg-primary-700 bg-opacity-50 backdrop-blur border border-primary-600 rounded-lg p-6 space-y-4">
-        <div className="flex items-start justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-white">{stats.username}</h2>
-            <p className="text-primary-200">{stats.email}</p>
-          </div>
-          <div className="flex items-center space-x-2">
+    <div className="animate-page-in space-y-xl">
+      {/* Navy header */}
+      <div className="relative overflow-hidden rounded-card bg-bg-dark p-xl text-center text-ink-inverse">
+        <div className="bamboo-texture pointer-events-none absolute inset-0" />
+        <div className="relative flex flex-col items-center">
+          <ReputationRings activity={620} reputation={540} influence={310} size={108} />
+          <h1 className="mt-md font-display text-h1 text-ink-inverse">{stats.username}</h1>
+          <div className="mt-sm flex items-center gap-sm">
+            <RoleBadge role="Hunter" />
             {stats.email_verified ? (
-              <div className="flex items-center space-x-1 text-green-400 bg-green-900 bg-opacity-30 px-3 py-1 rounded-full text-sm font-medium border border-green-700">
-                <CheckCircle className="h-4 w-4" />
-                <span>Verified</span>
-              </div>
+              <span className="flex items-center gap-1 rounded-pill bg-success/15 px-sm py-[2px] text-label text-success">
+                <CheckCircle className="h-4 w-4" /> Verified
+              </span>
             ) : (
-              <div className="flex items-center space-x-1 text-yellow-400 bg-yellow-900 bg-opacity-30 px-3 py-1 rounded-full text-sm font-medium border border-yellow-700">
-                <Mail className="h-4 w-4" />
-                <span>Unverified</span>
-              </div>
+              <span className="flex items-center gap-1 rounded-pill bg-reward-amber/15 px-sm py-[2px] text-label text-reward-amber">
+                <Mail className="h-4 w-4" /> Unverified
+              </span>
             )}
           </div>
+          <p className="mt-sm text-label text-brand-ice">{stats.email}</p>
         </div>
       </div>
+
+      {/* Score legend */}
+      <div className="flex flex-wrap gap-lg text-label">
+        <Legend color="bg-brand-sky" label="Activity" value={620} />
+        <Legend color="bg-brand-cobalt" label="Reputation" value={540} />
+        <Legend color="bg-reward-gold" label="Influence" value={310} />
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 gap-lg lg:grid-cols-4">
+        <StatCard icon={<Award className="h-6 w-6" />} label="PP Earned" value={stats.points} isPP />
+        <StatCard icon={<Target className="h-6 w-6" />} label="Quests Done" value={stats.total_tasks_completed} />
+        <StatCard icon={<Flame className="h-6 w-6" />} label="Best Streak" value={stats.best_streak} />
+        <StatCard icon={<Users className="h-6 w-6" />} label="Referrals" value={stats.referrals_count} />
+      </div>
     </div>
+  );
+}
+
+function Legend({ color, label, value }: { color: string; label: string; value: number }) {
+  return (
+    <span className="flex items-center gap-sm text-ink-muted">
+      <span className={cn('h-3 w-3 rounded-full', color)} />
+      {label} <span className="font-display text-ink-primary">{value}</span>
+    </span>
   );
 }
