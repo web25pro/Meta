@@ -15,6 +15,7 @@ from app.middleware.request_logging import RequestLoggingMiddleware
 from app.middleware.error_handler import ErrorHandlerMiddleware
 from app.api import leaderboard, schedule, announcement, community, auth, user, task, submission, points
 from app.api import metajungle
+from app.api import admin
 
 # Setup logging
 setup_logging()
@@ -328,6 +329,9 @@ app.include_router(community.router)
 # campaigns, learn-to-earn, marketplace)
 for mj_router in metajungle.routers:
     app.include_router(mj_router)
+
+# Admin panel router (Overall_Admin only)
+app.include_router(admin.router)
 
 # Setup custom OpenAPI schema
 setup_openapi(app)

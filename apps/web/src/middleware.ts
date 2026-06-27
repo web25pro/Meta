@@ -13,8 +13,9 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/auth') ||
     pathname.startsWith('/_next');
 
-  // If trying to access protected route without token, redirect to login
-  if (!isPublicRoute && !token && pathname.startsWith('/dashboard')) {
+  // If trying to access a protected route without a token, redirect to login.
+  // (Admin pages additionally enforce the Overall_Admin role client-side.)
+  if (!isPublicRoute && !token && (pathname.startsWith('/dashboard') || pathname.startsWith('/admin'))) {
     return NextResponse.redirect(new URL('/auth/login', request.url));
   }
 

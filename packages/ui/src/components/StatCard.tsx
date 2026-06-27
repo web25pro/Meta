@@ -2,6 +2,14 @@ import * as React from 'react';
 import { cn } from '../lib/cn';
 import { CountUp } from './CountUp';
 
+/** Scale the display number down as it gets longer so it never overflows the card. */
+function numberSizeClass(value: number): string {
+  const len = Math.round(value).toLocaleString('en-US').length;
+  if (len >= 9) return 'text-h1'; // e.g. 18,402,150
+  if (len >= 7) return 'text-[2.5rem]'; // e.g. 184,920
+  return 'text-display';
+}
+
 export interface StatCardProps {
   icon?: React.ReactNode;
   label: string;
@@ -44,14 +52,14 @@ export function StatCard({
       )}
       <div className="font-display leading-none text-ink-primary">
         {typeof value === 'number' ? (
-          isPP ? (
-            <CountUp
-              value={value}
-              className="text-display tabular-nums text-reward-gold"
-            />
-          ) : (
-            <CountUp value={value} className="text-display tabular-nums" />
-          )
+          <CountUp
+            value={value}
+            className={cn(
+              'tabular-nums',
+              numberSizeClass(value),
+              isPP && 'text-reward-gold',
+            )}
+          />
         ) : (
           // Strings (e.g. "Legendary", "#5") use Heading-1 so long words don't overflow.
           <span className="block truncate text-h1">{value}</span>
