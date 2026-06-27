@@ -54,7 +54,14 @@ class Settings(BaseSettings):
     
     # CORS
     CORS_ORIGINS: str = "http://localhost:3000"
-    
+
+    # Admin bootstrap — if set, this user is created/promoted to Overall_Admin
+    # on app startup (idempotent). Lets you mint the first admin on deploy
+    # without shell/DB access. Clear the env var once the admin exists.
+    BOOTSTRAP_ADMIN_EMAIL: str = ""
+    BOOTSTRAP_ADMIN_PASSWORD: str = ""
+    BOOTSTRAP_ADMIN_USERNAME: str = ""
+
     model_config = SettingsConfigDict(
         env_file=".env",
         case_sensitive=True,

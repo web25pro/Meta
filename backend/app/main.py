@@ -30,7 +30,11 @@ async def lifespan(app: FastAPI):
     """Application lifespan manager for startup and shutdown events"""
     # Startup
     logger.info("Starting application", extra={"environment": settings.APP_ENV})
-    
+
+    # Ensure a bootstrap admin exists if configured (idempotent, non-fatal)
+    from app.core.bootstrap import ensure_bootstrap_admin
+    await ensure_bootstrap_admin()
+
     yield
     
     # Shutdown
