@@ -11,15 +11,17 @@ export interface ButtonProps
 }
 
 const variants: Record<Variant, string> = {
-  // Primary CTA — cobalt filled, white text
-  cobalt: 'bg-brand-cobalt text-ink-inverse hover:bg-[#184E8A] shadow-card',
-  // White outline / ghost
+  // Primary CTA — cobalt with subtle depth + lift
+  cobalt:
+    'bg-brand-cobalt text-ink-inverse shadow-card hover:bg-[#184E8A] hover:shadow-glow-cobalt hover:-translate-y-px',
+  // Outline / ghost — transparent so it adapts to dark or light surfaces
   ghost:
-    'bg-transparent text-brand-cobalt border border-line-blue hover:bg-bg-elevated',
-  // Cobalt → navy gradient (use sparingly; hover on primary CTA)
-  gradient: 'bg-brand-gradient text-ink-inverse hover:opacity-95 shadow-card',
+    'bg-transparent text-brand-cobalt border border-line-blue hover:bg-bg-elevated hover:border-brand-sky',
+  // Cobalt → navy gradient (use sparingly; hero CTA)
+  gradient:
+    'bg-brand-gradient text-ink-inverse shadow-card hover:shadow-glow-cobalt hover:-translate-y-px',
   // Reward action
-  gold: 'bg-reward-gold text-ink-inverse hover:brightness-110 shadow-card',
+  gold: 'bg-reward-gold text-ink-inverse shadow-card hover:brightness-110 hover:-translate-y-px',
 };
 
 const sizes: Record<Size, string> = {

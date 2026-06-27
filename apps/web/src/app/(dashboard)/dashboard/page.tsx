@@ -65,9 +65,9 @@ export default function DashboardPage() {
 
   return (
     <div className="animate-page-in space-y-xl">
-      {/* Welcome hero — navy + bamboo texture */}
-      <div className="relative overflow-hidden rounded-card bg-bg-dark p-xl text-ink-inverse">
-        <div className="bamboo-texture pointer-events-none absolute inset-0" />
+      {/* Welcome hero — gradient + bamboo texture */}
+      <div className="relative overflow-hidden rounded-card bg-hero-gradient p-xl text-ink-inverse">
+        <div className="bamboo-texture pointer-events-none absolute inset-0 opacity-50" />
         <div className="relative flex items-center justify-between gap-lg">
           <div>
             <h1 className="font-display text-h1 text-ink-inverse">

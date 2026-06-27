@@ -91,15 +91,22 @@ module.exports = {
       },
 
       boxShadow: {
-        // Stat card / general card elevation (Chapter 3.6)
-        card: '0 2px 8px rgba(10, 22, 40, 0.08)',
-        'card-hover': '0 8px 24px rgba(10, 22, 40, 0.12)',
+        // Layered, soft elevation — premium fintech feel (Chapter 3.6)
+        card: '0 1px 2px rgba(10,22,40,0.04), 0 4px 12px rgba(10,22,40,0.06)',
+        'card-hover': '0 2px 6px rgba(10,22,40,0.06), 0 16px 36px rgba(10,22,40,0.12)',
         glow: '0 0 24px rgba(184, 134, 11, 0.45)', // bamboo gold pulse
+        'glow-cobalt': '0 8px 28px rgba(30, 95, 168, 0.35)', // CTA lift
+        ring: '0 0 0 1px rgba(30,95,168,0.08)',
       },
 
       backgroundImage: {
         // Cobalt → navy gradient (CTA hover, podium, landing nav) — Chapter 3.5
         'brand-gradient': 'linear-gradient(135deg, #1E5FA8 0%, #0A1628 100%)',
+        // Richer hero gradient with depth
+        'hero-gradient':
+          'radial-gradient(1200px 500px at 15% -10%, rgba(30,95,168,0.55) 0%, transparent 60%), radial-gradient(900px 500px at 100% 0%, rgba(59,130,246,0.28) 0%, transparent 55%), linear-gradient(180deg, #0A1628 0%, #0A1628 100%)',
+        // Soft ice wash for elevated surfaces
+        'ice-wash': 'linear-gradient(180deg, #FFFFFF 0%, #F8FAFF 100%)',
         // Diagonal bamboo line texture (subtle jungle aesthetic) — Chapter 3.5
         bamboo:
           'repeating-linear-gradient(45deg, rgba(30,95,168,0.06) 0px, rgba(30,95,168,0.06) 1px, transparent 1px, transparent 14px)',

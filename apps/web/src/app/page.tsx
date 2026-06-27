@@ -54,9 +54,9 @@ export default function HomePage() {
         </nav>
       </header>
 
-      {/* ── Hero (navy + bamboo texture) ───────────────────────────────── */}
-      <section className="relative overflow-hidden bg-bg-dark">
-        <div className="bamboo-texture pointer-events-none absolute inset-0" />
+      {/* ── Hero (radial gradient + bamboo texture) ────────────────────── */}
+      <section className="relative overflow-hidden bg-hero-gradient">
+        <div className="bamboo-texture pointer-events-none absolute inset-0 opacity-50" />
         <div className="relative mx-auto grid max-w-6xl items-center gap-2xl px-md py-3xl md:grid-cols-2">
           <div>
             <h1 className="font-display text-display-lg leading-none text-ink-inverse text-balance">
@@ -93,8 +93,10 @@ export default function HomePage() {
               ))}
             </div>
           </div>
-          <div className="flex justify-center">
-            <PandaMascot size={220} />
+          <div className="relative flex justify-center">
+            {/* soft glow behind the mascot */}
+            <div className="absolute h-64 w-64 rounded-full bg-brand-sky/20 blur-3xl" />
+            <PandaMascot size={220} className="relative shadow-glow-cobalt" />
           </div>
         </div>
       </section>
@@ -151,13 +153,68 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ── Partner strip ──────────────────────────────────────────────── */}
+      <section className="border-y border-line bg-bg-surface">
+        <div className="mx-auto max-w-6xl px-md py-xl">
+          <p className="text-center text-label uppercase tracking-wider text-ink-muted">
+            Trusted by leading brands
+          </p>
+          <div className="mt-lg flex flex-wrap items-center justify-center gap-x-2xl gap-y-md">
+            {['Aerodrome', 'Base', 'Jumia', 'Reloadly', 'Moonpay', 'Duolingo'].map((b) => (
+              <span
+                key={b}
+                className="font-display text-xl font-bold text-ink-muted/60 transition-colors hover:text-brand-cobalt"
+              >
+                {b}
+              </span>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── CTA band ───────────────────────────────────────────────────── */}
+      <section className="bg-bg-primary">
+        <div className="mx-auto max-w-5xl px-md py-3xl">
+          <div className="relative overflow-hidden rounded-card bg-hero-gradient p-2xl text-center">
+            <div className="bamboo-texture pointer-events-none absolute inset-0 opacity-50" />
+            <div className="relative">
+              <h2 className="font-display text-h1 text-ink-inverse text-balance">
+                Ready to claim your place in the jungle?
+              </h2>
+              <p className="mx-auto mt-md max-w-md text-brand-ice">
+                Join thousands earning Panda Points for what they already do online.
+              </p>
+              <Link href="/auth/register" className="mt-xl inline-block">
+                <Button variant="gold" size="lg">
+                  Create your account <ArrowRight className="h-5 w-5" />
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ── Footer (panda navy) ────────────────────────────────────────── */}
       <footer className="bg-bg-dark">
-        <div className="mx-auto flex max-w-6xl flex-col items-center gap-sm px-md py-xl text-label text-brand-ice">
-          <span>Earn everywhere. Spend everywhere. Own everything.</span>
-          <span className="text-ink-muted">
-            © {new Date().getFullYear()} Meta-Jungle Ecosystem · Powered by LPanda NFT · Built on Base
-          </span>
+        <div className="mx-auto grid max-w-6xl gap-xl px-md py-2xl sm:grid-cols-2 lg:grid-cols-4">
+          <div>
+            <div className="flex items-center gap-sm">
+              <span className="text-xl">🐼</span>
+              <span className="font-display text-lg font-bold text-ink-inverse">Meta-Jungle</span>
+            </div>
+            <p className="mt-sm max-w-xs text-label text-brand-ice">
+              Web3 loyalty, reputation, commerce & campaign infrastructure. Built on Base.
+            </p>
+          </div>
+          <FooterCol title="Product" links={['Quests', 'Panda Wallet', 'Marketplace', 'Leaderboard']} />
+          <FooterCol title="Ecosystem" links={['NFT Vault', 'Staking', 'P2P Trade', 'Campaigns']} />
+          <FooterCol title="Company" links={['Partners', 'Privacy', 'Terms', 'Support']} />
+        </div>
+        <div className="border-t border-white/10">
+          <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-sm px-md py-lg text-label text-ink-muted sm:flex-row">
+            <span>© {new Date().getFullYear()} Meta-Jungle Ecosystem · Powered by LPanda NFT</span>
+            <span className="text-brand-ice">Earn everywhere. Spend everywhere. Own everything.</span>
+          </div>
         </div>
       </footer>
     </div>
@@ -174,10 +231,27 @@ function FeatureCard({
   desc: string;
 }) {
   return (
-    <div className="group rounded-card border border-line bg-bg-primary p-lg shadow-card transition-all hover:border-b-4 hover:border-b-brand-cobalt hover:shadow-card-hover">
-      <div className="mb-md text-brand-cobalt">{icon}</div>
+    <div className="group rounded-card border border-line bg-bg-primary p-lg shadow-card transition-all duration-200 hover:-translate-y-1 hover:border-line-blue hover:shadow-card-hover">
+      <div className="mb-md inline-flex h-12 w-12 items-center justify-center rounded-[12px] bg-brand-ice text-brand-cobalt ring-1 ring-line-blue transition-transform group-hover:scale-105">
+        {icon}
+      </div>
       <h3 className="font-display text-h2 text-ink-primary">{title}</h3>
       <p className="mt-sm text-body text-ink-muted">{desc}</p>
+    </div>
+  );
+}
+
+function FooterCol({ title, links }: { title: string; links: string[] }) {
+  return (
+    <div>
+      <h4 className="text-label font-semibold uppercase tracking-wider text-ink-inverse">{title}</h4>
+      <ul className="mt-md space-y-sm">
+        {links.map((l) => (
+          <li key={l}>
+            <span className="text-label text-brand-ice transition-colors hover:text-ink-inverse">{l}</span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

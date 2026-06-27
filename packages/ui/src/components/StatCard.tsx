@@ -31,13 +31,17 @@ export function StatCard({
     <div
       className={cn(
         'group relative overflow-hidden rounded-card border border-line bg-bg-primary p-lg shadow-card',
-        'transition-all hover:shadow-card-hover',
+        'transition-all duration-200 hover:-translate-y-0.5 hover:border-line-blue hover:shadow-card-hover',
         'before:absolute before:left-0 before:top-0 before:h-full before:w-[4px] before:bg-brand-cobalt',
         'before:scale-y-0 before:transition-transform before:duration-200 hover:before:scale-y-100',
         className,
       )}
     >
-      {icon && <div className="mb-sm text-brand-cobalt">{icon}</div>}
+      {icon && (
+        <div className="mb-md inline-flex h-10 w-10 items-center justify-center rounded-[10px] bg-brand-ice text-brand-cobalt ring-1 ring-line-blue">
+          {icon}
+        </div>
+      )}
       <div className="font-display leading-none text-ink-primary">
         {typeof value === 'number' ? (
           isPP ? (
