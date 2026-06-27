@@ -8,6 +8,7 @@ import {
   Target,
   Trophy,
   Wallet,
+  ShoppingBag,
   Calendar,
   Bell,
   User,
@@ -16,19 +17,53 @@ import {
   Menu,
   X,
   Flame,
+  Megaphone,
+  GraduationCap,
+  ArrowLeftRight,
+  Lock,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { cn } from '@meta-jungle/ui';
 import { isAuthenticated, clearTokens } from '@/lib/api';
 
-const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: Home },
-  { name: 'Quests', href: '/dashboard/tasks', icon: Target },
-  { name: 'Panda Wallet', href: '/dashboard/points', icon: Wallet },
-  { name: 'Leaderboard', href: '/dashboard/leaderboard', icon: Trophy },
-  { name: 'Schedule', href: '/dashboard/schedule', icon: Calendar },
-  { name: 'Announcements', href: '/dashboard/announcements', icon: Bell },
-  { name: 'Profile', href: '/dashboard/community/profile', icon: User },
-  { name: 'Referrals', href: '/dashboard/community/referrals', icon: Users },
+const navSections: {
+  title?: string;
+  items: { name: string; href: string; icon: typeof Home }[];
+}[] = [
+  { items: [{ name: 'Dashboard', href: '/dashboard', icon: Home }] },
+  {
+    title: 'Earn',
+    items: [
+      { name: 'Quests', href: '/dashboard/tasks', icon: Target },
+      { name: 'Campaigns', href: '/dashboard/campaigns', icon: Megaphone },
+      { name: 'Learn', href: '/dashboard/learn', icon: GraduationCap },
+    ],
+  },
+  {
+    title: 'Wallet',
+    items: [
+      { name: 'Panda Wallet', href: '/dashboard/points', icon: Wallet },
+      { name: 'Marketplace', href: '/dashboard/marketplace', icon: ShoppingBag },
+      { name: 'P2P Trade', href: '/dashboard/p2p', icon: ArrowLeftRight },
+      { name: 'Staking', href: '/dashboard/staking', icon: Lock },
+      { name: 'NFT Vault', href: '/dashboard/nft-vault', icon: ImageIcon },
+    ],
+  },
+  {
+    title: 'Community',
+    items: [
+      { name: 'Leaderboard', href: '/dashboard/leaderboard', icon: Trophy },
+      { name: 'Profile', href: '/dashboard/community/profile', icon: User },
+      { name: 'Referrals', href: '/dashboard/community/referrals', icon: Users },
+    ],
+  },
+  {
+    title: 'Updates',
+    items: [
+      { name: 'Schedule', href: '/dashboard/schedule', icon: Calendar },
+      { name: 'Announcements', href: '/dashboard/announcements', icon: Bell },
+    ],
+  },
 ];
 
 export default function DashboardLayout({
@@ -84,32 +119,41 @@ export default function DashboardLayout({
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 space-y-1 overflow-y-auto px-md py-lg">
-          {navigation.map((item) => {
-            const isActive =
-              item.href === '/dashboard'
-                ? pathname === item.href
-                : pathname.startsWith(item.href);
-            return (
-              <Link
-                key={item.name}
-                href={item.href}
-                onClick={() => setSidebarOpen(false)}
-                className={cn(
-                  'relative flex items-center gap-md rounded-card px-md py-3 text-body font-medium transition-colors',
-                  isActive
-                    ? 'bg-brand-ice text-brand-cobalt'
-                    : 'text-ink-muted hover:bg-bg-elevated hover:text-ink-primary',
-                )}
-              >
-                {isActive && (
-                  <span className="absolute left-0 top-1/2 h-6 w-[4px] -translate-y-1/2 rounded-r bg-brand-cobalt" />
-                )}
-                <item.icon className="h-5 w-5" />
-                <span>{item.name}</span>
-              </Link>
-            );
-          })}
+        <nav className="flex-1 space-y-lg overflow-y-auto px-md py-lg">
+          {navSections.map((section, si) => (
+            <div key={si} className="space-y-1">
+              {section.title && (
+                <p className="px-md pb-1 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
+                  {section.title}
+                </p>
+              )}
+              {section.items.map((item) => {
+                const isActive =
+                  item.href === '/dashboard'
+                    ? pathname === item.href
+                    : pathname.startsWith(item.href);
+                return (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    onClick={() => setSidebarOpen(false)}
+                    className={cn(
+                      'relative flex items-center gap-md rounded-card px-md py-2.5 text-body font-medium transition-colors',
+                      isActive
+                        ? 'bg-brand-ice text-brand-cobalt'
+                        : 'text-ink-muted hover:bg-bg-elevated hover:text-ink-primary',
+                    )}
+                  >
+                    {isActive && (
+                      <span className="absolute left-0 top-1/2 h-6 w-[4px] -translate-y-1/2 rounded-r bg-brand-cobalt" />
+                    )}
+                    <item.icon className="h-5 w-5" />
+                    <span>{item.name}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
         {/* Footer — streak + role + logout */}

@@ -15,6 +15,18 @@ export type { InputProps } from './components/Input';
 export { EmptyState } from './components/EmptyState';
 export type { EmptyStateProps } from './components/EmptyState';
 
+export { Modal } from './components/Modal';
+export type { ModalProps } from './components/Modal';
+
+export { CountUp } from './components/CountUp';
+export type { CountUpProps } from './components/CountUp';
+
+export { Badge } from './components/Badge';
+export type { BadgeProps } from './components/Badge';
+
+export { ProgressBar } from './components/ProgressBar';
+export type { ProgressBarProps } from './components/ProgressBar';
+
 export { PPAmount } from './components/PPAmount';
 export type { PPAmountProps } from './components/PPAmount';
 

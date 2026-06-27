@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { cn } from '../lib/cn';
-import { PPAmount } from './PPAmount';
+import { CountUp } from './CountUp';
 
 export interface StatCardProps {
   icon?: React.ReactNode;
@@ -38,11 +38,19 @@ export function StatCard({
       )}
     >
       {icon && <div className="mb-sm text-brand-cobalt">{icon}</div>}
-      <div className="font-display text-display leading-none text-ink-primary">
-        {isPP && typeof value === 'number' ? (
-          <PPAmount value={value} size="display" showUnit={false} />
+      <div className="font-display leading-none text-ink-primary">
+        {typeof value === 'number' ? (
+          isPP ? (
+            <CountUp
+              value={value}
+              className="text-display tabular-nums text-reward-gold"
+            />
+          ) : (
+            <CountUp value={value} className="text-display tabular-nums" />
+          )
         ) : (
-          <span className="tabular-nums">{value}</span>
+          // Strings (e.g. "Legendary", "#5") use Heading-1 so long words don't overflow.
+          <span className="block truncate text-h1">{value}</span>
         )}
       </div>
       <div className="mt-sm text-label uppercase tracking-wide text-ink-muted">
