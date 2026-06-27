@@ -1,165 +1,84 @@
-"""
-Script to create an admin user for the LPanda platform.
+"""Bootstrap / promote an admin (one-time, run on the server).
+
+This is the *only* way to mint the first Overall_Admin — every promotion after
+that is done in-app via the admin panel (PATCH /api/v1/admin/users/{id}).
+Deliberately a CLI, never an HTTP endpoint, so it can't be reached remotely.
 
 Usage:
-    python scripts/create_admin.py
+    # Promote an existing user to Overall_Admin
+    python -m scripts.create_admin --email founder@example.com
+
+    # Create a brand-new admin account
+    python -m scripts.create_admin --email founder@example.com \
+        --password 'Str0ngPassw0rd!' --username founder
+
+    # Promote to a different role
+    python -m scripts.create_admin --email x@y.com --role Ambassador_Admin
 """
+import argparse
 import asyncio
 import sys
+import uuid
 from pathlib import Path
 
-# Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
-from app.core.config import settings
+from sqlalchemy import select
+
+from app.core.database import AsyncSessionLocal
 from app.core.security import hash_password
-from app.models.user import User
-from app.core.database import Base
+from app.models import User, UserRole, UserType
 
 
-async def create_admin_user():
-    """Create an admin user in the database."""
-    
-    # Create database engine
-    engine = create_async_engine(settings.DATABASE_URL, echo=True)
-    
-    # Create tables if they don't exist
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    
-    # Create session
-    async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
-    
-    async with async_session() as session:
-        # Check if admin already exists
-        from sqlalchemy import select
-        result = await session.execute(
-            select(User).where(User.email == "admin@lpanda.com")
-        )
-        existing_admin = result.scalar_one_or_none()
-        
-        if existing_admin:
-            print("❌ Admin user already exists!")
-            print(f"   Email: admin@lpanda.com")
-            return
-        
-        # Create admin user
-        admin_user = User(
-            email="admin@lpanda.com",
-            hashed_password=hash_password("Admin123!"),
-            full_name="System Administrator",
-            role="Overall_Admin",
-            user_type="Team_Member",
-            is_active=True,
-        )
-        
-        session.add(admin_user)
-        await session.commit()
-        await session.refresh(admin_user)
-        
-        print("✅ Admin user created successfully!")
-        print(f"   Email: admin@lpanda.com")
-        print(f"   Password: Admin123!")
-        print(f"   Role: Overall_Admin")
-        print(f"   User ID: {admin_user.id}")
-        print("\n⚠️  Please change the password after first login!")
-    
-    await engine.dispose()
-
-
-async def create_test_users():
-    """Create test users for development."""
-    
-    engine = create_async_engine(settings.DATABASE_URL, echo=False)
-    async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
-    
-    async with async_session() as session:
-        from sqlalchemy import select
-        
-        test_users = [
-            {
-                "email": "ambassador_admin@lpanda.com",
-                "password": "Ambassador123!",
-                "full_name": "Ambassador Admin",
-                "role": "Ambassador_Admin",
-                "user_type": "Ambassador",
-            },
-            {
-                "email": "team_member@lpanda.com",
-                "password": "TeamMember123!",
-                "full_name": "Test Team Member",
-                "role": "Team_Member",
-                "user_type": "Team_Member",
-            },
-            {
-                "email": "ambassador@lpanda.com",
-                "password": "Ambassador123!",
-                "full_name": "Test Ambassador",
-                "role": "Ambassador",
-                "user_type": "Ambassador",
-            },
-        ]
-        
-        created_count = 0
-        for user_data in test_users:
-            # Check if user exists
-            result = await session.execute(
-                select(User).where(User.email == user_data["email"])
-            )
-            existing_user = result.scalar_one_or_none()
-            
-            if not existing_user:
-                user = User(
-                    email=user_data["email"],
-                    hashed_password=hash_password(user_data["password"]),
-                    full_name=user_data["full_name"],
-                    role=user_data["role"],
-                    user_type=user_data["user_type"],
-                    is_active=True,
-                )
-                session.add(user)
-                created_count += 1
-        
-        if created_count > 0:
-            await session.commit()
-            print(f"\n✅ Created {created_count} test users!")
-            print("\nTest User Credentials:")
-            print("=" * 60)
-            for user_data in test_users:
-                print(f"Email: {user_data['email']}")
-                print(f"Password: {user_data['password']}")
-                print(f"Role: {user_data['role']}")
-                print("-" * 60)
-        else:
-            print("\n✅ All test users already exist!")
-    
-    await engine.dispose()
-
-
-async def main():
-    """Main function."""
-    print("=" * 60)
-    print("LPanda Platform - Admin User Creation")
-    print("=" * 60)
-    print()
-    
-    # Create admin user
-    await create_admin_user()
-    
-    # Ask if user wants to create test users
-    print("\nDo you want to create test users for development? (y/n): ", end="")
+async def run(email: str, password: str | None, username: str | None, role: str) -> int:
     try:
-        response = input().strip().lower()
-        if response == 'y':
-            await create_test_users()
-    except:
-        pass
-    
-    print("\n" + "=" * 60)
-    print("Done!")
-    print("=" * 60)
+        target_role = UserRole(role)
+    except ValueError:
+        valid = ", ".join(r.value for r in UserRole)
+        print(f"✗ Invalid role '{role}'. Valid roles: {valid}")
+        return 1
+
+    async with AsyncSessionLocal() as db:
+        user = (await db.execute(select(User).where(User.email == email))).scalar_one_or_none()
+
+        if user:
+            user.role = target_role
+            user.is_active = True
+            user.email_verified = True
+            action = "promoted"
+        else:
+            if not password:
+                print(f"✗ No user with {email}. Pass --password to create one.")
+                return 1
+            user = User(
+                name=username or email.split("@")[0],
+                email=email,
+                username=username or f"admin_{uuid.uuid4().hex[:6]}",
+                password_hash=hash_password(password),
+                role=target_role,
+                user_type=UserType.COMMUNITY_USER,
+                email_verified=True,
+                is_active=True,
+            )
+            db.add(user)
+            action = "created"
+
+        await db.commit()
+        await db.refresh(user)
+
+    print(f"✓ {action}: {user.email} (username={user.username}) is now {user.role.value}")
+    return 0
+
+
+def main() -> None:
+    p = argparse.ArgumentParser(description="Create or promote an admin user.")
+    p.add_argument("--email", required=True)
+    p.add_argument("--password", default=None, help="Required only when creating a new user")
+    p.add_argument("--username", default=None)
+    p.add_argument("--role", default=UserRole.OVERALL_ADMIN.value)
+    args = p.parse_args()
+    raise SystemExit(asyncio.run(run(args.email, args.password, args.username, args.role)))
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
