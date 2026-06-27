@@ -1,4 +1,4 @@
-import { PandaMascot } from '@meta-jungle/ui';
+import { PandaMascot, Foliage } from '@meta-jungle/ui';
 
 /**
  * Shared auth layout — navy + bamboo texture backdrop with a white card,
@@ -18,8 +18,9 @@ export function AuthShell({
   wide?: boolean;
 }) {
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-bg-dark p-md">
-      <div className="bamboo-texture pointer-events-none absolute inset-0" />
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-hero-gradient p-md">
+      <div className="bamboo-texture pointer-events-none absolute inset-0 opacity-40" />
+      <Foliage />
       <div className={`relative z-10 w-full ${wide ? 'max-w-xl' : 'max-w-md'}`}>
         <div className="mb-lg flex flex-col items-center text-center">
           <PandaMascot size={84} />

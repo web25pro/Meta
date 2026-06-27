@@ -10,6 +10,7 @@ import {
   StatCard,
   RoleBadge,
   Skeleton,
+  Foliage,
   cn,
   type Role,
 } from '@meta-jungle/ui';
@@ -100,8 +101,9 @@ export default function ProfilePage() {
   return (
     <div className="animate-page-in space-y-xl">
       {/* Navy header */}
-      <div className="relative overflow-hidden rounded-card bg-bg-dark p-xl text-center text-ink-inverse">
-        <div className="bamboo-texture pointer-events-none absolute inset-0" />
+      <div className="relative overflow-hidden rounded-card bg-hero-gradient p-xl text-center text-ink-inverse">
+        <div className="bamboo-texture pointer-events-none absolute inset-0 opacity-40" />
+        <Foliage />
         <div className="relative flex flex-col items-center">
           <ReputationRings
             activity={r.activity_score}

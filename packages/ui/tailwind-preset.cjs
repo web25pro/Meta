@@ -26,6 +26,22 @@ module.exports = {
           sky: '#3B82F6', // Secondary actions, links, highlights, icons
           ice: '#DBEAFE', // Accent backgrounds, selected states, badge fills
         },
+        // Jungle green — secondary brand accent (growth, earning, nature).
+        // Cobalt = trust/primary; forest = the jungle. Used for secondary CTAs,
+        // progress, "earn" accents and foliage.
+        forest: {
+          50: '#ecfdf3',
+          100: '#d1fadf',
+          200: '#a6f0c2',
+          300: '#6ce0a0',
+          400: '#34c77f',
+          500: '#16a063',
+          600: '#11814f',
+          700: '#0f6440',
+          800: '#0d4f34',
+          900: '#0a3a27',
+        },
+
         // Reward (bamboo gold — PP amounts, prizes, premium tiers ONLY)
         reward: {
           gold: '#B8860B',
@@ -50,6 +66,7 @@ module.exports = {
         // NOTE: no `bamboo` color alias — `bg-bamboo` is the bamboo texture
         // background-image (below); use `reward-gold` for the gold color.
         'panda-navy': '#0A1628',
+        'jungle-night': '#08130D',
         cobalt: '#1E5FA8',
         sky: '#3B82F6',
         ice: '#DBEAFE',
@@ -96,15 +113,19 @@ module.exports = {
         'card-hover': '0 2px 6px rgba(10,22,40,0.06), 0 16px 36px rgba(10,22,40,0.12)',
         glow: '0 0 24px rgba(184, 134, 11, 0.45)', // bamboo gold pulse
         'glow-cobalt': '0 8px 28px rgba(30, 95, 168, 0.35)', // CTA lift
+        'glow-jungle': '0 8px 28px rgba(16, 160, 99, 0.35)', // green CTA lift
         ring: '0 0 0 1px rgba(30,95,168,0.08)',
       },
 
       backgroundImage: {
         // Cobalt → navy gradient (CTA hover, podium, landing nav) — Chapter 3.5
         'brand-gradient': 'linear-gradient(135deg, #1E5FA8 0%, #0A1628 100%)',
-        // Richer hero gradient with depth
+        // Jungle green secondary CTA gradient
+        'jungle-gradient': 'linear-gradient(135deg, #16a063 0%, #0d4f34 100%)',
+        // "Jungle night" hero — navy canopy with a cobalt moon glow and a deep
+        // forest-green undergrowth glow, fading from panda navy to jungle black.
         'hero-gradient':
-          'radial-gradient(1200px 500px at 15% -10%, rgba(30,95,168,0.55) 0%, transparent 60%), radial-gradient(900px 500px at 100% 0%, rgba(59,130,246,0.28) 0%, transparent 55%), linear-gradient(180deg, #0A1628 0%, #0A1628 100%)',
+          'radial-gradient(900px 520px at 96% -12%, rgba(30,95,168,0.50) 0%, transparent 55%), radial-gradient(820px 560px at 6% 112%, rgba(16,160,99,0.42) 0%, transparent 58%), linear-gradient(165deg, #0A1628 0%, #0A1628 42%, #08130D 100%)',
         // Soft ice wash for elevated surfaces
         'ice-wash': 'linear-gradient(180deg, #FFFFFF 0%, #F8FAFF 100%)',
         // Diagonal bamboo line texture (subtle jungle aesthetic) — Chapter 3.5
@@ -139,6 +160,10 @@ module.exports = {
           '0%, 100%': { boxShadow: '0 0 12px rgba(184,134,11,0.35)' },
           '50%': { boxShadow: '0 0 24px rgba(184,134,11,0.7)' },
         },
+        sway: {
+          '0%, 100%': { transform: 'rotate(-2deg)' },
+          '50%': { transform: 'rotate(2deg)' },
+        },
       },
       animation: {
         breathe: 'breathe 2s ease-in-out infinite', // panda mascot
@@ -147,6 +172,7 @@ module.exports = {
         shimmer: 'shimmer 1.6s linear infinite', // ice-blue skeleton (never spinners)
         'pulse-ring': 'pulse-ring 600ms ease-out', // streak activation
         'gold-pulse': 'gold-pulse 2s ease-in-out infinite', // legendary NFT glow
+        sway: 'sway 7s ease-in-out infinite', // foliage drift
       },
 
       transitionTimingFunction: {

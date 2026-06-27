@@ -9,6 +9,7 @@ import {
   Badge,
   PPAmount,
   ProgressBar,
+  Foliage,
   cn,
 } from '@meta-jungle/ui';
 import { metajungleAPI, type ApiCampaign } from '@/api/metajungle';
@@ -81,8 +82,9 @@ export default function CampaignsPage() {
 
       {/* Featured spotlight — navy gradient */}
       {featured && (
-        <div className="relative overflow-hidden rounded-card bg-brand-gradient p-xl text-ink-inverse">
-          <div className="bamboo-texture pointer-events-none absolute inset-0" />
+        <div className="relative overflow-hidden rounded-card bg-hero-gradient p-xl text-ink-inverse">
+          <div className="bamboo-texture pointer-events-none absolute inset-0 opacity-40" />
+          <Foliage />
           <div className="relative space-y-md">
             <div className="flex items-center gap-sm">
               <span className="rounded-pill bg-white/15 px-sm py-[2px] text-label">{featured.brand}</span>
@@ -130,7 +132,7 @@ export default function CampaignsPage() {
                 <span>Pool {c.filled}% claimed</span>
                 <span className="flex items-center gap-1"><Users className="h-3 w-3" /> {c.participants.toLocaleString('en-US')}</span>
               </div>
-              <ProgressBar value={c.filled} tone={c.filled > 80 ? 'gold' : 'sky'} />
+              <ProgressBar value={c.filled} tone={c.filled > 80 ? 'gold' : 'jungle'} />
             </div>
             <div className="mt-auto flex items-center justify-between">
               <PPAmount value={c.perTask} size="sm" />

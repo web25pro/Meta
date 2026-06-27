@@ -7,6 +7,7 @@ import {
   Skeleton,
   EmptyState,
   PPAmount,
+  Foliage,
   cn,
 } from '@meta-jungle/ui';
 import apiClient from '@/lib/api';
@@ -82,8 +83,9 @@ export default function LeaderboardPage() {
         <>
           {/* Podium — navy + bamboo texture */}
           {podium.length > 0 && (
-            <div className="relative overflow-hidden rounded-card bg-bg-dark p-xl">
-              <div className="bamboo-texture pointer-events-none absolute inset-0" />
+            <div className="relative overflow-hidden rounded-card bg-hero-gradient p-xl">
+              <div className="bamboo-texture pointer-events-none absolute inset-0 opacity-40" />
+              <Foliage />
               <div className="relative flex items-end justify-center gap-md sm:gap-xl">
                 {podium[1] && <PodiumSpot entry={podium[1]} place={2} />}
                 {podium[0] && <PodiumSpot entry={podium[0]} place={1} />}

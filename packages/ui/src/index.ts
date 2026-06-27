@@ -34,6 +34,9 @@ export { Skeleton } from './components/Skeleton';
 export { PandaMascot } from './components/PandaMascot';
 export type { PandaMascotProps } from './components/PandaMascot';
 
+export { Foliage } from './components/Foliage';
+export type { FoliageProps } from './components/Foliage';
+
 export { StatCard } from './components/StatCard';
 export type { StatCardProps } from './components/StatCard';
 

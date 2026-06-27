@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { cn } from '../lib/cn';
 
-type Tone = 'neutral' | 'cobalt' | 'sky' | 'gold' | 'success' | 'danger' | 'amber';
+type Tone = 'neutral' | 'cobalt' | 'sky' | 'gold' | 'success' | 'danger' | 'amber' | 'jungle';
 
 export interface BadgeProps {
   tone?: Tone;
@@ -17,6 +17,7 @@ const tones: Record<Tone, string> = {
   success: 'bg-success/10 text-success',
   danger: 'bg-danger/10 text-danger',
   amber: 'bg-reward-amber/15 text-reward-amber',
+  jungle: 'bg-forest-500/15 text-forest-700',
 };
 
 export function Badge({ tone = 'neutral', children, className }: BadgeProps) {

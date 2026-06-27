@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { cn } from '../lib/cn';
 
-type Variant = 'cobalt' | 'ghost' | 'gradient' | 'gold';
+type Variant = 'cobalt' | 'ghost' | 'gradient' | 'gold' | 'jungle';
 type Size = 'sm' | 'md' | 'lg';
 
 export interface ButtonProps
@@ -22,6 +22,9 @@ const variants: Record<Variant, string> = {
     'bg-brand-gradient text-ink-inverse shadow-card hover:shadow-glow-cobalt hover:-translate-y-px',
   // Reward action
   gold: 'bg-reward-gold text-ink-inverse shadow-card hover:brightness-110 hover:-translate-y-px',
+  // Jungle-green secondary CTA (growth / earning)
+  jungle:
+    'bg-forest-600 text-ink-inverse shadow-card hover:bg-forest-700 hover:shadow-glow-jungle hover:-translate-y-px',
 };
 
 const sizes: Record<Size, string> = {

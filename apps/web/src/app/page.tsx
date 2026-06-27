@@ -16,6 +16,7 @@ import {
   PandaMascot,
   LeaderboardRow,
   PPAmount,
+  Foliage,
 } from '@meta-jungle/ui';
 
 /**
@@ -54,9 +55,10 @@ export default function HomePage() {
         </nav>
       </header>
 
-      {/* ── Hero (radial gradient + bamboo texture) ────────────────────── */}
+      {/* ── Hero (jungle night + foliage) ──────────────────────────────── */}
       <section className="relative overflow-hidden bg-hero-gradient">
-        <div className="bamboo-texture pointer-events-none absolute inset-0 opacity-50" />
+        <div className="bamboo-texture pointer-events-none absolute inset-0 opacity-40" />
+        <Foliage />
         <div className="relative mx-auto grid max-w-6xl items-center gap-2xl px-md py-3xl md:grid-cols-2">
           <div>
             <h1 className="font-display text-display-lg leading-none text-ink-inverse text-balance">
@@ -67,7 +69,7 @@ export default function HomePage() {
             </p>
             <div className="mt-xl flex flex-wrap gap-md">
               <Link href="/auth/register">
-                <Button variant="gradient" size="lg">
+                <Button variant="jungle" size="lg">
                   Start Earning <ArrowRight className="h-5 w-5" />
                 </Button>
               </Link>
@@ -176,7 +178,8 @@ export default function HomePage() {
       <section className="bg-bg-primary">
         <div className="mx-auto max-w-5xl px-md py-3xl">
           <div className="relative overflow-hidden rounded-card bg-hero-gradient p-2xl text-center">
-            <div className="bamboo-texture pointer-events-none absolute inset-0 opacity-50" />
+            <div className="bamboo-texture pointer-events-none absolute inset-0 opacity-40" />
+            <Foliage />
             <div className="relative">
               <h2 className="font-display text-h1 text-ink-inverse text-balance">
                 Ready to claim your place in the jungle?
@@ -266,8 +269,8 @@ function UtilityCard({
   from: number;
 }) {
   return (
-    <div className="w-44 shrink-0 rounded-card border border-line bg-bg-primary p-lg shadow-card">
-      <div className="mb-md text-brand-cobalt">{icon}</div>
+    <div className="w-44 shrink-0 rounded-card border border-line bg-bg-primary p-lg shadow-card transition-all hover:-translate-y-1 hover:border-forest-300 hover:shadow-card-hover">
+      <div className="mb-md inline-flex h-11 w-11 items-center justify-center rounded-[11px] bg-forest-50 text-forest-600 ring-1 ring-forest-200">{icon}</div>
       <div className="text-body font-medium text-ink-primary">{name}</div>
       <div className="mt-sm text-label text-ink-muted">
         From <PPAmount value={from} size="sm" />

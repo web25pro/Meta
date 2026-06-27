@@ -128,7 +128,7 @@ export default function LearnPage() {
                 <span>{c.lessons} lessons</span>
                 <span>{c.progress}% complete</span>
               </div>
-              <ProgressBar value={c.progress} tone={c.progress === 100 ? 'gold' : 'sky'} />
+              <ProgressBar value={c.progress} tone={c.progress === 100 ? 'gold' : 'jungle'} />
             </div>
             <div className="mt-auto flex items-center justify-between">
               <PPAmount value={c.pp} size="sm" />

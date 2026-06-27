@@ -21,6 +21,7 @@ import {
   Skeleton,
   QuestCard,
   PandaMascot,
+  Foliage,
 } from '@meta-jungle/ui';
 import apiClient, { isAuthenticated } from '@/lib/api';
 import { User, DashboardStats } from '@/types';
@@ -67,7 +68,8 @@ export default function DashboardPage() {
     <div className="animate-page-in space-y-xl">
       {/* Welcome hero — gradient + bamboo texture */}
       <div className="relative overflow-hidden rounded-card bg-hero-gradient p-xl text-ink-inverse">
-        <div className="bamboo-texture pointer-events-none absolute inset-0 opacity-50" />
+        <div className="bamboo-texture pointer-events-none absolute inset-0 opacity-40" />
+        <Foliage />
         <div className="relative flex items-center justify-between gap-lg">
           <div>
             <h1 className="font-display text-h1 text-ink-inverse">
@@ -77,7 +79,7 @@ export default function DashboardPage() {
               Your actions have value here. Keep your streak alive and climb the jungle.
             </p>
             <Link href="/dashboard/tasks" className="mt-lg inline-block">
-              <Button variant="gradient">
+              <Button variant="jungle">
                 Continue Earning <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>

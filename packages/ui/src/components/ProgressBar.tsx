@@ -4,7 +4,7 @@ import { cn } from '../lib/cn';
 export interface ProgressBarProps {
   /** 0–100. */
   value: number;
-  tone?: 'sky' | 'cobalt' | 'gold';
+  tone?: 'sky' | 'cobalt' | 'gold' | 'jungle';
   className?: string;
 }
 
@@ -12,6 +12,7 @@ const tones = {
   sky: 'bg-brand-sky',
   cobalt: 'bg-brand-cobalt',
   gold: 'bg-reward-gold',
+  jungle: 'bg-forest-500',
 };
 
 /** Sky-blue progress on an ice-blue track (Chapter 3.6). */
