@@ -59,7 +59,12 @@ class PointsTransaction(Base):
     )
     amount: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
     transaction_type: Mapped[TransactionType] = mapped_column(
-        SQLEnum(TransactionType, name="transaction_type", create_type=True),
+        SQLEnum(
+            TransactionType,
+            name="transaction_type",
+            create_type=True,
+            values_callable=lambda x: [e.value for e in x],
+        ),
         nullable=False,
         index=True
     )
@@ -169,7 +174,12 @@ class AuditLog(Base):
         index=True
     )
     action: Mapped[AuditActionType] = mapped_column(
-        SQLEnum(AuditActionType, name="audit_action_type", create_type=True),
+        SQLEnum(
+            AuditActionType,
+            name="audit_action_type",
+            create_type=True,
+            values_callable=lambda x: [e.value for e in x],
+        ),
         nullable=False,
         index=True
     )

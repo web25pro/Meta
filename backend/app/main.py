@@ -14,6 +14,8 @@ from app.core.exceptions import APIException
 from app.middleware.request_logging import RequestLoggingMiddleware
 from app.middleware.error_handler import ErrorHandlerMiddleware
 from app.api import leaderboard, schedule, announcement, community, auth, user, task, submission, points
+from app.api import metajungle
+from app.api import admin
 
 # Setup logging
 setup_logging()
@@ -28,7 +30,11 @@ async def lifespan(app: FastAPI):
     """Application lifespan manager for startup and shutdown events"""
     # Startup
     logger.info("Starting application", extra={"environment": settings.APP_ENV})
-    
+
+    # Ensure a bootstrap admin exists if configured (idempotent, non-fatal)
+    from app.core.bootstrap import ensure_bootstrap_admin
+    await ensure_bootstrap_admin()
+
     yield
     
     # Shutdown
@@ -322,6 +328,14 @@ app.include_router(leaderboard.router)
 app.include_router(schedule.router)
 app.include_router(announcement.router)
 app.include_router(community.router)
+
+# Meta-Jungle ecosystem routers (reputation, quests, NFT vault, P2P, staking,
+# campaigns, learn-to-earn, marketplace)
+for mj_router in metajungle.routers:
+    app.include_router(mj_router)
+
+# Admin panel router (Overall_Admin only)
+app.include_router(admin.router)
 
 # Setup custom OpenAPI schema
 setup_openapi(app)

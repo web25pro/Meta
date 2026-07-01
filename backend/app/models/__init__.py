@@ -9,6 +9,10 @@ from app.models.points_and_audit import (
 from app.models.leaderboard_schedule_announcement import (
     LeaderboardCache, Schedule, Announcement, TargetGroup
 )
+from app.models.metajungle import (
+    Quest, QuestCompletion, NFTHolding, P2POrder, Stake,
+    Partner, Campaign, CampaignParticipation, Course, CourseCompletion, Redemption,
+)
 
 __all__ = [
     "User",
@@ -30,4 +34,15 @@ __all__ = [
     "Schedule",
     "Announcement",
     "TargetGroup",
+    "Quest",
+    "QuestCompletion",
+    "NFTHolding",
+    "P2POrder",
+    "Stake",
+    "Partner",
+    "Campaign",
+    "CampaignParticipation",
+    "Course",
+    "CourseCompletion",
+    "Redemption",
 ]

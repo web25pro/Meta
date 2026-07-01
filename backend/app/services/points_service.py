@@ -1,5 +1,6 @@
 """Points and rewards service layer"""
 from typing import Optional, List
+from decimal import Decimal
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime
@@ -64,11 +65,14 @@ class PointsService:
             select(User).where(User.id == user_id)
         )
         user = result.scalar_one()
-        user.points += amount
-        
+        # `points`/`xp` are Numeric (Decimal) once loaded; coerce the float
+        # amount to Decimal so we never mix Decimal and float arithmetic.
+        amt = Decimal(str(amount))
+        user.points = (user.points or Decimal(0)) + amt
+
         # Award XP if amount is positive
-        if amount > 0:
-            user.xp += amount
+        if amt > 0:
+            user.xp = (user.xp or Decimal(0)) + amt
             # Update level (Simple calculation: Level = floor(XP / 1000) + 1)
             new_level = int(user.xp // 1000) + 1
             user.level = max(user.level, new_level)
