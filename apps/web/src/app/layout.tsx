@@ -18,6 +18,9 @@ export const metadata: Metadata = {
   title: 'Meta-Jungle — Your actions have value here.',
   description:
     'Web3 Loyalty, Reputation, Commerce & Campaign Infrastructure. Earn Panda Points, unlock real-world utilities, own your reputation. Powered by LPanda NFT on Base.',
+  icons: {
+    icon: '/favicon.svg',
+  },
 };
 
 export default function RootLayout({
