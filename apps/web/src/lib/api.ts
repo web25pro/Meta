@@ -54,7 +54,7 @@ apiClient.interceptors.response.use(
         // Refresh failed, clear tokens and redirect to login
         clearTokens();
         if (typeof window !== 'undefined') {
-          window.location.href = '/login';
+          window.location.href = '/auth/login';
         }
         return Promise.reject(refreshError);
       }
