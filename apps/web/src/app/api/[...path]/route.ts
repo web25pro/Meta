@@ -25,6 +25,15 @@ const HOP_BY_HOP_HEADERS = new Set([
   'host',
 ]);
 
+// Headers that should NOT be forwarded from the backend to the client.
+// Node.js fetch() auto-decompresses gzip/br/deflate, so forwarding
+// Content-Encoding causes ERR_CONTENT_DECODING_FAILED in the browser.
+const BACKEND_STRIP_HEADERS = new Set([
+  'content-encoding',
+  'content-length',
+  'transfer-encoding',
+]);
+
 function buildBackendUrl(path: string[], searchParams: string): string {
   const joined = path.join('/');
   const qs = searchParams ? `?${searchParams}` : '';
@@ -70,11 +79,12 @@ async function proxyRequest(
       body,
     });
 
-    // Build response, forwarding status + headers from backend
+    // Build response, forwarding status + headers from backend.
+    // Strip Content-Encoding/Content-Length because fetch() auto-decompresses
+    // the body — forwarding those headers would cause ERR_CONTENT_DECODING_FAILED.
     const responseHeaders = new Headers();
     backendResponse.headers.forEach((value, key) => {
-      // Skip hop-by-hop headers
-      if (!HOP_BY_HOP_HEADERS.has(key.toLowerCase())) {
+      if (!BACKEND_STRIP_HEADERS.has(key.toLowerCase())) {
         responseHeaders.set(key, value);
       }
     });
