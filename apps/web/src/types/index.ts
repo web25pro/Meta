@@ -20,6 +20,11 @@ export interface User {
   role: UserRole;
   user_type: UserType;
   points: number;
+  username?: string;
+  email_verified?: boolean;
+  xp?: number;
+  level?: number;
+  current_streak?: number;
   created_at: string;
   updated_at: string;
 }
