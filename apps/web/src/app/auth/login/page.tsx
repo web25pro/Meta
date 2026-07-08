@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -10,7 +10,7 @@ import { LogIn, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Input, Button } from '@meta-jungle/ui';
 import apiClient, { setTokens } from '@/lib/api';
-import { LoginRequest, TokenResponse } from '@/types';
+import { TokenResponse } from '@/types';
 import { AuthShell } from '@/components/auth-shell';
 
 const loginSchema = z.object({
@@ -21,8 +21,18 @@ const loginSchema = z.object({
 type LoginFormData = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={<AuthShell title="Welcome back" subtitle="Loading…"><div /></AuthShell>}>
+      <LoginForm />
+    </Suspense>
+  );
+}
+
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
+  const redirectTo = searchParams.get('next') || '/dashboard';
 
   const {
     register,
@@ -37,7 +47,7 @@ export default function LoginPage() {
       const { access_token, refresh_token } = response.data;
       setTokens(access_token, refresh_token);
       toast.success('Welcome back to the jungle!');
-      setTimeout(() => router.push('/dashboard'), 100);
+      setTimeout(() => router.push(redirectTo), 100);
     } catch (error: any) {
       toast.error(error.response?.data?.error?.message || 'Login failed');
     } finally {

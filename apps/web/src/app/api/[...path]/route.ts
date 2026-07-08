@@ -10,7 +10,7 @@ import { NextRequest, NextResponse } from 'next/server';
  * layer: the backend origin is a server-side secret.
  */
 
-const BACKEND_URL = process.env.BACKEND_URL || 'https://meta-4bck.onrender.com/api/v1';
+const BACKEND_URL = (process.env.BACKEND_URL || 'https://meta-4bck.onrender.com/api/v1').replace(/\/+$/, '');
 
 // Headers that should NOT be forwarded from the client to the backend
 const HOP_BY_HOP_HEADERS = new Set([

@@ -14,9 +14,13 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/_next');
 
   // If trying to access a protected route without a token, redirect to login.
+  // Preserve the original destination in a `next` query param so the login
+  // page can redirect back after authentication.
   // (Admin pages additionally enforce the Overall_Admin role client-side.)
   if (!isPublicRoute && !token && (pathname.startsWith('/dashboard') || pathname.startsWith('/admin'))) {
-    return NextResponse.redirect(new URL('/auth/login', request.url));
+    const loginUrl = new URL('/auth/login', request.url);
+    loginUrl.searchParams.set('next', pathname);
+    return NextResponse.redirect(loginUrl);
   }
 
   // If logged in and trying to access auth pages, redirect to dashboard
