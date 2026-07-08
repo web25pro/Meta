@@ -23,8 +23,7 @@ interface Course {
   pp: number;
   level: 'Beginner' | 'Intermediate' | 'Advanced';
   progress: number;
-  quiz: { q: string; options: string[]; answer: number };
-  real?: boolean;
+  quiz: { q: string; options: string[] };
 }
 
 // Quiz data is stored server-side in the Course model's quiz JSONB field.
@@ -50,8 +49,7 @@ export default function LearnPage() {
         pp: c.pp_reward,
         level: c.level,
         progress: 0,
-        quiz: c.quiz ?? { q: '', options: [], answer: -1 },
-        real: true,
+        quiz: c.quiz ?? { q: '', options: [] },
       }))
     : [];
 

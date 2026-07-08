@@ -92,6 +92,7 @@ export interface ApiCourse {
   level: 'Beginner' | 'Intermediate' | 'Advanced';
   lessons: number;
   pp_reward: number;
+  quiz?: { q: string; options: string[] } | null;
 }
 
 // ── Marketplace ─────────────────────────────────────────────────────────────
