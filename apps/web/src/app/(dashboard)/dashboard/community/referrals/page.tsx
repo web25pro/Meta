@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { Card, StatCard, Button, Skeleton } from '@meta-jungle/ui';
 import { communityAPI } from '@/api/community';
 import { useAuth } from '@/context/auth-context';
+import apiClient from '@/lib/api';
 
 interface ReferralData {
   referral_code: string;
@@ -32,23 +33,19 @@ export default function ReferralsPage() {
     const fetchReferralData = async () => {
       const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
       try {
-        const response = await communityAPI.getReferralCode();
+        const [codeRes, statsRes] = await Promise.all([
+          communityAPI.getReferralCode(),
+          apiClient.get('/community/referral-stats').catch(() => ({ data: {} })),
+        ]);
         setReferralData({
-          referral_code: response.referral_code,
-          referral_link: `${baseUrl}/auth/register?ref=${response.referral_code}`,
-          total_referrals: 2,
-          successful_referrals: 1,
-          referral_earnings: 500,
+          referral_code: codeRes.referral_code,
+          referral_link: `${baseUrl}/auth/register?ref=${codeRes.referral_code}`,
+          total_referrals: statsRes.data.total_referrals ?? 0,
+          successful_referrals: statsRes.data.successful_referrals ?? 0,
+          referral_earnings: statsRes.data.referral_earnings ?? 0,
         });
       } catch {
-        const mockCode = `REF${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
-        setReferralData({
-          referral_code: mockCode,
-          referral_link: `${baseUrl}/auth/register?ref=${mockCode}`,
-          total_referrals: 2,
-          successful_referrals: 1,
-          referral_earnings: 500,
-        });
+        toast.error('Failed to load referral data');
       } finally {
         setIsLoading(false);
       }

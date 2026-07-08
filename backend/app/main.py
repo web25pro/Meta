@@ -13,9 +13,14 @@ from app.core.openapi import setup_openapi
 from app.core.exceptions import APIException
 from app.middleware.request_logging import RequestLoggingMiddleware
 from app.middleware.error_handler import ErrorHandlerMiddleware
+from app.middleware.rate_limit import RateLimitMiddleware
+from app.middleware.csrf import CSRFMiddleware
+from app.middleware.idempotency import IdempotencyMiddleware
+from app.middleware.security_headers import SecurityHeadersMiddleware
 from app.api import leaderboard, schedule, announcement, community, auth, user, task, submission, points
 from app.api import metajungle
 from app.api import admin
+from app.api import public
 
 # Setup logging
 setup_logging()
@@ -187,6 +192,25 @@ app.add_middleware(
 # Add request/response logging middleware
 app.add_middleware(RequestLoggingMiddleware)
 
+# ── Security middleware (executed top-to-bottom on request, bottom-to-top on response) ──
+
+# Idempotency: require X-Idempotency-Key on POST, replay cached responses
+app.add_middleware(IdempotencyMiddleware, ttl=settings.IDEMPOTENCY_TTL_SECONDS)
+
+# CSRF: double-submit cookie validation on mutating requests
+app.add_middleware(CSRFMiddleware)
+
+# Rate limiting: sliding-window per-IP limits
+app.add_middleware(
+    RateLimitMiddleware,
+    default_per_minute=settings.RATE_LIMIT_DEFAULT_PER_MINUTE,
+    auth_per_minute=settings.RATE_LIMIT_AUTH_PER_MINUTE,
+    upload_per_minute=settings.RATE_LIMIT_UPLOAD_PER_MINUTE,
+)
+
+# Security headers: HSTS, X-Frame-Options, X-Content-Type-Options, etc.
+app.add_middleware(SecurityHeadersMiddleware)
+
 
 # Exception handlers for standardized error responses
 @app.exception_handler(RequestValidationError)
@@ -336,6 +360,9 @@ for mj_router in metajungle.routers:
 
 # Admin panel router (Overall_Admin only)
 app.include_router(admin.router)
+
+# Public endpoints (no auth required — stats, leaderboard preview, partners)
+app.include_router(public.router)
 
 # Setup custom OpenAPI schema
 setup_openapi(app)

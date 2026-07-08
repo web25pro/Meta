@@ -40,14 +40,20 @@ export default function DashboardPage() {
 
   const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>(
     'dashboardStats',
-    async () => ({
-      total_tasks: 12,
-      pending_submissions: 3,
-      total_points: 450,
-      current_rank: 5,
-      tasks_completed: 8,
-      tasks_pending: 4,
-    }),
+    async () => {
+      const [statsRes, rankRes] = await Promise.all([
+        apiClient.get('/users/me/stats'),
+        apiClient.get('/leaderboard/user/me/rank').catch(() => ({ data: { rank: null } })),
+      ]);
+      return {
+        total_tasks: statsRes.data.total_tasks ?? 0,
+        pending_submissions: statsRes.data.pending_submissions ?? 0,
+        total_points: statsRes.data.total_points ?? 0,
+        current_rank: rankRes.data.rank ?? null,
+        tasks_completed: statsRes.data.tasks_completed ?? 0,
+        tasks_pending: statsRes.data.tasks_pending ?? 0,
+      };
+    },
   );
 
   if (userLoading || statsLoading) {
@@ -111,7 +117,7 @@ export default function DashboardPage() {
         <StatCard
           icon={<Flame className="h-6 w-6" />}
           label="Streak Days"
-          value={5}
+          value={user?.current_streak ?? 0}
         />
       </div>
 

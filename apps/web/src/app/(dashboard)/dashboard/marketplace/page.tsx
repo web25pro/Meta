@@ -28,7 +28,6 @@ import { metajungleAPI } from '@/api/metajungle';
 import { PointsTransaction, PaginatedResponse } from '@/types';
 import {
   CATEGORIES,
-  PRODUCTS,
   FLAG,
   INPUT_LABEL,
   type MarketCategory,
@@ -64,11 +63,11 @@ export default function MarketplacePage() {
     [ledger],
   );
 
-  // Live catalog from the backend; falls back to the bundled catalog offline.
-  const { data: catalog } = useQuery('mjCatalog', metajungleAPI.getCatalog, {
+  // Live catalog from the backend.
+  const { data: catalog, isLoading } = useQuery('mjCatalog', metajungleAPI.getCatalog, {
     retry: false,
   });
-  const products = (catalog as Product[] | undefined) ?? PRODUCTS;
+  const products = (catalog as Product[] | undefined) ?? [];
   const items = products.filter((p) => p.category === active);
 
   const openRedeem = (p: Product) => {
@@ -158,11 +157,23 @@ export default function MarketplacePage() {
       </p>
 
       {/* Product grid */}
-      <div className="grid gap-lg sm:grid-cols-2 lg:grid-cols-3">
-        {items.map((p) => (
-          <ProductCard key={p.id} product={p} onRedeem={() => openRedeem(p)} />
-        ))}
-      </div>
+      {isLoading ? (
+        <div className="grid gap-lg sm:grid-cols-2 lg:grid-cols-3">
+          {[0, 1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="h-48 animate-pulse rounded-card bg-bg-elevated" />
+          ))}
+        </div>
+      ) : items.length === 0 ? (
+        <div className="rounded-card border border-line bg-bg-primary p-xl text-center text-ink-muted">
+          No products available in this category.
+        </div>
+      ) : (
+        <div className="grid gap-lg sm:grid-cols-2 lg:grid-cols-3">
+          {items.map((p) => (
+            <ProductCard key={p.id} product={p} onRedeem={() => openRedeem(p)} />
+          ))}
+        </div>
+      )}
 
       {/* Redemption flow */}
       <Modal

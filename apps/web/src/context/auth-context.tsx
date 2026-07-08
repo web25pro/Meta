@@ -24,23 +24,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    // Check if user is logged in by reading from localStorage or making API call
+    // Check if user is logged in by verifying token with the backend
     const checkAuth = async () => {
       try {
         const token = localStorage.getItem('access_token');
         if (token) {
-          // In a real app, you would verify the token with your backend
-          // For now, we'll just set a basic user object
-          const userStr = localStorage.getItem('user');
-          if (userStr) {
-            setUser(JSON.parse(userStr));
-          } else {
-            // You could decode the JWT to extract user info
+          // Fetch real user data from the API
+          const res = await fetch('/api/users/me', {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (res.ok) {
+            const userData = await res.json();
             setUser({
-              id: 'user-id',
-              email: 'user@example.com',
-              username: 'user',
+              id: userData.id,
+              email: userData.email,
+              username: userData.username,
+              email_verified: userData.email_verified,
             });
+            // Cache user for faster subsequent loads
+            localStorage.setItem('user', JSON.stringify(userData));
+          } else {
+            // Token invalid — clear everything
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
+            localStorage.removeItem('user');
           }
         }
       } catch (error) {

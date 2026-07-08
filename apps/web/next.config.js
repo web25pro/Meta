@@ -4,17 +4,8 @@ const nextConfig = {
   swcMinify: true,
   // Transpile the workspace design system + shared types (Meta-Jungle monorepo).
   transpilePackages: ['@meta-jungle/ui', '@meta-jungle/types'],
-  env: {
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'https://meta-4bck.onrender.com/api/v1',
-  },
-  async rewrites() {
-    return [
-      {
-        source: '/api/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_URL || 'https://meta-4bck.onrender.com/api/v1'}/:path*`,
-      },
-    ];
-  },
+  // Backend URL is NOT exposed to the browser — it lives in BACKEND_URL
+  // (server-side only) and is used by the API proxy at /api/[...path]/route.ts.
 };
 
 module.exports = nextConfig;

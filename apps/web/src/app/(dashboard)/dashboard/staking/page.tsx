@@ -27,11 +27,6 @@ interface Stake {
   accrued: number;
 }
 
-const STAKES: Stake[] = [
-  { id: '1', asset: '5,000 PP', amount: 5000, multiplier: '1.5×', lockDays: 90, elapsedDays: 54, accrued: 420 },
-  { id: '2', asset: 'LPanda #1188 (Epic)', amount: 0, multiplier: '2.0×', lockDays: 180, elapsedDays: 31, accrued: 180 },
-];
-
 const TIERS = [
   { days: 30, mult: '1.2×', apr: '8%' },
   { days: 90, mult: '1.5×', apr: '14%' },
@@ -46,7 +41,6 @@ interface DisplayStake {
   lockDays: number;
   elapsedDays: number;
   accrued: number;
-  real: boolean;
 }
 
 function fromApi(s: ApiStake): DisplayStake {
@@ -60,7 +54,6 @@ function fromApi(s: ApiStake): DisplayStake {
     lockDays: s.lock_days,
     elapsedDays: elapsed,
     accrued: Number(s.accrued),
-    real: true,
   };
 }
 
@@ -71,11 +64,8 @@ export default function StakingPage() {
   const [amount, setAmount] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  const { data } = useQuery('mjStakes', metajungleAPI.listStakes, { retry: false });
-  const stakes: DisplayStake[] =
-    data && data.stakes.length > 0
-      ? data.stakes.map(fromApi)
-      : STAKES.map((s) => ({ ...s, real: false }));
+  const { data, isLoading } = useQuery('mjStakes', metajungleAPI.listStakes, { retry: false });
+  const stakes: DisplayStake[] = data ? data.stakes.map(fromApi) : [];
 
   const totalStaked = stakes.reduce((s, x) => s + x.amount, 0);
   const totalAccrued = stakes.reduce((s, x) => s + x.accrued, 0);
@@ -102,10 +92,6 @@ export default function StakingPage() {
   };
 
   const claim = async (s: DisplayStake) => {
-    if (!s.real) {
-      toast.success('Rewards claimed');
-      return;
-    }
     try {
       await metajungleAPI.claimStake(s.id);
       toast.success('Staking rewards claimed');
@@ -138,7 +124,17 @@ export default function StakingPage() {
 
       <div className="space-y-lg">
         <h2 className="font-display text-h2 text-ink-primary">Active stakes</h2>
-        {stakes.map((s) => {
+        {isLoading ? (
+          <div className="space-y-lg">
+            {[0, 1].map((i) => (
+              <div key={i} className="h-48 animate-pulse rounded-card bg-bg-elevated" />
+            ))}
+          </div>
+        ) : stakes.length === 0 ? (
+          <div className="rounded-card border border-line bg-bg-primary p-xl text-center text-ink-muted">
+            No active stakes. Create a new stake to start earning rewards!
+          </div>
+        ) : stakes.map((s) => {
           const pct = Math.round((s.elapsedDays / s.lockDays) * 100);
           return (
             <Card key={s.id} className="space-y-md border-l-4 border-l-brand-cobalt">

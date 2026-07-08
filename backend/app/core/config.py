@@ -55,6 +55,17 @@ class Settings(BaseSettings):
     # CORS
     CORS_ORIGINS: str = "http://localhost:3000"
 
+    # Rate Limiting (requests per minute)
+    RATE_LIMIT_DEFAULT_PER_MINUTE: int = 100
+    RATE_LIMIT_AUTH_PER_MINUTE: int = 20
+    RATE_LIMIT_UPLOAD_PER_MINUTE: int = 10
+
+    # Idempotency
+    IDEMPOTENCY_TTL_SECONDS: int = 300  # 5 minutes
+
+    # Backend URL for Next.js proxy (server-side only, not exposed to browser)
+    BACKEND_URL: str = ""
+
     # Admin bootstrap — if set, this user is created/promoted to Overall_Admin
     # on app startup (idempotent). Lets you mint the first admin on deploy
     # without shell/DB access. Clear the env var once the admin exists.

@@ -16,13 +16,7 @@ import {
 } from '@meta-jungle/ui';
 import { metajungleAPI } from '@/api/metajungle';
 import { useAuth } from '@/context/auth-context';
-
-const DEFAULT_REP = {
-  activity_score: 620,
-  reputation_score: 540,
-  influence_score: 310,
-  role: 'Hunter' as Role,
-};
+import apiClient from '@/lib/api';
 
 interface CommunityUserStats {
   user_id: string;
@@ -50,7 +44,6 @@ export default function ProfilePage() {
     retry: false,
     enabled: !!user,
   });
-  const r = rep ?? DEFAULT_REP;
 
   useEffect(() => {
     if (authLoading) return;
@@ -58,27 +51,32 @@ export default function ProfilePage() {
       router.push('/auth/login');
       return;
     }
-    try {
-      setStats({
-        user_id: user.id,
-        username: user.username || 'User',
-        email: user.email,
-        email_verified: user.email_verified || false,
-        points: 1250,
-        xp: 4560,
-        level: 3,
-        current_streak: 5,
-        best_streak: 12,
-        total_submissions: 8,
-        total_tasks_completed: 15,
-        referrals_count: 2,
-        created_at: new Date().toISOString(),
-      });
-    } catch {
-      toast.error('Failed to load profile');
-    } finally {
-      setIsLoading(false);
-    }
+    const fetchStats = async () => {
+      try {
+        // Fetch real user stats from the API
+        const { data } = await apiClient.get('/users/me/stats');
+        setStats({
+          user_id: user.id,
+          username: user.username || 'User',
+          email: user.email,
+          email_verified: user.email_verified || false,
+          points: data.points ?? 0,
+          xp: data.xp ?? 0,
+          level: data.level ?? 1,
+          current_streak: data.current_streak ?? 0,
+          best_streak: data.best_streak ?? 0,
+          total_submissions: data.total_submissions ?? 0,
+          total_tasks_completed: data.total_tasks_completed ?? 0,
+          referrals_count: data.referrals_count ?? 0,
+          created_at: data.created_at ?? new Date().toISOString(),
+        });
+      } catch {
+        toast.error('Failed to load profile');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchStats();
   }, [user, authLoading, router]);
 
   if (isLoading) {
@@ -97,6 +95,9 @@ export default function ProfilePage() {
   if (!stats) {
     return <div className="text-center text-ink-muted">Failed to load profile</div>;
   }
+
+  // Reputation data from API (or zeros if not available)
+  const r = rep ?? { activity_score: 0, reputation_score: 0, influence_score: 0, role: 'Explorer' };
 
   return (
     <div className="animate-page-in space-y-xl">

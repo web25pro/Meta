@@ -26,41 +26,6 @@ interface VaultNFT {
   utilities: string[];
 }
 
-const NFTS: VaultNFT[] = [
-  {
-    id: '1', name: 'LPanda #0421', tier: 'legendary', dailyPP: 60, collection: 'LPanda Genesis',
-    traits: [
-      { label: 'Fur', value: 'Arctic White' }, { label: 'Eyes', value: 'Cobalt Glow' },
-      { label: 'Background', value: 'Midnight Jungle' }, { label: 'Accessory', value: 'Bamboo Crown' },
-    ],
-    utilities: ['2× earn multiplier', 'DAO vote weight ×3', 'Partner mint WL', 'Revenue share'],
-  },
-  {
-    id: '2', name: 'LPanda #1188', tier: 'epic', dailyPP: 40, collection: 'LPanda Genesis',
-    traits: [
-      { label: 'Fur', value: 'Snow' }, { label: 'Eyes', value: 'Sky' },
-      { label: 'Background', value: 'Bamboo Grove' }, { label: 'Accessory', value: 'Explorer Scarf' },
-    ],
-    utilities: ['1.5× earn multiplier', 'DAO vote', 'Partner mint WL'],
-  },
-  {
-    id: '3', name: 'LPanda #2390', tier: 'rare', dailyPP: 30, collection: 'LPanda Genesis',
-    traits: [
-      { label: 'Fur', value: 'Ivory' }, { label: 'Eyes', value: 'Calm' },
-      { label: 'Background', value: 'Dawn Mist' }, { label: 'Accessory', value: 'None' },
-    ],
-    utilities: ['1.2× earn multiplier', 'P2P basic'],
-  },
-  {
-    id: '4', name: 'LPanda #4501', tier: 'common', dailyPP: 20, collection: 'LPanda Genesis',
-    traits: [
-      { label: 'Fur', value: 'White' }, { label: 'Eyes', value: 'Round' },
-      { label: 'Background', value: 'Forest' }, { label: 'Accessory', value: 'None' },
-    ],
-    utilities: ['Daily PP earn', 'Holder badge'],
-  },
-];
-
 const TIER_TONE: Record<NFTTier, 'cobalt' | 'sky' | 'gold'> = {
   common: 'cobalt', rare: 'sky', epic: 'gold', legendary: 'gold',
 };
@@ -76,20 +41,19 @@ function topTier(nfts: { tier: NFTTier }[]): string {
 export default function NFTVaultPage() {
   const [selected, setSelected] = useState<VaultNFT | null>(null);
 
-  // Live holdings from the backend; falls back to demo NFTs offline / empty.
-  const { data } = useQuery('mjNfts', metajungleAPI.listNFTs, { retry: false });
-  const nfts: VaultNFT[] =
-    data && data.nfts.length > 0
-      ? data.nfts.map((n) => ({
-          id: n.id,
-          name: n.name,
-          tier: n.tier,
-          dailyPP: n.daily_pp_rate,
-          collection: 'LPanda Genesis',
-          traits: n.traits ?? [],
-          utilities: n.utilities ?? [],
-        }))
-      : NFTS;
+  // Live holdings from the backend.
+  const { data, isLoading } = useQuery('mjNfts', metajungleAPI.listNFTs, { retry: false });
+  const nfts: VaultNFT[] = data
+    ? data.nfts.map((n) => ({
+        id: n.id,
+        name: n.name,
+        tier: n.tier,
+        dailyPP: n.daily_pp_rate,
+        collection: 'LPanda Genesis',
+        traits: n.traits ?? [],
+        utilities: n.utilities ?? [],
+      }))
+    : [];
   const totalDaily = nfts.reduce((s, n) => s + n.dailyPP, 0);
 
   return (
@@ -107,17 +71,29 @@ export default function NFTVaultPage() {
         <StatCard icon={<Sparkles className="h-6 w-6" />} label="Top Tier" value={topTier(nfts)} />
       </div>
 
-      <div className="grid grid-cols-2 gap-lg sm:grid-cols-3 lg:grid-cols-4">
-        {nfts.map((n) => (
-          <NFTVaultTile
-            key={n.id}
-            name={n.name}
-            tier={n.tier}
-            dailyPP={n.dailyPP}
-            onClick={() => setSelected(n)}
-          />
-        ))}
-      </div>
+      {isLoading ? (
+        <div className="grid grid-cols-2 gap-lg sm:grid-cols-3 lg:grid-cols-4">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="h-48 animate-pulse rounded-card bg-bg-elevated" />
+          ))}
+        </div>
+      ) : nfts.length === 0 ? (
+        <div className="rounded-card border border-line bg-bg-primary p-xl text-center text-ink-muted">
+          No NFTs in your vault yet. Mint or acquire an LPanda NFT to get started!
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-lg sm:grid-cols-3 lg:grid-cols-4">
+          {nfts.map((n) => (
+            <NFTVaultTile
+              key={n.id}
+              name={n.name}
+              tier={n.tier}
+              dailyPP={n.dailyPP}
+              onClick={() => setSelected(n)}
+            />
+          ))}
+        </div>
+      )}
 
       <Modal open={!!selected} onClose={() => setSelected(null)} title={selected?.name}>
         {selected && (

@@ -24,7 +24,7 @@ import {
   Image as ImageIcon,
 } from 'lucide-react';
 import { cn } from '@meta-jungle/ui';
-import { isAuthenticated, clearTokens } from '@/lib/api';
+import { isAuthenticated, clearTokens, getAccessToken } from '@/lib/api';
 
 const navSections: {
   title?: string;
@@ -74,10 +74,31 @@ export default function DashboardLayout({
   const router = useRouter();
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [streak, setStreak] = useState<number | null>(null);
 
   useEffect(() => {
     if (!isAuthenticated()) router.push('/auth/login');
   }, [router]);
+
+  useEffect(() => {
+    // Fetch user streak from the API
+    const fetchStreak = async () => {
+      try {
+        const token = getAccessToken();
+        if (!token) return;
+        const res = await fetch('/api/users/me', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const user = await res.json();
+          setStreak(user.current_streak ?? 0);
+        }
+      } catch {
+        // Silently fail — streak will show as placeholder
+      }
+    };
+    fetchStreak();
+  }, []);
 
   const handleLogout = () => {
     clearTokens();
@@ -162,7 +183,9 @@ export default function DashboardLayout({
             <span className="flex items-center gap-sm text-label text-ink-muted">
               <Flame className="h-4 w-4 text-reward-amber" /> Streak
             </span>
-            <span className="font-display text-body text-reward-amber">5 days</span>
+            <span className="font-display text-body text-reward-amber">
+              {streak !== null ? `${streak} days` : '—'}
+            </span>
           </div>
           <button
             onClick={handleLogout}

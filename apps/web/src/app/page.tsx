@@ -19,12 +19,35 @@ import {
   Foliage,
 } from '@meta-jungle/ui';
 
+// Fetch public data server-side for the landing page
+async function getPublicData() {
+  const baseUrl = process.env.BACKEND_URL || 'https://meta-4bck.onrender.com/api/v1';
+  try {
+    const [statsRes, leaderboardRes, partnersRes] = await Promise.all([
+      fetch(`${baseUrl}/public/stats`, { next: { revalidate: 60 } }),
+      fetch(`${baseUrl}/public/leaderboard?limit=5`, { next: { revalidate: 60 } }),
+      fetch(`${baseUrl}/public/partners`, { next: { revalidate: 300 } }),
+    ]);
+    const stats = statsRes.ok ? await statsRes.json() : { total_users: 0, total_pp_earned: 0, active_campaigns: 0 };
+    const leaderboard = leaderboardRes.ok ? await leaderboardRes.json() : [];
+    const partners = partnersRes.ok ? await partnersRes.json() : [];
+    return { stats, leaderboard, partners };
+  } catch {
+    return {
+      stats: { total_users: 0, total_pp_earned: 0, active_campaigns: 0 },
+      leaderboard: [],
+      partners: [],
+    };
+  }
+}
+
 /**
  * Meta-Jungle landing page (Master Prompt v3.0, Chapter 4.1).
  * Navy hero with bamboo texture, white feature grid, ice-blue utility showcase,
  * leaderboard preview. White-first; bamboo gold reserved for PP only.
  */
-export default function HomePage() {
+export default async function HomePage() {
+  const { stats, leaderboard, partners } = await getPublicData();
   return (
     <div className="min-h-screen bg-bg-primary text-ink-primary">
       {/* ── Nav Bar (panda navy) ───────────────────────────────────────── */}
@@ -81,18 +104,15 @@ export default function HomePage() {
             </div>
             {/* Live stats ticker */}
             <div className="mt-xl flex flex-wrap gap-sm">
-              {[
-                '47,291 users',
-                '2.4M PP earned today',
-                '138 active campaigns',
-              ].map((s) => (
-                <span
-                  key={s}
-                  className="rounded-pill bg-brand-cobalt/30 px-md py-1 text-label text-ice"
-                >
-                  {s}
-                </span>
-              ))}
+              <span className="rounded-pill bg-brand-cobalt/30 px-md py-1 text-label text-ice">
+                {stats.total_users.toLocaleString('en-US')} users
+              </span>
+              <span className="rounded-pill bg-brand-cobalt/30 px-md py-1 text-label text-ice">
+                {(stats.total_pp_earned / 1_000_000).toFixed(1)}M PP earned
+              </span>
+              <span className="rounded-pill bg-brand-cobalt/30 px-md py-1 text-label text-ice">
+                {stats.active_campaigns} active campaigns
+              </span>
             </div>
           </div>
           <div className="relative flex justify-center">
@@ -138,20 +158,41 @@ export default function HomePage() {
       <section id="leaderboard" className="mx-auto max-w-3xl px-md py-3xl">
         <h2 className="font-display text-h1 text-ink-primary">Top of the Jungle</h2>
         <div className="mt-xl overflow-hidden rounded-card border border-line bg-bg-primary shadow-card">
-          <LeaderboardRow rank={1} username="panda_king" role="Alpha OG" ppEarned={184920} rankChange={2} />
-          <LeaderboardRow rank={2} username="bamboo.eth" role="OG Panda" ppEarned={151340} rankChange={-1} />
-          <LeaderboardRow rank={3} username="jungle_runner" role="OG Panda" ppEarned={142180} rankChange={1} />
-          <div className="relative">
-            <div className="pointer-events-none select-none blur-sm">
-              <LeaderboardRow rank={4} username="••••••••" ppEarned={98000} />
-              <LeaderboardRow rank={5} username="••••••••" ppEarned={91000} />
-            </div>
-            <div className="absolute inset-0 flex items-center justify-center">
+          {leaderboard.length > 0 ? (
+            <>
+              {leaderboard.slice(0, 3).map((entry: any) => (
+                <LeaderboardRow
+                  key={entry.rank}
+                  rank={entry.rank}
+                  username={entry.username}
+                  ppEarned={entry.pp}
+                />
+              ))}
+              <div className="relative">
+                <div className="pointer-events-none select-none blur-sm">
+                  {leaderboard.slice(3, 5).map((entry: any) => (
+                    <LeaderboardRow
+                      key={entry.rank}
+                      rank={entry.rank}
+                      username="••••••••"
+                      ppEarned={entry.pp}
+                    />
+                  ))}
+                </div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Link href="/auth/register">
+                    <Button>Connect wallet to see your rank</Button>
+                  </Link>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="p-xl text-center text-ink-muted">
               <Link href="/auth/register">
-                <Button>Connect wallet to see your rank</Button>
+                <Button>Connect wallet to see the leaderboard</Button>
               </Link>
             </div>
-          </div>
+          )}
         </div>
       </section>
 
@@ -162,14 +203,16 @@ export default function HomePage() {
             Trusted by leading brands
           </p>
           <div className="mt-lg flex flex-wrap items-center justify-center gap-x-2xl gap-y-md">
-            {['Aerodrome', 'Base', 'Jumia', 'Reloadly', 'Moonpay', 'Duolingo'].map((b) => (
+            {partners.length > 0 ? partners.map((name: string) => (
               <span
-                key={b}
+                key={name}
                 className="font-display text-xl font-bold text-ink-muted/60 transition-colors hover:text-brand-cobalt"
               >
-                {b}
+                {name}
               </span>
-            ))}
+            )) : (
+              <span className="text-label text-ink-muted">Partner announcements coming soon</span>
+            )}
           </div>
         </div>
       </section>

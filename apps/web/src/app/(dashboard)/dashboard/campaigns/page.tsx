@@ -28,13 +28,6 @@ interface Campaign {
   featured?: boolean;
 }
 
-const CAMPAIGNS: Campaign[] = [
-  { id: '1', brand: 'Aerodrome', title: 'Provide liquidity & earn', blurb: 'Add liquidity to the LPANDA/USDC pool and verify on-chain.', pool: 500000, perTask: 500, daysLeft: 6, participants: 1240, filled: 62, regions: ['Global'], featured: true },
-  { id: '2', brand: 'Jumia', title: 'Shop & review challenge', blurb: 'Make a verified purchase and leave a review to earn PP.', pool: 120000, perTask: 200, daysLeft: 12, participants: 880, filled: 41, regions: ['NG', 'GH', 'KE'] },
-  { id: '3', brand: 'Base', title: 'Bridge to Base quest', blurb: 'Bridge any asset to Base and complete a swap.', pool: 250000, perTask: 350, daysLeft: 3, participants: 2010, filled: 88, regions: ['Global'] },
-  { id: '4', brand: 'Duolingo', title: 'Learn a language streak', blurb: 'Hit a 7-day streak in any course to claim the reward.', pool: 80000, perTask: 150, daysLeft: 20, participants: 540, filled: 23, regions: ['Global'] },
-];
-
 function fromApi(c: ApiCampaign): Campaign {
   const daysLeft = c.ends_at
     ? Math.max(0, Math.ceil((new Date(c.ends_at).getTime() - Date.now()) / 86400000))
@@ -56,8 +49,8 @@ function fromApi(c: ApiCampaign): Campaign {
 
 export default function CampaignsPage() {
   const queryClient = useQueryClient();
-  const { data } = useQuery('mjCampaigns', metajungleAPI.listCampaigns, { retry: false });
-  const all: Campaign[] = data && data.length > 0 ? data.map(fromApi) : CAMPAIGNS;
+  const { data, isLoading } = useQuery('mjCampaigns', metajungleAPI.listCampaigns, { retry: false });
+  const all: Campaign[] = data ? data.map(fromApi) : [];
   const featured = all.find((c) => c.featured);
   const rest = all.filter((c) => !c.featured);
 
@@ -114,33 +107,45 @@ export default function CampaignsPage() {
         </div>
       )}
 
-      <div className="grid gap-lg sm:grid-cols-2">
-        {rest.map((c) => (
-          <Card key={c.id} className="flex flex-col gap-md">
-            <div className="flex items-center justify-between">
-              <span className="font-display text-h2 text-ink-primary">{c.brand}</span>
-              <Badge tone={c.daysLeft <= 3 ? 'amber' : 'cobalt'}>
-                <Clock className="h-3 w-3" /> {c.daysLeft}d left
-              </Badge>
-            </div>
-            <div>
-              <h3 className="text-body font-medium text-ink-primary">{c.title}</h3>
-              <p className="text-label text-ink-muted">{c.blurb}</p>
-            </div>
-            <div className="space-y-1">
-              <div className="flex justify-between text-label text-ink-muted">
-                <span>Pool {c.filled}% claimed</span>
-                <span className="flex items-center gap-1"><Users className="h-3 w-3" /> {c.participants.toLocaleString('en-US')}</span>
+      {isLoading ? (
+        <div className="grid gap-lg sm:grid-cols-2">
+          {[0, 1].map((i) => (
+            <Card key={i} className="h-64 animate-pulse bg-bg-elevated" />
+          ))}
+        </div>
+      ) : rest.length === 0 && !featured ? (
+        <Card className="p-xl text-center text-ink-muted">
+          No campaigns available right now. Check back soon!
+        </Card>
+      ) : (
+        <div className="grid gap-lg sm:grid-cols-2">
+          {rest.map((c) => (
+            <Card key={c.id} className="flex flex-col gap-md">
+              <div className="flex items-center justify-between">
+                <span className="font-display text-h2 text-ink-primary">{c.brand}</span>
+                <Badge tone={c.daysLeft <= 3 ? 'amber' : 'cobalt'}>
+                  <Clock className="h-3 w-3" /> {c.daysLeft}d left
+                </Badge>
               </div>
-              <ProgressBar value={c.filled} tone={c.filled > 80 ? 'gold' : 'jungle'} />
-            </div>
-            <div className="mt-auto flex items-center justify-between">
-              <PPAmount value={c.perTask} size="sm" />
-              <Button size="sm" onClick={() => join(c)}>Join</Button>
-            </div>
-          </Card>
-        ))}
-      </div>
+              <div>
+                <h3 className="text-body font-medium text-ink-primary">{c.title}</h3>
+                <p className="text-label text-ink-muted">{c.blurb}</p>
+              </div>
+              <div className="space-y-1">
+                <div className="flex justify-between text-label text-ink-muted">
+                  <span>Pool {c.filled}% claimed</span>
+                  <span className="flex items-center gap-1"><Users className="h-3 w-3" /> {c.participants.toLocaleString('en-US')}</span>
+                </div>
+                <ProgressBar value={c.filled} tone={c.filled > 80 ? 'gold' : 'jungle'} />
+              </div>
+              <div className="mt-auto flex items-center justify-between">
+                <PPAmount value={c.perTask} size="sm" />
+                <Button size="sm" onClick={() => join(c)}>Join</Button>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

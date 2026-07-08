@@ -27,24 +27,9 @@ interface Course {
   real?: boolean;
 }
 
-const COURSES: Course[] = [
-  {
-    id: '1', title: 'Web3 Foundations', blurb: 'Wallets, keys, and how blockchains work.', lessons: 6, pp: 200, level: 'Beginner', progress: 100,
-    quiz: { q: 'What secures ownership of a crypto wallet?', options: ['A username', 'A private key', 'An email', 'A phone number'], answer: 1 },
-  },
-  {
-    id: '2', title: 'Understanding Base', blurb: 'Why L2s matter and how Base scales Ethereum.', lessons: 5, pp: 250, level: 'Beginner', progress: 60,
-    quiz: { q: 'Base is best described as a…', options: ['Layer 1', 'Layer 2 rollup', 'Centralized bank', 'Stablecoin'], answer: 1 },
-  },
-  {
-    id: '3', title: 'DeFi Essentials', blurb: 'Liquidity, yield, and managing risk.', lessons: 8, pp: 400, level: 'Intermediate', progress: 0,
-    quiz: { q: 'Providing liquidity exposes you to…', options: ['Nothing', 'Impermanent loss', 'Higher gas only', 'Account bans'], answer: 1 },
-  },
-  {
-    id: '4', title: 'NFT Utility & Reputation', blurb: 'How NFTs unlock real-world value on Meta-Jungle.', lessons: 4, pp: 300, level: 'Intermediate', progress: 0,
-    quiz: { q: 'A soul-bound NFT is…', options: ['Freely tradable', 'Non-transferable', 'Always free', 'A stablecoin'], answer: 1 },
-  },
-];
+// Quiz data is stored server-side in the Course model's quiz JSONB field.
+// The list endpoint returns the quiz question/options but NOT the answer index.
+// The submitQuiz endpoint handles grading server-side.
 
 const LEVEL_TONE = { Beginner: 'success', Intermediate: 'cobalt', Advanced: 'gold' } as const;
 
@@ -54,26 +39,21 @@ export default function LearnPage() {
   const [picked, setPicked] = useState<number | null>(null);
   const [result, setResult] = useState<'idle' | 'correct' | 'wrong'>('idle');
 
-  // Live courses from the backend; reuse local quiz questions (the list endpoint
-  // does not expose answers) matched by title, and submit answers server-side.
-  const { data } = useQuery('mjCourses', metajungleAPI.listCourses, { retry: false });
-  const courses: Course[] =
-    data && data.length > 0
-      ? data.map((c) => {
-          const local = COURSES.find((l) => l.title === c.title) ?? COURSES[0];
-          return {
-            id: c.id,
-            title: c.title,
-            blurb: c.blurb,
-            lessons: c.lessons,
-            pp: c.pp_reward,
-            level: c.level,
-            progress: 0,
-            quiz: local.quiz,
-            real: true,
-          };
-        })
-      : COURSES;
+  // Live courses from the backend. Quiz is graded server-side via submitQuiz.
+  const { data, isLoading } = useQuery('mjCourses', metajungleAPI.listCourses, { retry: false });
+  const courses: Course[] = data
+    ? data.map((c) => ({
+        id: c.id,
+        title: c.title,
+        blurb: c.blurb,
+        lessons: c.lessons,
+        pp: c.pp_reward,
+        level: c.level,
+        progress: 0,
+        quiz: c.quiz ?? { q: '', options: [], answer: -1 },
+        real: true,
+      }))
+    : [];
 
   const open = (c: Course) => {
     setActive(c);
@@ -83,22 +63,16 @@ export default function LearnPage() {
 
   const submit = async () => {
     if (picked === null || !active) return;
-    if (active.real) {
-      try {
-        const res = await metajungleAPI.submitQuiz(active.id, [picked]);
-        setResult(res.passed ? 'correct' : 'wrong');
-        if (res.passed) {
-          toast.success(res.pp_awarded > 0 ? `Quiz passed! +${res.pp_awarded} PP` : 'Quiz already completed');
-          queryClient.invalidateQueries('pointsHistory');
-        }
-        return;
-      } catch {
-        // fall through to local grading
+    try {
+      const res = await metajungleAPI.submitQuiz(active.id, [picked]);
+      setResult(res.passed ? 'correct' : 'wrong');
+      if (res.passed) {
+        toast.success(res.pp_awarded > 0 ? `Quiz passed! +${res.pp_awarded} PP` : 'Quiz already completed');
+        queryClient.invalidateQueries('pointsHistory');
       }
+    } catch (err: any) {
+      toast.error(err?.response?.data?.detail || 'Failed to submit quiz');
     }
-    const ok = picked === active.quiz.answer;
-    setResult(ok ? 'correct' : 'wrong');
-    if (ok) toast.success(`Quiz passed! +${active.pp} PP`);
   };
 
   return (
@@ -110,6 +84,17 @@ export default function LearnPage() {
         </p>
       </div>
 
+      {isLoading ? (
+        <div className="grid gap-lg sm:grid-cols-2">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="h-64 animate-pulse rounded-card bg-bg-elevated" />
+          ))}
+        </div>
+      ) : courses.length === 0 ? (
+        <div className="rounded-card border border-line bg-bg-primary p-xl text-center text-ink-muted">
+          No courses available yet. Check back soon!
+        </div>
+      ) : (
       <div className="grid gap-lg sm:grid-cols-2">
         {courses.map((c) => (
           <Card key={c.id} className="flex flex-col gap-md">
@@ -139,6 +124,7 @@ export default function LearnPage() {
           </Card>
         ))}
       </div>
+      )}
 
       <Modal open={!!active} onClose={() => setActive(null)} title={active?.title}>
         {active && (

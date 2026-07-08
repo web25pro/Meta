@@ -26,14 +26,6 @@ interface Order {
   side: 'buy' | 'sell';
 }
 
-const ORDERS: Order[] = [
-  { id: '1', trader: 'panda_king', verified: true, reputation: 5, ppAmount: 10000, price: '₦18,500', methods: ['Bank', 'OPay'], postedAgo: '2m ago', side: 'sell' },
-  { id: '2', trader: 'bamboo.eth', verified: true, reputation: 4, ppAmount: 5000, price: '₦9,400', methods: ['Bank'], postedAgo: '11m ago', side: 'sell' },
-  { id: '3', trader: 'mistwalker', verified: false, reputation: 3, ppAmount: 2500, price: '$24.50', methods: ['Wise'], postedAgo: '34m ago', side: 'sell' },
-  { id: '4', trader: 'cobalt_fox', verified: true, reputation: 5, ppAmount: 8000, price: '₦15,000', methods: ['Bank', 'Momo'], postedAgo: '1h ago', side: 'buy' },
-  { id: '5', trader: 'ivory_paw', verified: true, reputation: 4, ppAmount: 3000, price: '$29.10', methods: ['PayPal'], postedAgo: '2h ago', side: 'buy' },
-];
-
 function fromApi(o: ApiP2POrder): Order {
   const sym = o.currency === 'NGN' ? '₦' : o.currency === 'USD' ? '$' : '';
   return {
@@ -58,13 +50,10 @@ export default function P2PPage() {
 
   // Buy tab shows sell-side orders (traders selling PP) and vice versa.
   const apiSide = side === 'buy' ? 'sell' : 'buy';
-  const { data: apiOrders } = useQuery(['mjOrders', apiSide], () => metajungleAPI.listOrders(apiSide), {
+  const { data: apiOrders, isLoading } = useQuery(['mjOrders', apiSide], () => metajungleAPI.listOrders(apiSide), {
     retry: false,
   });
-  const list: Order[] =
-    apiOrders && apiOrders.length > 0
-      ? apiOrders.map(fromApi)
-      : ORDERS.filter((o) => o.side === apiSide);
+  const list: Order[] = apiOrders ? apiOrders.map(fromApi) : [];
 
   const postOrder = async () => {
     const pp = parseInt(form.pp_amount, 10);
@@ -132,21 +121,33 @@ export default function P2PPage() {
         ))}
       </div>
 
-      <div className="grid gap-lg sm:grid-cols-2">
-        {list.map((o) => (
-          <P2POrderCard
-            key={o.id}
-            trader={o.trader}
-            verified={o.verified}
-            reputation={o.reputation}
-            ppAmount={o.ppAmount}
-            price={o.price}
-            paymentMethods={o.methods}
-            postedAgo={o.postedAgo}
-            onTrade={() => toast.success(`Trade request sent to ${o.trader}`)}
-          />
-        ))}
-      </div>
+      {isLoading ? (
+        <div className="grid gap-lg sm:grid-cols-2">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="h-48 animate-pulse rounded-card bg-bg-elevated" />
+          ))}
+        </div>
+      ) : list.length === 0 ? (
+        <div className="rounded-card border border-line bg-bg-primary p-xl text-center text-ink-muted">
+          No {apiSide} orders available. Create one to get started!
+        </div>
+      ) : (
+        <div className="grid gap-lg sm:grid-cols-2">
+          {list.map((o) => (
+            <P2POrderCard
+              key={o.id}
+              trader={o.trader}
+              verified={o.verified}
+              reputation={o.reputation}
+              ppAmount={o.ppAmount}
+              price={o.price}
+              paymentMethods={o.methods}
+              postedAgo={o.postedAgo}
+              onTrade={() => toast.success(`Trade request sent to ${o.trader}`)}
+            />
+          ))}
+        </div>
+      )}
 
       <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Create P2P order">
         <div className="space-y-lg">

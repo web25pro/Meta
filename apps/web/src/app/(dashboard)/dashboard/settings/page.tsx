@@ -7,8 +7,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Lock, Save, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { Card, Input, Button, ReputationRings, cn } from '@meta-jungle/ui';
+import { Card, Input, Button, ReputationRings, Skeleton, cn } from '@meta-jungle/ui';
 import apiClient from '@/lib/api';
+import { metajungleAPI } from '@/api/metajungle';
 import { User } from '@/types';
 
 const profileSchema = z.object({
@@ -81,6 +82,10 @@ function ProfileForm({ user, onSuccess }: { user: User; onSuccess: () => void })
     defaultValues: { name: user.name, email: user.email },
   });
 
+  const { data: rep } = useQuery('mjReputation', metajungleAPI.getReputation, {
+    retry: false,
+  });
+
   const mutation = useMutation(
     async (data: ProfileFormData) => apiClient.patch('/users/me', data),
     {
@@ -94,10 +99,12 @@ function ProfileForm({ user, onSuccess }: { user: User; onSuccess: () => void })
     },
   );
 
+  const r = rep ?? { activity_score: 0, reputation_score: 0, influence_score: 0 };
+
   return (
     <form onSubmit={handleSubmit((d) => mutation.mutate(d))} className="space-y-lg">
       <div className="flex items-center gap-lg">
-        <ReputationRings activity={620} reputation={540} influence={310} size={88} />
+        <ReputationRings activity={r.activity_score} reputation={r.reputation_score} influence={r.influence_score} size={88} />
         <div>
           <h3 className="font-display text-h2 text-ink-primary">{user.name}</h3>
           <p className="text-label text-brand-cobalt">{user.role}</p>
