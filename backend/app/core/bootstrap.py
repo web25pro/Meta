@@ -22,29 +22,39 @@ async def ensure_bootstrap_admin() -> None:
     if not email:
         return
 
+    password = settings.BOOTSTRAP_ADMIN_PASSWORD
+    if not password:
+        logger.warning(
+            "Bootstrap: BOOTSTRAP_ADMIN_EMAIL set but no BOOTSTRAP_ADMIN_PASSWORD; skipping",
+            extra={"email": email},
+        )
+        return
+
     try:
         async with AsyncSessionLocal() as db:
             user = (await db.execute(select(User).where(User.email == email))).scalar_one_or_none()
 
             if user:
+                # Always sync role, status, and password from env vars.
+                # This lets you reset a forgotten password by updating the
+                # env var and redeploying (no shell access needed).
+                changed = False
                 if user.role != UserRole.OVERALL_ADMIN:
                     user.role = UserRole.OVERALL_ADMIN
                     user.is_active = True
                     user.email_verified = True
+                    changed = True
+                if password:
+                    user.password_hash = hash_password(password)
+                    changed = True
+                if changed:
                     await db.commit()
-                    logger.info("Bootstrap: promoted existing user to Overall_Admin", extra={"email": email})
+                    logger.info("Bootstrap: synced admin role/password", extra={"email": email})
                 else:
-                    logger.info("Bootstrap: admin already present", extra={"email": email})
+                    logger.info("Bootstrap: admin already up-to-date", extra={"email": email})
                 return
 
-            password = settings.BOOTSTRAP_ADMIN_PASSWORD
-            if not password:
-                logger.warning(
-                    "Bootstrap: no user for BOOTSTRAP_ADMIN_EMAIL and no BOOTSTRAP_ADMIN_PASSWORD set; skipping",
-                    extra={"email": email},
-                )
-                return
-
+            # User does not exist — create it
             db.add(User(
                 name=settings.BOOTSTRAP_ADMIN_USERNAME or email.split("@")[0],
                 email=email,
