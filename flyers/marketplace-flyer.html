@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meta-Jungle Marketplace</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  .flyer {
+    width: 1080px; height: 1350px;
+    position: relative; overflow: hidden;
+    font-family: 'Inter', sans-serif;
+    background: #060D18;
+  }
+
+  .orb { position: absolute; border-radius: 50%; filter: blur(80px); }
+  .orb-1 { width: 500px; height: 500px; background: #3B82F620; top: -80px; left: -80px; }
+  .orb-2 { width: 400px; height: 400px; background: #B8860B18; bottom: -60px; right: -60px; }
+  .orb-3 { width: 300px; height: 300px; background: #16A06312; top: 50%; left: 60%; }
+
+  .grid-pattern {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background-image: linear-gradient(#FFFFFF03 1px, transparent 1px), linear-gradient(90deg, #FFFFFF03 1px, transparent 1px);
+    background-size: 60px 60px;
+    mask-image: radial-gradient(ellipse at center, black 20%, transparent 60%);
+    -webkit-mask-image: radial-gradient(ellipse at center, black 20%, transparent 60%);
+  }
+
+  .content {
+    position: relative; z-index: 2;
+    height: 100%; display: flex; flex-direction: column;
+    padding: 56px 64px;
+  }
+
+  .top-bar { display: flex; align-items: center; gap: 16px; }
+  .logo-mark {
+    width: 48px; height: 48px;
+    background: linear-gradient(135deg, #1E5FA8, #3B82F6);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    box-shadow: 0 4px 24px #1E5FA833, inset 0 1px 0 #FFFFFF20;
+  }
+  .logo-wordmark { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 26px; color: #F1F5F9; }
+  .logo-wordmark .accent { color: #3B82F6; }
+  .chain-badge {
+    margin-left: auto;
+    display: flex; align-items: center; gap: 8px;
+    background: #3B82F615; border: 1px solid #3B82F630;
+    border-radius: 100px; padding: 8px 18px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600; font-size: 13px; color: #3B82F6;
+    letter-spacing: 1px; text-transform: uppercase;
+  }
+
+  .header { text-align: center; margin: 40px 0 36px; }
+  .header-icon { font-size: 64px; margin-bottom: 20px; }
+  .header-overline {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600; font-size: 13px; color: #3B82F6;
+    letter-spacing: 4px; text-transform: uppercase; margin-bottom: 16px;
+  }
+  .header h1 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700; font-size: 52px; color: #F8FAFC;
+    line-height: 1.1; letter-spacing: -2px; margin-bottom: 16px;
+  }
+  .header h1 .gold {
+    background: linear-gradient(135deg, #B8860B, #F59E0B);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .header p { font-size: 18px; color: #94A3B8; max-width: 550px; margin: 0 auto; line-height: 1.6; }
+
+  /* Product Grid */
+  .product-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 14px; margin-bottom: 20px;
+  }
+  .product {
+    background: linear-gradient(135deg, #FFFFFF06, #FFFFFF02);
+    border: 1px solid #FFFFFF10;
+    border-radius: 18px;
+    padding: 24px 20px;
+    text-align: center;
+    position: relative; overflow: hidden;
+  }
+  .product::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  }
+  .product:nth-child(1)::before { background: linear-gradient(90deg, #3B82F6, #60A5FA); }
+  .product:nth-child(2)::before { background: linear-gradient(90deg, #16A063, #10B981); }
+  .product:nth-child(3)::before { background: linear-gradient(90deg, #B8860B, #F59E0B); }
+  .product:nth-child(4)::before { background: linear-gradient(90deg, #8B5CF6, #A78BFA); }
+  .product:nth-child(5)::before { background: linear-gradient(90deg, #EC4899, #F472B6); }
+  .product:nth-child(6)::before { background: linear-gradient(90deg, #06B6D4, #22D3EE); }
+
+  .product .ico { font-size: 36px; margin-bottom: 10px; }
+  .product h4 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700; font-size: 18px; color: #F1F5F9;
+    margin-bottom: 6px;
+  }
+  .product p { font-size: 13px; color: #94A3B8; line-height: 1.4; margin-bottom: 12px; }
+  .product .price {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #FFFFFF06; border: 1px solid #FFFFFF10;
+    border-radius: 100px; padding: 6px 14px;
+    color: #B8860B; font-weight: 700; font-size: 14px;
+    font-family: 'Space Grotesk', sans-serif;
+  }
+
+  /* Info cards */
+  .info-row {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+    margin-bottom: 28px;
+  }
+  .info-card {
+    display: flex; align-items: center; gap: 16px;
+    background: #FFFFFF04; border: 1px solid #FFFFFF08;
+    border-radius: 16px; padding: 20px 24px;
+  }
+  .info-card .ico { font-size: 32px; }
+  .info-card h4 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700; font-size: 17px; color: #F1F5F9; margin-bottom: 3px;
+  }
+  .info-card p { font-size: 14px; color: #94A3B8; line-height: 1.4; }
+
+  .cta-wrap { text-align: center; }
+  .cta-btn {
+    display: inline-flex; align-items: center; gap: 12px;
+    background: linear-gradient(135deg, #1E5FA8, #3B82F6);
+    color: #FFFFFF;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700; font-size: 22px;
+    padding: 20px 52px; border-radius: 14px;
+    border: none; cursor: pointer;
+    box-shadow: 0 4px 32px #1E5FA844, 0 0 0 1px #FFFFFF10 inset;
+  }
+  .cta-link {
+    display: block; color: #475569;
+    font-size: 16px; margin-top: 18px;
+    letter-spacing: 1.5px; font-weight: 500;
+  }
+
+  .divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #FFFFFF10, transparent);
+    margin: 28px 0;
+  }
+  .bottom-bar { display: flex; justify-content: center; }
+  .tagline {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600; font-size: 15px; color: #3B82F6;
+    letter-spacing: 2.5px; text-transform: uppercase;
+  }
+</style>
+</head>
+<body style="background:#000;display:flex;justify-content:center;padding:20px;">
+
+<div class="flyer">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+  <div class="grid-pattern"></div>
+
+  <div class="content">
+    <div class="top-bar">
+      <div class="logo-mark">🐼</div>
+      <div class="logo-wordmark">Meta<span class="accent">Jungle</span></div>
+      <div class="chain-badge">🏪 Marketplace</div>
+    </div>
+
+    <div class="header">
+      <div class="header-icon">🏪</div>
+      <div class="header-overline">Feature Spotlight</div>
+      <h1>Spend <span class="gold">Panda Points</span><br>On Real Life</h1>
+      <p>Convert your earned points into tangible utilities — airtime, data, gift cards, education &amp; more.</p>
+    </div>
+
+    <div class="product-grid">
+      <div class="product">
+        <div class="ico">📱</div>
+        <h4>Airtime</h4>
+        <p>Top up any phone across all networks</p>
+        <div class="price">🐼 200 PP</div>
+      </div>
+      <div class="product">
+        <div class="ico">🌐</div>
+        <h4>Data Bundles</h4>
+        <p>Stay connected with affordable plans</p>
+        <div class="price">🐼 500 PP</div>
+      </div>
+      <div class="product">
+        <div class="ico">🎁</div>
+        <h4>Gift Cards</h4>
+        <p>Amazon, Apple, Google &amp; more</p>
+        <div class="price">🐼 1,000 PP</div>
+      </div>
+      <div class="product">
+        <div class="ico">🎫</div>
+        <h4>Event Tickets</h4>
+        <p>Concerts, conferences &amp; meetups</p>
+        <div class="price">🐼 2,000 PP</div>
+      </div>
+      <div class="product">
+        <div class="ico">🎓</div>
+        <h4>Web3 Bootcamps</h4>
+        <p>Blockchain, DeFi &amp; smart contracts</p>
+        <div class="price">🐼 3,000 PP</div>
+      </div>
+      <div class="product">
+        <div class="ico">🏥</div>
+        <h4>Healthcare</h4>
+        <p>Health plans &amp; wellness services</p>
+        <div class="price">🐼 5,000 PP</div>
+      </div>
+    </div>
+
+    <div class="info-row">
+      <div class="info-card">
+        <div class="ico">⚡</div>
+        <div>
+          <h4>Instant Delivery</h4>
+          <p>All redemptions processed in real-time</p>
+        </div>
+      </div>
+      <div class="info-card">
+        <div class="ico">🌍</div>
+        <div>
+          <h4>Global Access</h4>
+          <p>Available across Africa, Asia &amp; Europe</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="cta-wrap">
+      <button class="cta-btn">Browse Marketplace <span>→</span></button>
+      <span class="cta-link">meta-sage-xi.vercel.app</span>
+    </div>
+
+    <div class="divider"></div>
+    <div class="bottom-bar">
+      <div class="tagline">Earn Everywhere · Spend Everywhere · Own Everything</div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meta-Jungle Flyers Collection</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #060D18;
+    color: #F8FAFC;
+    min-height: 100vh;
+    padding: 48px;
+  }
+
+  .orb { position: fixed; border-radius: 50%; filter: blur(100px); pointer-events: none; z-index: 0; }
+  .orb-1 { width: 400px; height: 400px; background: #1E5FA815; top: -100px; right: -100px; }
+  .orb-2 { width: 300px; height: 300px; background: #16A06310; bottom: -50px; left: -50px; }
+
+  .container { max-width: 1200px; margin: 0 auto; position: relative; z-index: 1; }
+
+  .header { margin-bottom: 48px; }
+  .header-top {
+    display: flex; align-items: center; gap: 16px; margin-bottom: 24px;
+  }
+  .logo-mark {
+    width: 48px; height: 48px;
+    background: linear-gradient(135deg, #1E5FA8, #3B82F6);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    box-shadow: 0 4px 24px #1E5FA833;
+  }
+  .logo-wordmark {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700; font-size: 28px; color: #F1F5F9;
+  }
+  .logo-wordmark .accent { color: #3B82F6; }
+
+  h1 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 48px; font-weight: 700;
+    letter-spacing: -1.5px; margin-bottom: 12px;
+    color: #F8FAFC;
+  }
+  h1 .accent {
+    background: linear-gradient(135deg, #3B82F6, #16A063);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .subtitle {
+    font-size: 18px; color: #94A3B8; line-height: 1.6;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 20px;
+  }
+
+  .card {
+    background: linear-gradient(135deg, #FFFFFF06, #FFFFFF02);
+    border: 1px solid #FFFFFF10;
+    border-radius: 20px;
+    overflow: hidden;
+    transition: transform 0.3s, box-shadow 0.3s, border-color 0.3s;
+    text-decoration: none;
+    color: #FFFFFF;
+    display: block;
+  }
+  .card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 20px 60px #1E5FA825;
+    border-color: #FFFFFF20;
+  }
+
+  .card-visual {
+    height: 180px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 72px;
+    position: relative;
+    overflow: hidden;
+  }
+  .card-visual::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+  .card-visual.v1 { background: linear-gradient(135deg, #0A1628, #1E5FA830); }
+  .card-visual.v1::before { background: linear-gradient(90deg, #1E5FA8, #3B82F6); }
+  .card-visual.v2 { background: linear-gradient(135deg, #0A1628, #16A06325); }
+  .card-visual.v2::before { background: linear-gradient(90deg, #16A063, #10B981); }
+  .card-visual.v3 { background: linear-gradient(135deg, #0A1628, #B8860B20); }
+  .card-visual.v3::before { background: linear-gradient(90deg, #B8860B, #F59E0B); }
+  .card-visual.v4 { background: linear-gradient(135deg, #0A1628, #3B82F620); }
+  .card-visual.v4::before { background: linear-gradient(90deg, #3B82F6, #60A5FA); }
+  .card-visual.v5 { background: linear-gradient(135deg, #0A1628, #10B98120); }
+  .card-visual.v5::before { background: linear-gradient(90deg, #10B981, #34D399); }
+  .card-visual.v6 { background: linear-gradient(135deg, #0A1628, #D9770620); }
+  .card-visual.v6::before { background: linear-gradient(90deg, #D97706, #F59E0B); }
+
+  .card-body { padding: 24px; }
+  .card-body h2 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 22px; font-weight: 700;
+    margin-bottom: 8px; color: #F1F5F9;
+  }
+  .card-body p {
+    font-size: 14px; color: #94A3B8;
+    line-height: 1.6;
+  }
+  .card-body .tag-row {
+    display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap;
+  }
+  .card-body .tag {
+    display: inline-block;
+    background: #FFFFFF06;
+    border: 1px solid #FFFFFF10;
+    border-radius: 100px;
+    padding: 5px 14px;
+    font-size: 12px; color: #64748B;
+    font-weight: 500;
+  }
+
+  .instructions {
+    background: linear-gradient(135deg, #FFFFFF04, #FFFFFF01);
+    border: 1px solid #FFFFFF08;
+    border-radius: 20px;
+    padding: 36px;
+    margin-top: 48px;
+  }
+  .instructions h2 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 22px; font-weight: 700;
+    margin-bottom: 20px; color: #3B82F6;
+  }
+  .instructions ol {
+    padding-left: 24px;
+    color: #94A3B8;
+    line-height: 2.2;
+    font-size: 15px;
+  }
+  .instructions code {
+    background: #FFFFFF08;
+    border: 1px solid #FFFFFF10;
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #DBEAFE;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .instructions a { color: #3B82F6; text-decoration: none; }
+  .instructions a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+
+<div class="container">
+  <div class="header">
+    <div class="header-top">
+      <div class="logo-mark">🐼</div>
+      <div class="logo-wordmark">Meta<span class="accent">Jungle</span></div>
+    </div>
+    <h1>Promotional <span class="accent">Flyers</span></h1>
+    <p class="subtitle">Click any flyer to view full-size. Capture at 1080×1350px for Instagram, Twitter, WhatsApp &amp; Telegram.</p>
+  </div>
+
+  <div class="grid">
+    <a class="card" href="brand-reveal.html">
+      <div class="card-visual v1">🐼</div>
+      <div class="card-body">
+        <h2>Brand Reveal</h2>
+        <p>Hero announcement — "Your Actions Have Value Here." Perfect for launch day across all platforms.</p>
+        <div class="tag-row"><span class="tag">Instagram</span><span class="tag">Twitter</span><span class="tag">WhatsApp</span></div>
+      </div>
+    </a>
+    <a class="card" href="onboarding-flyer.html">
+      <div class="card-visual v2">🚀</div>
+      <div class="card-body">
+        <h2>Onboarding / Join</h2>
+        <p>3-step guide: Sign Up → Do Quests → Earn &amp; Redeem. Ideal for user acquisition campaigns.</p>
+        <div class="tag-row"><span class="tag">Instagram</span><span class="tag">Twitter</span><span class="tag">WhatsApp</span></div>
+      </div>
+    </a>
+    <a class="card" href="quests-flyer.html">
+      <div class="card-visual v3">🎯</div>
+      <div class="card-body">
+        <h2>Quest System</h2>
+        <p>Showcase quest types: Social, Learn-to-Earn, Partner &amp; Daily Streaks with reward amounts.</p>
+        <div class="tag-row"><span class="tag">Instagram</span><span class="tag">Telegram</span><span class="tag">Discord</span></div>
+      </div>
+    </a>
+    <a class="card" href="wallet-flyer.html">
+      <div class="card-visual v4">💰</div>
+      <div class="card-body">
+        <h2>Panda Wallet</h2>
+        <p>Multi-asset wallet preview: PP, LPanda, USDC. Send, swap, stake &amp; P2P trade features.</p>
+        <div class="tag-row"><span class="tag">Instagram</span><span class="tag">Telegram</span><span class="tag">Twitter</span></div>
+      </div>
+    </a>
+    <a class="card" href="marketplace-flyer.html">
+      <div class="card-visual v5">🏪</div>
+      <div class="card-body">
+        <h2>Utility Marketplace</h2>
+        <p>Redeem PP for airtime, data, gift cards, events, bootcamps &amp; healthcare.</p>
+        <div class="tag-row"><span class="tag">Instagram</span><span class="tag">WhatsApp</span><span class="tag">Twitter</span></div>
+      </div>
+    </a>
+    <a class="card" href="reputation-flyer.html">
+      <div class="card-visual v6">⭐</div>
+      <div class="card-body">
+        <h2>Reputation &amp; Leaderboard</h2>
+        <p>3-score system: Activity, Reputation, Influence. Global leaderboard with top performers.</p>
+        <div class="tag-row"><span class="tag">Instagram</span><span class="tag">Telegram</span><span class="tag">Discord</span></div>
+      </div>
+    </a>
+  </div>
+
+  <div class="instructions">
+    <h2>📋 How to Export as Images</h2>
+    <ol>
+      <li>Click any flyer to open it full-size in your browser (Chrome recommended)</li>
+      <li>Press <code>F11</code> for fullscreen, then use your screenshot tool to capture at <code>1080×1350</code>px</li>
+      <li>Or use <a href="https://htmlcsstoimage.com">htmlcsstoimage.com</a> — paste the file URL or HTML to get a PNG</li>
+      <li>Post on Instagram (1080×1350), Twitter (16:9 crop), WhatsApp &amp; Telegram</li>
+    </ol>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meta-Jungle Onboarding</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  .flyer {
+    width: 1080px; height: 1350px;
+    position: relative; overflow: hidden;
+    font-family: 'Inter', sans-serif;
+    background: #060D18;
+  }
+
+  .orb { position: absolute; border-radius: 50%; filter: blur(80px); }
+  .orb-1 { width: 500px; height: 500px; background: #1E5FA825; top: -80px; left: 50%; transform: translateX(-50%); }
+  .orb-2 { width: 400px; height: 400px; background: #16A06320; bottom: -60px; left: -60px; }
+  .orb-3 { width: 300px; height: 300px; background: #B8860B12; bottom: 20%; right: -40px; }
+
+  .grid-pattern {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background-image: linear-gradient(#FFFFFF03 1px, transparent 1px), linear-gradient(90deg, #FFFFFF03 1px, transparent 1px);
+    background-size: 60px 60px;
+    mask-image: radial-gradient(ellipse at center, black 20%, transparent 60%);
+    -webkit-mask-image: radial-gradient(ellipse at center, black 20%, transparent 60%);
+  }
+
+  .content {
+    position: relative; z-index: 2;
+    height: 100%; display: flex; flex-direction: column;
+    padding: 56px 64px;
+  }
+
+  .top-bar { display: flex; align-items: center; gap: 16px; }
+  .logo-mark {
+    width: 48px; height: 48px;
+    background: linear-gradient(135deg, #1E5FA8, #3B82F6);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    box-shadow: 0 4px 24px #1E5FA833, inset 0 1px 0 #FFFFFF20;
+  }
+  .logo-wordmark { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 26px; color: #F1F5F9; }
+  .logo-wordmark .accent { color: #3B82F6; }
+  .chain-badge {
+    margin-left: auto;
+    display: flex; align-items: center; gap: 8px;
+    background: #16A06315; border: 1px solid #16A06330;
+    border-radius: 100px; padding: 8px 18px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600; font-size: 13px; color: #16A063;
+    letter-spacing: 1px; text-transform: uppercase;
+  }
+
+  /* Hero */
+  .hero { text-align: center; margin: 48px 0 40px; }
+  .hero-mascot {
+    font-size: 80px; margin-bottom: 24px;
+    filter: drop-shadow(0 8px 32px #00000060);
+  }
+  .hero-overline {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600; font-size: 13px; color: #3B82F6;
+    letter-spacing: 4px; text-transform: uppercase; margin-bottom: 16px;
+  }
+  .hero h1 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700; font-size: 58px; color: #F8FAFC;
+    line-height: 1.1; letter-spacing: -2px; margin-bottom: 16px;
+  }
+  .hero h1 .cobalt {
+    background: linear-gradient(135deg, #1E5FA8, #3B82F6);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .hero h1 .green {
+    background: linear-gradient(135deg, #16A063, #10B981);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .hero p { font-size: 18px; color: #94A3B8; max-width: 550px; margin: 0 auto; line-height: 1.6; }
+
+  /* Steps */
+  .steps { display: flex; gap: 16px; margin-bottom: 36px; }
+  .step {
+    flex: 1;
+    background: linear-gradient(135deg, #FFFFFF06, #FFFFFF02);
+    border: 1px solid #FFFFFF10;
+    border-radius: 20px;
+    padding: 28px 24px;
+    text-align: center;
+    position: relative;
+  }
+  .step-num {
+    width: 44px; height: 44px;
+    background: linear-gradient(135deg, #1E5FA8, #3B82F6);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700; font-size: 20px; color: #FFFFFF;
+    margin: 0 auto 14px;
+    box-shadow: 0 4px 16px #1E5FA844;
+  }
+  .step .ico { font-size: 36px; margin-bottom: 10px; }
+  .step h4 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700; font-size: 20px; color: #F1F5F9;
+    margin-bottom: 6px;
+  }
+  .step p { font-size: 14px; color: #94A3B8; line-height: 1.5; }
+  .step-arrow {
+    position: absolute; right: -14px; top: 50%; transform: translateY(-50%);
+    color: #3B82F6; font-size: 20px; z-index: 3;
+  }
+
+  /* Benefits */
+  .benefits {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+    margin-bottom: 36px;
+  }
+  .benefit {
+    display: flex; align-items: center; gap: 16px;
+    background: #FFFFFF04; border: 1px solid #FFFFFF08;
+    border-radius: 16px; padding: 20px 24px;
+  }
+  .benefit .ico { font-size: 28px; }
+  .benefit h4 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700; font-size: 16px; color: #F1F5F9; margin-bottom: 3px;
+  }
+  .benefit p { font-size: 13px; color: #94A3B8; line-height: 1.4; }
+
+  /* CTA */
+  .cta-wrap { text-align: center; margin-top: auto; }
+  .cta-btn {
+    display: inline-flex; align-items: center; gap: 12px;
+    background: linear-gradient(135deg, #1E5FA8, #3B82F6);
+    color: #FFFFFF;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700; font-size: 24px;
+    padding: 22px 60px; border-radius: 14px;
+    border: none; cursor: pointer;
+    box-shadow: 0 4px 32px #1E5FA855, 0 0 0 1px #FFFFFF10 inset, 0 0 80px #3B82F615;
+  }
+  .cta-link {
+    display: block; color: #475569;
+    font-size: 16px; margin-top: 18px;
+    letter-spacing: 1.5px; font-weight: 500;
+  }
+
+  .divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #FFFFFF10, transparent);
+    margin: 28px 0;
+  }
+  .bottom-bar { display: flex; justify-content: center; }
+  .tagline {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600; font-size: 15px; color: #3B82F6;
+    letter-spacing: 2.5px; text-transform: uppercase;
+  }
+</style>
+</head>
+<body style="background:#000;display:flex;justify-content:center;padding:20px;">
+
+<div class="flyer">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+  <div class="grid-pattern"></div>
+
+  <div class="content">
+    <div class="top-bar">
+      <div class="logo-mark">🐼</div>
+      <div class="logo-wordmark">Meta<span class="accent">Jungle</span></div>
+      <div class="chain-badge">🚀 Join Now</div>
+    </div>
+
+    <div class="hero">
+      <div class="hero-mascot">🐼🌿</div>
+      <div class="hero-overline">Get Started in 3 Steps</div>
+      <h1>Step Into<br>The <span class="cobalt">Meta</span><span class="green">Jungle</span></h1>
+      <p>Your journey to earning, owning &amp; thriving in Web3 starts here. Free to join, instant rewards.</p>
+    </div>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="ico">📝</div>
+        <h4>Sign Up</h4>
+        <p>Create your free account in under 60 seconds</p>
+        <div class="step-arrow">→</div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="ico">🎯</div>
+        <h4>Do Quests</h4>
+        <p>Complete social, learning &amp; partner quests</p>
+        <div class="step-arrow">→</div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="ico">💰</div>
+        <h4>Earn &amp; Redeem</h4>
+        <p>Collect Panda Points &amp; spend on real utilities</p>
+      </div>
+    </div>
+
+    <div class="benefits">
+      <div class="benefit"><div class="ico">🏆</div><div><h4>Competitive Leaderboard</h4><p>Climb ranks across Africa, Asia &amp; Europe</p></div></div>
+      <div class="benefit"><div class="ico">⭐</div><div><h4>On-Chain Reputation</h4><p>Build a portable 3-score identity you own</p></div></div>
+      <div class="benefit"><div class="ico">💎</div><div><h4>NFT Rewards</h4><p>Unlock rare &amp; legendary NFTs</p></div></div>
+      <div class="benefit"><div class="ico">🤝</div><div><h4>Ambassador Program</h4><p>Earn more as a community ambassador</p></div></div>
+    </div>
+
+    <div class="cta-wrap">
+      <button class="cta-btn">Join the Jungle <span>→</span></button>
+      <span class="cta-link">meta-sage-xi.vercel.app</span>
+    </div>
+
+    <div class="divider"></div>
+    <div class="bottom-bar">
+      <div class="tagline">Earn Everywhere · Spend Everywhere · Own Everything</div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

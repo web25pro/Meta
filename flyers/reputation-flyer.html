@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meta-Jungle Reputation</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  .flyer {
+    width: 1080px; height: 1350px;
+    position: relative; overflow: hidden;
+    font-family: 'Inter', sans-serif;
+    background: #060D18;
+  }
+
+  .orb { position: absolute; border-radius: 50%; filter: blur(80px); }
+  .orb-1 { width: 500px; height: 500px; background: #B8860B20; top: -80px; right: -80px; }
+  .orb-2 { width: 400px; height: 400px; background: #3B82F618; bottom: -60px; left: -60px; }
+  .orb-3 { width: 300px; height: 300px; background: #16A06312; top: 40%; left: 50%; }
+
+  .grid-pattern {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background-image: linear-gradient(#FFFFFF03 1px, transparent 1px), linear-gradient(90deg, #FFFFFF03 1px, transparent 1px);
+    background-size: 60px 60px;
+    mask-image: radial-gradient(ellipse at center, black 20%, transparent 60%);
+    -webkit-mask-image: radial-gradient(ellipse at center, black 20%, transparent 60%);
+  }
+
+  .content {
+    position: relative; z-index: 2;
+    height: 100%; display: flex; flex-direction: column;
+    padding: 56px 64px;
+  }
+
+  .top-bar { display: flex; align-items: center; gap: 16px; }
+  .logo-mark {
+    width: 48px; height: 48px;
+    background: linear-gradient(135deg, #1E5FA8, #3B82F6);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    box-shadow: 0 4px 24px #1E5FA833, inset 0 1px 0 #FFFFFF20;
+  }
+  .logo-wordmark { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 26px; color: #F1F5F9; }
+  .logo-wordmark .accent { color: #3B82F6; }
+  .chain-badge {
+    margin-left: auto;
+    display: flex; align-items: center; gap: 8px;
+    background: #B8860B15; border: 1px solid #B8860B30;
+    border-radius: 100px; padding: 8px 18px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600; font-size: 13px; color: #B8860B;
+    letter-spacing: 1px; text-transform: uppercase;
+  }
+
+  .header { text-align: center; margin: 40px 0 36px; }
+  .header-icon { font-size: 64px; margin-bottom: 20px; }
+  .header-overline {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600; font-size: 13px; color: #B8860B;
+    letter-spacing: 4px; text-transform: uppercase; margin-bottom: 16px;
+  }
+  .header h1 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700; font-size: 50px; color: #F8FAFC;
+    line-height: 1.1; letter-spacing: -2px; margin-bottom: 16px;
+  }
+  .header h1 .gold {
+    background: linear-gradient(135deg, #B8860B, #F59E0B);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .header p { font-size: 18px; color: #94A3B8; max-width: 550px; margin: 0 auto; line-height: 1.6; }
+
+  /* Score Cards */
+  .scores {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 16px; margin-bottom: 28px;
+  }
+  .score-card {
+    background: linear-gradient(135deg, #FFFFFF06, #FFFFFF02);
+    border: 1px solid #FFFFFF10;
+    border-radius: 20px;
+    padding: 28px 24px;
+    text-align: center;
+    position: relative; overflow: hidden;
+  }
+  .score-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  }
+  .score-card.activity::before { background: linear-gradient(90deg, #3B82F6, #60A5FA); }
+  .score-card.reputation::before { background: linear-gradient(90deg, #B8860B, #F59E0B); }
+  .score-card.influence::before { background: linear-gradient(90deg, #16A063, #10B981); }
+
+  .score-card .ico { font-size: 36px; margin-bottom: 10px; }
+  .score-card h4 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700; font-size: 20px; color: #F1F5F9; margin-bottom: 4px;
+  }
+  .score-card .desc { font-size: 13px; color: #94A3B8; line-height: 1.4; margin-bottom: 14px; }
+  .score-card .value {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700; font-size: 40px; margin-bottom: 2px;
+  }
+  .score-card.activity .value { color: #3B82F6; }
+  .score-card.reputation .value { color: #B8860B; }
+  .score-card.influence .value { color: #16A063; }
+  .score-card .label {
+    font-size: 12px; color: #64748B;
+    text-transform: uppercase; letter-spacing: 1px;
+  }
+
+  /* Leaderboard */
+  .leaderboard {
+    background: linear-gradient(135deg, #FFFFFF04, #FFFFFF01);
+    border: 1px solid #FFFFFF08;
+    border-radius: 20px;
+    padding: 28px;
+    margin-bottom: 32px;
+  }
+  .lb-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700; font-size: 20px; color: #F1F5F9;
+    margin-bottom: 20px;
+    display: flex; align-items: center; gap: 10px;
+  }
+
+  .lb-row {
+    display: flex; align-items: center; gap: 16px;
+    padding: 14px 18px;
+    border-radius: 14px;
+    margin-bottom: 8px;
+  }
+  .lb-row:last-child { margin-bottom: 0; }
+  .lb-row.gold { background: linear-gradient(135deg, #B8860B12, #D9770606); border: 1px solid #B8860B20; }
+  .lb-row.silver { background: #FFFFFF05; border: 1px solid #FFFFFF08; }
+  .lb-row.bronze { background: #FFFFFF03; border: 1px solid #FFFFFF06; }
+
+  .lb-rank {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700; font-size: 22px; width: 44px; text-align: center;
+  }
+  .lb-row.gold .lb-rank { color: #B8860B; }
+  .lb-row.silver .lb-rank { color: #94A3B8; }
+  .lb-row.bronze .lb-rank { color: #64748B; }
+
+  .lb-avatar {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #1E5FA8, #3B82F6);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .lb-info { flex: 1; }
+  .lb-name { font-weight: 600; font-size: 15px; color: #F1F5F9; }
+  .lb-role { font-size: 12px; color: #64748B; }
+  .lb-pp {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700; font-size: 16px; color: #B8860B;
+    display: flex; align-items: center; gap: 6px;
+  }
+
+  .cta-wrap { text-align: center; margin-top: auto; }
+  .cta-btn {
+    display: inline-flex; align-items: center; gap: 12px;
+    background: linear-gradient(135deg, #B8860B, #D97706);
+    color: #FFFFFF;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700; font-size: 22px;
+    padding: 20px 52px; border-radius: 14px;
+    border: none; cursor: pointer;
+    box-shadow: 0 4px 32px #B8860B44, 0 0 0 1px #FFFFFF10 inset;
+  }
+  .cta-link {
+    display: block; color: #475569;
+    font-size: 16px; margin-top: 18px;
+    letter-spacing: 1.5px; font-weight: 500;
+  }
+
+  .divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #FFFFFF10, transparent);
+    margin: 28px 0;
+  }
+  .bottom-bar { display: flex; justify-content: center; }
+  .tagline {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600; font-size: 15px; color: #3B82F6;
+    letter-spacing: 2.5px; text-transform: uppercase;
+  }
+</style>
+</head>
+<body style="background:#000;display:flex;justify-content:center;padding:20px;">
+
+<div class="flyer">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+  <div class="grid-pattern"></div>
+
+  <div class="content">
+    <div class="top-bar">
+      <div class="logo-mark">🐼</div>
+      <div class="logo-wordmark">Meta<span class="accent">Jungle</span></div>
+      <div class="chain-badge">⭐ Reputation</div>
+    </div>
+
+    <div class="header">
+      <div class="header-icon">⭐</div>
+      <div class="header-overline">Feature Spotlight</div>
+      <h1>Build Your<br><span class="gold">On-Chain Reputation</span></h1>
+      <p>Three scores that define your Web3 identity. Portable. Verifiable. Owned by you.</p>
+    </div>
+
+    <div class="scores">
+      <div class="score-card activity">
+        <div class="ico">⚡</div>
+        <h4>Activity</h4>
+        <div class="desc">Quests completed, streaks maintained, actions verified</div>
+        <div class="value">847</div>
+        <div class="label">Activity Score</div>
+      </div>
+      <div class="score-card reputation">
+        <div class="ico">🛡️</div>
+        <h4>Reputation</h4>
+        <div class="desc">Trust, consistency &amp; community standing over time</div>
+        <div class="value">92%</div>
+        <div class="label">Trust Rating</div>
+      </div>
+      <div class="score-card influence">
+        <div class="ico">📢</div>
+        <h4>Influence</h4>
+        <div class="desc">Referrals, network growth &amp; community impact</div>
+        <div class="value">1.2K</div>
+        <div class="label">Network Reach</div>
+      </div>
+    </div>
+
+    <div class="leaderboard">
+      <div class="lb-title">🏆 Top Performers This Week</div>
+      <div class="lb-row gold">
+        <div class="lb-rank">1</div>
+        <div class="lb-avatar">👑</div>
+        <div class="lb-info"><div class="lb-name">CryptoKing</div><div class="lb-role">Ambassador</div></div>
+        <div class="lb-pp">🐼 15,420 PP</div>
+      </div>
+      <div class="lb-row silver">
+        <div class="lb-rank">2</div>
+        <div class="lb-avatar">🌟</div>
+        <div class="lb-info"><div class="lb-name">Web3Queen</div><div class="lb-role">Team Member</div></div>
+        <div class="lb-pp">🐼 12,850 PP</div>
+      </div>
+      <div class="lb-row bronze">
+        <div class="lb-rank">3</div>
+        <div class="lb-avatar">🎯</div>
+        <div class="lb-info"><div class="lb-name">QuestMaster</div><div class="lb-role">Ambassador</div></div>
+        <div class="lb-pp">🐼 11,200 PP</div>
+      </div>
+    </div>
+
+    <div class="cta-wrap">
+      <button class="cta-btn">Build Your Reputation <span>→</span></button>
+      <span class="cta-link">meta-sage-xi.vercel.app</span>
+    </div>
+
+    <div class="divider"></div>
+    <div class="bottom-bar">
+      <div class="tagline">Earn Everywhere · Spend Everywhere · Own Everything</div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
