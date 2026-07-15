@@ -30,21 +30,26 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router = useRouter();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
-    if (!isAuthenticated()) router.push('/auth/login');
+    if (!isAuthenticated()) {
+      router.push('/auth/login');
+    } else {
+      setAuthChecked(true);
+    }
   }, [router]);
 
   const { data: me, isLoading, isError } = useQuery(
     'adminMe',
     async () => (await apiClient.get('/users/me')).data,
-    { retry: false },
+    { retry: false, enabled: authChecked },
   );
 
   const role = me?.role;
   const allowed = role === 'Overall_Admin';
 
-  if (isLoading) {
+  if (!authChecked || isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-bg-dark">
         <PandaMascot size={96} />
