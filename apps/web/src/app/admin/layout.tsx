@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useQuery } from 'react-query';
@@ -31,9 +31,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
+  const redirectingRef = useRef(false);
 
   useEffect(() => {
     if (!isAuthenticated()) {
+      redirectingRef.current = true;
       router.push('/auth/login');
     } else {
       setAuthChecked(true);
@@ -43,13 +45,23 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const { data: me, isLoading, isError } = useQuery(
     'adminMe',
     async () => (await apiClient.get('/users/me')).data,
-    { retry: false, enabled: authChecked },
+    {
+      retry: false,
+      enabled: authChecked,
+      onError: (err: any) => {
+        // If the API returned 401, the interceptor already redirected — don't
+        // flash the "access denied" screen while the browser navigates.
+        if (err?.response?.status === 401) {
+          redirectingRef.current = true;
+        }
+      },
+    },
   );
 
   const role = me?.role;
   const allowed = role === 'Overall_Admin';
 
-  if (!authChecked || isLoading) {
+  if (!authChecked || isLoading || redirectingRef.current) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-bg-dark">
         <PandaMascot size={96} />
