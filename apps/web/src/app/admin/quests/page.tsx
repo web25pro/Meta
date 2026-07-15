@@ -94,14 +94,14 @@ export default function AdminQuestsPage() {
   return (
     <div className="animate-page-in space-y-xl">
       {/* Page header — matches overview page pattern */}
-      <div className="flex items-start justify-between gap-md">
+      <div className="flex flex-col gap-md sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="font-display text-h1 text-ink-primary">Quests</h1>
           <p className="mt-1 text-body text-ink-muted">
             Create and manage earn actions for your community.
           </p>
         </div>
-        <Button onClick={() => setOpen(true)}>
+        <Button className="w-full sm:w-auto" onClick={() => setOpen(true)}>
           <Plus className="h-4 w-4" /> New Quest
         </Button>
       </div>
@@ -117,10 +117,10 @@ export default function AdminQuestsPage() {
         <div className="space-y-md">
           {quests.map((q) => (
             <Card key={q.id} className="p-0">
-              <div className="flex items-center justify-between gap-lg px-lg py-md">
+              <div className="flex flex-col gap-md px-lg py-md sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-sm">
-                    <span className="truncate font-medium text-ink-primary">{q.title}</span>
+                    <span className="font-medium text-ink-primary">{q.title}</span>
                     <Badge tone="cobalt" className="capitalize">{q.category}</Badge>
                     <Badge tone="sky" className="capitalize">
                       {q.verification_type.replace('_', ' ')}
@@ -133,10 +133,10 @@ export default function AdminQuestsPage() {
                     </Badge>
                   </div>
                   {q.description && (
-                    <p className="mt-1 truncate text-label text-ink-muted">{q.description}</p>
+                    <p className="mt-1 text-label text-ink-muted line-clamp-2 sm:truncate">{q.description}</p>
                   )}
                 </div>
-                <div className="flex shrink-0 items-center gap-md">
+                <div className="flex items-center gap-md sm:shrink-0">
                   <PPAmount value={q.pp_reward} size="sm" />
                   <div className="flex items-center gap-sm">
                     <button
@@ -187,7 +187,7 @@ export default function AdminQuestsPage() {
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
           />
-          <div className="grid grid-cols-2 gap-md">
+          <div className="grid grid-cols-1 gap-md sm:grid-cols-2">
             <Input
               label="PP Reward"
               type="number"
@@ -203,7 +203,7 @@ export default function AdminQuestsPage() {
               onChange={(e) => setForm({ ...form, daily_limit: e.target.value })}
             />
           </div>
-          <div className="grid grid-cols-2 gap-md">
+          <div className="grid grid-cols-1 gap-md sm:grid-cols-2">
             <div>
               <label className="mb-2 block text-label font-medium text-ink-primary">Category</label>
               <select
@@ -241,7 +241,7 @@ export default function AdminQuestsPage() {
               ))}
             </select>
           </div>
-          <div className="grid grid-cols-2 gap-md">
+          <div className="grid grid-cols-1 gap-md sm:grid-cols-2">
             <Input
               label="Start Date (optional)"
               type="datetime-local"

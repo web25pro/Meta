@@ -38,7 +38,7 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
             </button>
           </div>
         )}
-        <div className="p-lg">{children}</div>
+        <div className="max-h-[85vh] overflow-y-auto p-lg">{children}</div>
       </div>
     </div>
   );
