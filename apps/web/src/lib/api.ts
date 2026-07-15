@@ -74,7 +74,8 @@ apiClient.interceptors.response.use(
     // FastAPI's HTTPBearer returns 403 "Not authenticated" for missing/expired tokens,
     // while standard auth returns 401 — handle both.
     const status = error.response?.status;
-    const isAuthError = status === 401 || (status === 403 && error.response?.data?.detail === 'Not authenticated');
+    const detail = (error.response?.data as any)?.detail;
+    const isAuthError = status === 401 || (status === 403 && detail === 'Not authenticated');
     if (isAuthError && !originalRequest._retry) {
       originalRequest._retry = true;
 

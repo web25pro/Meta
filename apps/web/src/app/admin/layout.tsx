@@ -52,7 +52,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         // If the API returned 401 or 403 (auth failure), the interceptor
         // already redirected — don't flash the "access denied" screen.
         const s = err?.response?.status;
-        if (s === 401 || (s === 403 && err?.response?.data?.detail === 'Not authenticated')) {
+        const d = (err?.response?.data as any)?.detail;
+        if (s === 401 || (s === 403 && d === 'Not authenticated')) {
           redirectingRef.current = true;
         }
       },
