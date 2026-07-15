@@ -141,7 +141,15 @@ export function clearTokens(): void {
 }
 
 export function isAuthenticated(): boolean {
-  return !!getAccessToken();
+  const token = getAccessToken();
+  if (!token) return false;
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    // Token is valid only if exp exists and hasn't passed (with 30s buffer)
+    return typeof payload.exp === 'number' && payload.exp > Date.now() / 1000 - 30;
+  } catch {
+    return false;
+  }
 }
 
 // Export API client
