@@ -131,6 +131,8 @@ export const metajungleAPI = {
     (await apiClient.get('/quests')).data.quests,
   completeQuest: async (id: string, proof?: Record<string, unknown>) =>
     (await apiClient.post(`/quests/${id}/complete`, { proof: proof ?? null })).data,
+  getMyCompletions: async (): Promise<Record<string, string>> =>
+    (await apiClient.get('/quests/my-completions')).data,
 
   listNFTs: async (): Promise<{ nfts: ApiNFT[]; total_daily_yield: number }> =>
     (await apiClient.get('/nft')).data,

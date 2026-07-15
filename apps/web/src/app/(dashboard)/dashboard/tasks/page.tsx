@@ -35,6 +35,12 @@ export default function QuestsPage() {
     retry: false,
   });
 
+  const { data: completions } = useQuery<Record<string, string>>(
+    'mjCompletions',
+    metajungleAPI.getMyCompletions,
+    { retry: false },
+  );
+
   const filtered = category === 'all'
     ? quests
     : quests?.filter((q) => q.category === category);
@@ -55,6 +61,7 @@ export default function QuestsPage() {
         toast.success(`Quest complete! +${res.pp_awarded} PP`);
       }
       queryClient.invalidateQueries('mjQuests');
+      queryClient.invalidateQueries('mjCompletions');
       queryClient.invalidateQueries('pointsHistory');
     } catch (err: any) {
       toast.error(err?.response?.data?.detail || 'Could not complete quest');
@@ -103,6 +110,7 @@ export default function QuestsPage() {
       }
       setProofModal(null);
       queryClient.invalidateQueries('mjQuests');
+      queryClient.invalidateQueries('mjCompletions');
       queryClient.invalidateQueries('pointsHistory');
     } catch (err: any) {
       toast.error(err?.response?.data?.detail || 'Could not complete quest');
@@ -185,8 +193,14 @@ export default function QuestsPage() {
                       · ends {new Date(q.ends_at).toLocaleDateString()}
                     </span>
                   )}
-                  {!AUTO_APPROVE_TYPES.has(q.verification_type) && (
-                    <Badge tone="amber" className="text-xs">Requires review</Badge>
+                  {completions?.[q.id] === 'approved' && (
+                    <Badge tone="success" className="text-xs">✓ Completed</Badge>
+                  )}
+                  {completions?.[q.id] === 'pending' && (
+                    <Badge tone="amber" className="text-xs">Pending review</Badge>
+                  )}
+                  {!completions?.[q.id] && !AUTO_APPROVE_TYPES.has(q.verification_type) && (
+                    <Badge tone="neutral" className="text-xs">Requires review</Badge>
                   )}
                 </div>
                 <div className="flex items-center gap-sm">
@@ -201,19 +215,29 @@ export default function QuestsPage() {
                       Open link
                     </a>
                   )}
-                  <Button
-                    size="sm"
-                    onClick={() => handleComplete(q)}
-                    disabled={completing === q.id}
-                  >
-                    {completing === q.id ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" /> Claiming…
-                      </>
-                    ) : (
-                      'Complete'
-                    )}
-                  </Button>
+                  {completions?.[q.id] === 'approved' ? (
+                    <Button size="sm" variant="ghost" disabled>
+                      ✓ Done
+                    </Button>
+                  ) : completions?.[q.id] === 'pending' ? (
+                    <Button size="sm" variant="ghost" disabled>
+                      Awaiting review
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      onClick={() => handleComplete(q)}
+                      disabled={completing === q.id}
+                    >
+                      {completing === q.id ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" /> Claiming…
+                        </>
+                      ) : (
+                        'Complete'
+                      )}
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>

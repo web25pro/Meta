@@ -319,6 +319,20 @@ class MetaJungleService:
         await db.refresh(completion)
         return completion
 
+    @staticmethod
+    async def get_user_completions_today(db: AsyncSession, user_id: uuid.UUID) -> dict[str, str]:
+        """Return {quest_id: status} for the user's completions today (approved/pending only)."""
+        now = _utcnow()
+        start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        rows = (await db.execute(
+            select(QuestCompletion.quest_id, QuestCompletion.status).where(
+                QuestCompletion.user_id == user_id,
+                QuestCompletion.created_at >= start,
+                QuestCompletion.status.in_(["approved", "pending"]),
+            )
+        )).all()
+        return {str(qid): status for qid, status in rows}
+
     # ── NFT Vault ───────────────────────────────────────────────────────────
     @staticmethod
     async def list_nfts(db: AsyncSession, user_id: uuid.UUID) -> tuple[list[NFTHolding], int]:

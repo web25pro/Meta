@@ -60,6 +60,12 @@ async def complete_quest(quest_id: uuid.UUID, body: QuestCompleteRequest, curren
         raise _bad(e)
 
 
+@quests_router.get("/my-completions")
+async def my_completions(current_user: CurrentUser, db: DB):
+    """Return {quest_id: status} for the user's completions today."""
+    return await MetaJungleService.get_user_completions_today(db, current_user.id)
+
+
 # ── NFT Vault ───────────────────────────────────────────────────────────────
 nft_router = APIRouter(prefix="/api/v1/nft", tags=["nft"])
 
