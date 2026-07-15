@@ -70,8 +70,12 @@ apiClient.interceptors.response.use(
   async (error: AxiosError<APIError>) => {
     const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
 
-    // If 401 and not already retried, try to refresh token
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // If 401 or 403 (expired/missing token) and not already retried, try to refresh.
+    // FastAPI's HTTPBearer returns 403 "Not authenticated" for missing/expired tokens,
+    // while standard auth returns 401 — handle both.
+    const status = error.response?.status;
+    const isAuthError = status === 401 || (status === 403 && error.response?.data?.detail === 'Not authenticated');
+    if (isAuthError && !originalRequest._retry) {
       originalRequest._retry = true;
 
       try {
