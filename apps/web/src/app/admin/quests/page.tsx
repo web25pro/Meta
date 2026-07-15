@@ -8,14 +8,39 @@ import { Card, Button, Input, Badge, Modal, Skeleton, PPAmount, cn } from '@meta
 import { adminAPI, type AdminQuest } from '@/api/admin';
 
 const CATEGORIES = ['daily', 'social', 'partner', 'nft', 'learning', 'referral'];
+const VERIFICATION_TYPES = ['manual', 'oauth', 'screenshot', 'on_chain', 'webhook'];
+const MIN_ROLES = ['Explorer', 'Tracker', 'Hunter', 'Whitelist', 'OG Panda', 'Alpha OG'];
 
 export default function AdminQuestsPage() {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ title: '', description: '', pp_reward: '', category: 'social', daily_limit: '1' });
+  const [form, setForm] = useState({
+    title: '',
+    description: '',
+    pp_reward: '',
+    category: 'social',
+    verification_type: 'manual',
+    min_role: 'Explorer',
+    daily_limit: '1',
+    starts_at: '',
+    ends_at: '',
+  });
 
   const { data, isLoading } = useQuery('adminQuests', adminAPI.listQuests, { retry: false });
   const refresh = () => queryClient.invalidateQueries('adminQuests');
+
+  const resetForm = () =>
+    setForm({
+      title: '',
+      description: '',
+      pp_reward: '',
+      category: 'social',
+      verification_type: 'manual',
+      min_role: 'Explorer',
+      daily_limit: '1',
+      starts_at: '',
+      ends_at: '',
+    });
 
   const create = async () => {
     const pp = parseInt(form.pp_reward, 10);
@@ -24,16 +49,22 @@ export default function AdminQuestsPage() {
       return;
     }
     try {
-      await adminAPI.createQuest({
+      const body: Record<string, unknown> = {
         title: form.title,
         description: form.description,
         pp_reward: pp,
         category: form.category,
+        verification_type: form.verification_type,
+        min_role: form.min_role,
         daily_limit: parseInt(form.daily_limit, 10) || 1,
-      });
+      };
+      if (form.starts_at) body.starts_at = new Date(form.starts_at).toISOString();
+      if (form.ends_at) body.ends_at = new Date(form.ends_at).toISOString();
+
+      await adminAPI.createQuest(body as any);
       toast.success('Quest created');
       setOpen(false);
-      setForm({ title: '', description: '', pp_reward: '', category: 'social', daily_limit: '1' });
+      resetForm();
       refresh();
     } catch (e: any) {
       toast.error(e?.response?.data?.detail || 'Failed to create quest');
@@ -50,7 +81,7 @@ export default function AdminQuestsPage() {
   };
 
   const remove = async (q: AdminQuest) => {
-    if (!confirm(`Delete "${q.title}"?`)) return;
+    if (!confirm(`Delete "${q.title}"? This will soft-delete the quest.`)) return;
     try {
       await adminAPI.deleteQuest(q.id);
       toast.success('Quest deleted');
@@ -81,6 +112,10 @@ export default function AdminQuestsPage() {
                   <div className="flex items-center gap-sm">
                     <span className="truncate font-medium text-ink-primary">{q.title}</span>
                     <Badge tone="cobalt" className="capitalize">{q.category}</Badge>
+                    <Badge tone="sky" className="capitalize">{q.verification_type.replace('_', ' ')}</Badge>
+                    {q.min_role !== 'Explorer' && (
+                      <Badge tone="gold" className="capitalize">{q.min_role}+</Badge>
+                    )}
                     <Badge tone={q.is_active ? 'success' : 'neutral'}>{q.is_active ? 'Active' : 'Inactive'}</Badge>
                   </div>
                   {q.description && <p className="truncate text-label text-ink-muted">{q.description}</p>}
@@ -104,7 +139,7 @@ export default function AdminQuestsPage() {
         </Card>
       )}
 
-      <Modal open={open} onClose={() => setOpen(false)} title="New quest">
+      <Modal open={open} onClose={() => { setOpen(false); resetForm(); }} title="New quest">
         <div className="space-y-lg">
           <Input label="Title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
           <Input label="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
@@ -112,12 +147,48 @@ export default function AdminQuestsPage() {
             <Input label="PP reward" type="number" value={form.pp_reward} onChange={(e) => setForm({ ...form, pp_reward: e.target.value })} />
             <Input label="Daily limit" type="number" value={form.daily_limit} onChange={(e) => setForm({ ...form, daily_limit: e.target.value })} />
           </div>
+          <div className="grid grid-cols-2 gap-md">
+            <div>
+              <label className="mb-2 block text-label font-medium text-ink-primary">Category</label>
+              <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}
+                className="w-full rounded-card border border-line bg-bg-primary px-md py-3 text-body text-ink-primary focus:outline-none focus:ring-2 focus:ring-brand-cobalt">
+                {CATEGORIES.map((c) => <option key={c} value={c} className="capitalize">{c}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="mb-2 block text-label font-medium text-ink-primary">Verification</label>
+              <select value={form.verification_type} onChange={(e) => setForm({ ...form, verification_type: e.target.value })}
+                className="w-full rounded-card border border-line bg-bg-primary px-md py-3 text-body text-ink-primary focus:outline-none focus:ring-2 focus:ring-brand-cobalt">
+                {VERIFICATION_TYPES.map((v) => <option key={v} value={v}>{v.replace('_', ' ')}</option>)}
+              </select>
+            </div>
+          </div>
           <div>
-            <label className="mb-2 block text-label font-medium text-ink-primary">Category</label>
-            <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}
+            <label className="mb-2 block text-label font-medium text-ink-primary">Minimum Role</label>
+            <select value={form.min_role} onChange={(e) => setForm({ ...form, min_role: e.target.value })}
               className="w-full rounded-card border border-line bg-bg-primary px-md py-3 text-body text-ink-primary focus:outline-none focus:ring-2 focus:ring-brand-cobalt">
-              {CATEGORIES.map((c) => <option key={c} value={c} className="capitalize">{c}</option>)}
+              {MIN_ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
             </select>
+          </div>
+          <div className="grid grid-cols-2 gap-md">
+            <div>
+              <label className="mb-2 block text-label font-medium text-ink-primary">Starts at (optional)</label>
+              <input
+                type="datetime-local"
+                value={form.starts_at}
+                onChange={(e) => setForm({ ...form, starts_at: e.target.value })}
+                className="w-full rounded-card border border-line bg-bg-primary px-md py-3 text-body text-ink-primary focus:outline-none focus:ring-2 focus:ring-brand-cobalt"
+              />
+            </div>
+            <div>
+              <label className="mb-2 block text-label font-medium text-ink-primary">Ends at (optional)</label>
+              <input
+                type="datetime-local"
+                value={form.ends_at}
+                onChange={(e) => setForm({ ...form, ends_at: e.target.value })}
+                className="w-full rounded-card border border-line bg-bg-primary px-md py-3 text-body text-ink-primary focus:outline-none focus:ring-2 focus:ring-brand-cobalt"
+              />
+            </div>
           </div>
           <Button className="w-full" onClick={create}>Create Quest</Button>
         </div>

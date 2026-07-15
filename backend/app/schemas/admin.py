@@ -61,6 +61,8 @@ class AdminQuestCreate(BaseModel):
     min_role: str = "Explorer"
     daily_limit: int = Field(1, ge=1)
     is_active: bool = True
+    starts_at: Optional[datetime] = None
+    ends_at: Optional[datetime] = None
 
 
 class AdminQuestUpdate(BaseModel):
@@ -68,8 +70,12 @@ class AdminQuestUpdate(BaseModel):
     description: Optional[str] = None
     pp_reward: Optional[int] = None
     category: Optional[str] = None
+    verification_type: Optional[str] = None
+    min_role: Optional[str] = None
     daily_limit: Optional[int] = None
     is_active: Optional[bool] = None
+    starts_at: Optional[datetime] = None
+    ends_at: Optional[datetime] = None
 
 
 # ── Partners & campaigns ────────────────────────────────────────────────────

@@ -144,9 +144,15 @@ async def grant_nft(body: AdminNFTGrant, admin: Admin, db: DB):
 
 # ── Completions review ──────────────────────────────────────────────────────
 @router.get("/quest-completions", response_model=AdminCompletionList)
-async def list_completions(admin: Admin, db: DB, status: Optional[str] = Query(None)):
-    rows = await AdminService.list_completions(db, status)
-    return {"completions": rows, "total": len(rows)}
+async def list_completions(
+    admin: Admin,
+    db: DB,
+    status: Optional[str] = Query(None),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+):
+    rows, total = await AdminService.list_completions(db, status, page, page_size)
+    return {"completions": rows, "total": total}
 
 
 @router.post("/quest-completions/{completion_id}/review", response_model=GenericOk)

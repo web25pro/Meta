@@ -25,8 +25,11 @@ export interface ApiQuest {
   category: string;
   verification_type: string;
   min_role: string;
+  steps?: { label: string; verification: string }[] | null;
   daily_limit: number;
   is_active: boolean;
+  starts_at?: string | null;
+  ends_at?: string | null;
 }
 
 // ── NFT ─────────────────────────────────────────────────────────────────────

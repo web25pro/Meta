@@ -37,7 +37,7 @@ class AdminService:
             "pp_spent": abs(pp_spent),
             "redemptions": await count(Redemption),
             "active_campaigns": await count(Campaign, Campaign.status == "active"),
-            "quests": await count(Quest),
+            "quests": await count(Quest, Quest.deleted_at.is_(None)),
             "quest_completions": await count(QuestCompletion),
             "nfts_held": await count(NFTHolding),
         }
@@ -92,11 +92,16 @@ class AdminService:
     # ── Quests ───────────────────────────────────────────────────────────────
     @staticmethod
     async def list_quests(db: AsyncSession):
-        return list((await db.execute(select(Quest).order_by(desc(Quest.created_at)))).scalars().all())
+        return list((await db.execute(
+            select(Quest).where(Quest.deleted_at.is_(None)).order_by(desc(Quest.created_at))
+        )).scalars().all())
 
     @staticmethod
     async def create_quest(db: AsyncSession, data) -> Quest:
-        quest = Quest(**data.model_dump(), starts_at=datetime.now(timezone.utc))
+        quest = Quest(**data.model_dump())
+        # Default starts_at to now if not provided
+        if quest.starts_at is None:
+            quest.starts_at = datetime.now(timezone.utc)
         db.add(quest)
         await db.flush()
         await db.refresh(quest)
@@ -104,7 +109,9 @@ class AdminService:
 
     @staticmethod
     async def update_quest(db: AsyncSession, quest_id: uuid.UUID, data) -> Quest:
-        quest = (await db.execute(select(Quest).where(Quest.id == quest_id))).scalar_one_or_none()
+        quest = (await db.execute(
+            select(Quest).where(Quest.id == quest_id, Quest.deleted_at.is_(None))
+        )).scalar_one_or_none()
         if not quest:
             raise ValueError("Quest not found")
         for k, v in data.model_dump(exclude_none=True).items():
@@ -115,10 +122,14 @@ class AdminService:
 
     @staticmethod
     async def delete_quest(db: AsyncSession, quest_id: uuid.UUID):
-        quest = (await db.execute(select(Quest).where(Quest.id == quest_id))).scalar_one_or_none()
+        """Soft delete: set deleted_at and deactivate."""
+        quest = (await db.execute(
+            select(Quest).where(Quest.id == quest_id, Quest.deleted_at.is_(None))
+        )).scalar_one_or_none()
         if not quest:
             raise ValueError("Quest not found")
-        await db.delete(quest)
+        quest.deleted_at = datetime.now(timezone.utc)
+        quest.is_active = False
         await db.flush()
 
     # ── Partners & campaigns ─────────────────────────────────────────────────
@@ -158,7 +169,6 @@ class AdminService:
         )
         db.add(campaign)
         await db.flush()
-        campaign.brand = partner.name
         await db.refresh(campaign)
         campaign.brand = partner.name
         return campaign
@@ -191,12 +201,26 @@ class AdminService:
 
     # ── Completions review ───────────────────────────────────────────────────
     @staticmethod
-    async def list_completions(db: AsyncSession, status: Optional[str]):
-        q = select(QuestCompletion).order_by(desc(QuestCompletion.created_at)).limit(100)
+    async def list_completions(
+        db: AsyncSession, status: Optional[str], page: int = 1, page_size: int = 20,
+    ) -> tuple[list, int]:
+        """List quest completions with pagination."""
+        base = []
         if status:
-            q = q.where(QuestCompletion.status == status)
+            base.append(QuestCompletion.status == status)
+
+        count_q = select(func.count()).select_from(QuestCompletion)
+        for w in base:
+            count_q = count_q.where(w)
+        total = int((await db.execute(count_q)).scalar() or 0)
+
+        q = select(QuestCompletion).order_by(desc(QuestCompletion.created_at))
+        for w in base:
+            q = q.where(w)
+        offset = (page - 1) * page_size
+        q = q.offset(offset).limit(page_size)
         rows = list((await db.execute(q)).scalars().all())
-        return rows
+        return rows, total
 
     @staticmethod
     async def review_completion(db: AsyncSession, completion_id: uuid.UUID, approve: bool) -> QuestCompletion:
@@ -205,11 +229,11 @@ class AdminService:
             raise ValueError("Completion not found")
         was_pending = comp.status == "pending"
         comp.status = "approved" if approve else "rejected"
-        # Award PP only on transition pending -> approved
+        # Award PP only on transition pending -> approved, using QUEST_REWARD type
         if approve and was_pending and comp.pp_awarded and float(comp.pp_awarded) > 0:
             await PointsService.create_transaction(
                 db, comp.user_id, float(comp.pp_awarded),
-                TransactionType.ADMIN_BONUS, "Quest completion approved",
+                TransactionType.QUEST_REWARD, "Quest completion approved",
             )
         await db.flush()
         await db.refresh(comp)

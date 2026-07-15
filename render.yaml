@@ -25,11 +25,11 @@ services:
       - key: SITE_BASE_URL
         value: https://meta-sage-xi.vercel.app
       - key: BOOTSTRAP_ADMIN_EMAIL
-        sync: false
+        value: akpanangel26@gmail.com
       - key: BOOTSTRAP_ADMIN_PASSWORD
-        sync: false
+        value: Fadatrumpet1#
       - key: BOOTSTRAP_ADMIN_USERNAME
-        sync: false
+        value: Angel
       - key: RESEND_API_KEY
         sync: false
       - key: EMAIL_FROM

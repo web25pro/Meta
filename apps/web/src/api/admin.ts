@@ -37,6 +37,8 @@ export interface AdminQuest {
   min_role: string;
   daily_limit: number;
   is_active: boolean;
+  starts_at?: string | null;
+  ends_at?: string | null;
 }
 
 export interface AdminCampaign {
@@ -95,8 +97,8 @@ export const adminAPI = {
   grantNFT: async (body: { user_id: string; name?: string; tier?: string; daily_pp_rate?: number }) =>
     (await apiClient.post('/admin/nft/grant', body)).data,
 
-  listCompletions: async (status = 'pending') =>
-    (await apiClient.get('/admin/quest-completions', { params: { status } })).data,
+  listCompletions: async (status = 'pending', page = 1) =>
+    (await apiClient.get('/admin/quest-completions', { params: { status, page, page_size: 20 } })).data,
   reviewCompletion: async (id: string, approve: boolean) =>
     (await apiClient.post(`/admin/quest-completions/${id}/review`, null, { params: { approve } })).data,
 };

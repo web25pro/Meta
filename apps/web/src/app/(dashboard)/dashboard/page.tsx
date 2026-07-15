@@ -25,6 +25,7 @@ import {
 } from '@meta-jungle/ui';
 import apiClient, { isAuthenticated } from '@/lib/api';
 import { User, DashboardStats } from '@/types';
+import { metajungleAPI, type ApiQuest } from '@/api/metajungle';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -54,6 +55,12 @@ export default function DashboardPage() {
         tasks_pending: statsRes.data.tasks_pending ?? 0,
       };
     },
+  );
+
+  const { data: quests } = useQuery<ApiQuest[]>(
+    'mjQuests',
+    metajungleAPI.listQuests,
+    { retry: false },
   );
 
   if (userLoading || statsLoading) {
@@ -130,25 +137,21 @@ export default function DashboardPage() {
               View all quests →
             </Link>
           </div>
-          <QuestCard
-            title="Follow @LPanda on X"
-            description="Connect your X account and follow to earn your first reward."
-            ppReward={50}
-            status="available"
-          />
-          <QuestCard
-            title="Daily check-in"
-            description="Log in every day to grow your streak bonus."
-            ppReward={10}
-            progress={70}
-            status="in-progress"
-          />
-          <QuestCard
-            title="Refer a friend"
-            description="Invite a friend who completes 3 tasks in 7 days."
-            ppReward={300}
-            status="available"
-          />
+          {quests && quests.length > 0 ? (
+            quests.slice(0, 3).map((q) => (
+              <QuestCard
+                key={q.id}
+                title={q.title}
+                description={q.description}
+                ppReward={q.pp_reward}
+                status="available"
+              />
+            ))
+          ) : (
+            <div className="rounded-card border border-line bg-bg-primary p-lg text-center text-ink-muted">
+              No quests available right now. Check back soon!
+            </div>
+          )}
         </div>
 
         {/* Task overview */}

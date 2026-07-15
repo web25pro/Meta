@@ -168,18 +168,79 @@ class MetaJungleService:
 
     # ── Quests (Chapter 5.2) ────────────────────────────────────────────────
     @staticmethod
-    async def list_quests(db: AsyncSession) -> list[Quest]:
-        r = await db.execute(select(Quest).where(Quest.is_active.is_(True)).order_by(Quest.pp_reward.desc()))
-        return list(r.scalars().all())
+    async def list_quests(db: AsyncSession, page: int = 1, page_size: int = 20) -> tuple[list[Quest], int]:
+        """List active, non-deleted, non-expired quests with pagination."""
+        now = _utcnow()
+        base = (
+            Quest.is_active.is_(True),
+            Quest.deleted_at.is_(None),
+            (Quest.ends_at.is_(None)) | (Quest.ends_at > now),
+        )
+        count_q = select(func.count()).select_from(Quest).where(*base)
+        total = int((await db.execute(count_q)).scalar() or 0)
+
+        offset = (page - 1) * page_size
+        q = (
+            select(Quest)
+            .where(*base)
+            .order_by(Quest.pp_reward.desc())
+            .offset(offset)
+            .limit(page_size)
+        )
+        rows = list((await db.execute(q)).scalars().all())
+        return rows, total
 
     @staticmethod
-    async def complete_quest(db: AsyncSession, user: User, quest_id: uuid.UUID, proof: Optional[dict]) -> QuestCompletion:
+    async def _role_index(role_name: str) -> int:
+        """Return the index of a role in ROLE_THRESHOLDS (0 = highest)."""
+        for i, (r, *_rest) in enumerate(ROLE_THRESHOLDS):
+            if r == role_name:
+                return i
+        # Default to lowest role if unknown
+        return len(ROLE_THRESHOLDS) - 1
+
+    @staticmethod
+    async def complete_quest(
+        db: AsyncSession, user: User, quest_id: uuid.UUID, proof: Optional[dict],
+    ) -> QuestCompletion:
         quest = (await db.execute(select(Quest).where(Quest.id == quest_id))).scalar_one_or_none()
         if not quest or not quest.is_active:
             raise ValueError("Quest not found or inactive")
 
+        # Check quest not soft-deleted
+        if quest.deleted_at is not None:
+            raise ValueError("Quest not found or inactive")
+
+        # Check quest not expired
+        now = _utcnow()
+        if quest.ends_at is not None:
+            ends = quest.ends_at
+            if ends.tzinfo is None:
+                ends = ends.replace(tzinfo=timezone.utc)
+            if ends <= now:
+                raise ValueError("This quest has expired")
+
+        # Check quest has started
+        if quest.starts_at is not None:
+            starts = quest.starts_at
+            if starts.tzinfo is None:
+                starts = starts.replace(tzinfo=timezone.utc)
+            if starts > now:
+                raise ValueError("This quest has not started yet")
+
+        # Enforce min_role
+        rep = await MetaJungleService.compute_reputation(db, user)
+        user_role_idx = await MetaJungleService._role_index(rep["role"])
+        quest_role_idx = await MetaJungleService._role_index(quest.min_role)
+        # Lower index = higher role (0 = Alpha OG)
+        if user_role_idx > quest_role_idx:
+            raise ValueError(
+                f"Your reputation role ({rep['role']}) does not meet the minimum "
+                f"requirement ({quest.min_role}) for this quest"
+            )
+
         # Per-quest daily limit
-        start = _utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        start = now.replace(hour=0, minute=0, second=0, microsecond=0)
         done_today = int((await db.execute(
             select(func.count()).select_from(QuestCompletion).where(
                 QuestCompletion.user_id == user.id,
@@ -190,8 +251,37 @@ class MetaJungleService:
         if done_today >= quest.daily_limit:
             raise ValueError("Daily limit reached for this quest")
 
+        # Validate steps if quest has them
+        if quest.steps and len(quest.steps) > 0:
+            if not proof or "steps_completed" not in proof:
+                raise ValueError(
+                    "This quest requires step-by-step completion. "
+                    "Please provide 'steps_completed' in your proof."
+                )
+            steps_completed = proof.get("steps_completed")
+            if not isinstance(steps_completed, list) or len(steps_completed) != len(quest.steps):
+                raise ValueError(
+                    f"'steps_completed' must be a list of {len(quest.steps)} boolean values"
+                )
+
+        # Validate proof based on verification_type
+        vtype = quest.verification_type
+        auto_approve_types = {"oauth", "webhook"}
+
+        if vtype in auto_approve_types:
+            # Require proof with verified flag
+            if not proof or proof.get("verified") is not True:
+                raise ValueError(
+                    f"This {vtype} quest requires proof with {{\"verified\": true}}"
+                )
+        elif vtype == "on_chain":
+            # Require tx_hash in proof
+            if not proof or not proof.get("tx_hash"):
+                raise ValueError(
+                    "On-chain quests require a 'tx_hash' in your proof"
+                )
+
         # Daily earn cap with role multiplier
-        rep = await MetaJungleService.compute_reputation(db, user)
         award = int(round(quest.pp_reward * rep["earn_multiplier"]))
         earned = await MetaJungleService._earned_today(db, user.id)
         cap = await MetaJungleService._daily_cap(db, user.id)
@@ -200,18 +290,31 @@ class MetaJungleService:
             raise ValueError("Daily earn cap reached")
         award = int(min(award, remaining))
 
+        # Determine completion status based on verification type
+        if vtype in auto_approve_types:
+            status = "approved"
+        else:
+            # manual, screenshot, on_chain → pending admin review
+            status = "pending"
+
         completion = QuestCompletion(
-            user_id=user.id, quest_id=quest_id, status="approved",
-            pp_awarded=award, proof=proof or {},
+            user_id=user.id,
+            quest_id=quest_id,
+            status=status,
+            pp_awarded=award,
+            proof=proof or {},
         )
         db.add(completion)
         await db.flush()
 
-        await PointsService.create_transaction(
-            db=db, user_id=user.id, amount=float(award),
-            transaction_type=TransactionType.ADMIN_BONUS,
-            reason=f"Quest reward: {quest.title}",
-        )
+        # Award PP immediately only for auto-approve types
+        if status == "approved" and award > 0:
+            await PointsService.create_transaction(
+                db=db, user_id=user.id, amount=float(award),
+                transaction_type=TransactionType.QUEST_REWARD,
+                reason=f"Quest reward: {quest.title}",
+            )
+
         await db.refresh(completion)
         return completion
 

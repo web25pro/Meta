@@ -30,6 +30,8 @@ class QuestResponse(BaseModel):
     steps: Optional[Any] = None
     daily_limit: int
     is_active: bool
+    starts_at: Optional[datetime] = None
+    ends_at: Optional[datetime] = None
 
 
 class QuestListResponse(BaseModel):
@@ -47,6 +49,7 @@ class QuestCompletionResponse(BaseModel):
     quest_id: uuid.UUID
     status: str
     pp_awarded: float
+    proof: Optional[Any] = None
     created_at: datetime
 
 

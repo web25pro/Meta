@@ -15,6 +15,7 @@ class TransactionType(str, Enum):
     DEADLINE_PENALTY = "Deadline_Penalty"
     ADMIN_BONUS = "Admin_Bonus"
     ADMIN_PENALTY = "Admin_Penalty"
+    QUEST_REWARD = "Quest_Reward"
 
 
 class AuditActionType(str, Enum):

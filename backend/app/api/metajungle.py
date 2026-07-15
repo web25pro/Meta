@@ -5,7 +5,6 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.logging import get_logger
 from app.models import User
 from app.api.user import get_current_user
 from app.services.metajungle_service import MetaJungleService, MARKET_CATALOG
@@ -19,8 +18,6 @@ from app.schemas.metajungle import (
     CourseListResponse, CourseResponse, QuizSubmitRequest, QuizResultResponse,
     RedeemRequest, RedemptionResponse, MarketCatalogResponse,
 )
-
-logger = get_logger(__name__)
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
 DB = Annotated[AsyncSession, Depends(get_db)]
@@ -45,9 +42,14 @@ quests_router = APIRouter(prefix="/api/v1/quests", tags=["quests"])
 
 
 @quests_router.get("", response_model=QuestListResponse)
-async def list_quests(current_user: CurrentUser, db: DB):
-    quests = await MetaJungleService.list_quests(db)
-    return {"quests": quests, "total": len(quests)}
+async def list_quests(
+    current_user: CurrentUser,
+    db: DB,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+):
+    quests, total = await MetaJungleService.list_quests(db, page, page_size)
+    return {"quests": quests, "total": total}
 
 
 @quests_router.post("/{quest_id}/complete", response_model=QuestCompletionResponse)
