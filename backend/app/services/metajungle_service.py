@@ -239,13 +239,14 @@ class MetaJungleService:
                 f"requirement ({quest.min_role}) for this quest"
             )
 
-        # Per-quest daily limit
+        # Per-quest daily limit (rejected completions don't count — user can retry)
         start = now.replace(hour=0, minute=0, second=0, microsecond=0)
         done_today = int((await db.execute(
             select(func.count()).select_from(QuestCompletion).where(
                 QuestCompletion.user_id == user.id,
                 QuestCompletion.quest_id == quest_id,
                 QuestCompletion.created_at >= start,
+                QuestCompletion.status != "rejected",
             )
         )).scalar() or 0)
         if done_today >= quest.daily_limit:
