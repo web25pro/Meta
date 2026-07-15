@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery, useQueryClient } from 'react-query';
-import { Target, Loader2, ChevronDown } from 'lucide-react';
+import { Target, Loader2, ChevronDown, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button, PPAmount, Skeleton, EmptyState, Badge, Modal, Input, cn } from '@meta-jungle/ui';
 import { metajungleAPI, type ApiQuest } from '@/api/metajungle';
@@ -189,19 +189,32 @@ export default function QuestsPage() {
                     <Badge tone="amber" className="text-xs">Requires review</Badge>
                   )}
                 </div>
-                <Button
-                  size="sm"
-                  onClick={() => handleComplete(q)}
-                  disabled={completing === q.id}
-                >
-                  {completing === q.id ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" /> Claiming…
-                    </>
-                  ) : (
-                    'Complete'
+                <div className="flex items-center gap-sm">
+                  {q.action_url && (
+                    <a
+                      href={q.action_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 rounded-card border border-line bg-bg-primary px-3 py-1.5 text-label font-medium text-ink-muted transition-colors hover:bg-bg-elevated hover:text-ink-primary"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
+                      Open link
+                    </a>
                   )}
-                </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => handleComplete(q)}
+                    disabled={completing === q.id}
+                  >
+                    {completing === q.id ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" /> Claiming…
+                      </>
+                    ) : (
+                      'Complete'
+                    )}
+                  </Button>
+                </div>
               </div>
             </div>
           ))}

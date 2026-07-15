@@ -33,6 +33,7 @@ class Quest(Base):
     min_role: Mapped[str] = mapped_column(String(32), nullable=False, default="Explorer")
     steps: Mapped[list | None] = mapped_column(JSONB, nullable=True)
     daily_limit: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    action_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, index=True)
     starts_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     ends_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

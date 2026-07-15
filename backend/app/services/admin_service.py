@@ -204,7 +204,7 @@ class AdminService:
     async def list_completions(
         db: AsyncSession, status: Optional[str], page: int = 1, page_size: int = 20,
     ) -> tuple[list, int]:
-        """List quest completions with pagination."""
+        """List quest completions with user/quest names, paginated."""
         base = []
         if status:
             base.append(QuestCompletion.status == status)
@@ -214,13 +214,37 @@ class AdminService:
             count_q = count_q.where(w)
         total = int((await db.execute(count_q)).scalar() or 0)
 
-        q = select(QuestCompletion).order_by(desc(QuestCompletion.created_at))
+        q = (
+            select(
+                QuestCompletion,
+                User.name.label("user_name"),
+                User.email.label("user_email"),
+                Quest.title.label("quest_title"),
+            )
+            .join(User, User.id == QuestCompletion.user_id)
+            .join(Quest, Quest.id == QuestCompletion.quest_id)
+            .order_by(desc(QuestCompletion.created_at))
+        )
         for w in base:
             q = q.where(w)
         offset = (page - 1) * page_size
         q = q.offset(offset).limit(page_size)
-        rows = list((await db.execute(q)).scalars().all())
-        return rows, total
+        rows = (await db.execute(q)).all()
+
+        results = []
+        for comp, user_name, user_email, quest_title in rows:
+            results.append({
+                "id": comp.id,
+                "user_id": comp.user_id,
+                "quest_id": comp.quest_id,
+                "user_name": user_name,
+                "user_email": user_email,
+                "quest_title": quest_title,
+                "status": comp.status,
+                "pp_awarded": float(comp.pp_awarded),
+                "created_at": comp.created_at,
+            })
+        return results, total
 
     @staticmethod
     async def review_completion(db: AsyncSession, completion_id: uuid.UUID, approve: bool) -> QuestCompletion:

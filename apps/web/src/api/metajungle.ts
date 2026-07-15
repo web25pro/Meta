@@ -27,6 +27,7 @@ export interface ApiQuest {
   min_role: string;
   steps?: { label: string; verification: string }[] | null;
   daily_limit: number;
+  action_url?: string | null;
   is_active: boolean;
   starts_at?: string | null;
   ends_at?: string | null;

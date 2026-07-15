@@ -60,6 +60,7 @@ class AdminQuestCreate(BaseModel):
     verification_type: str = "manual"
     min_role: str = "Explorer"
     daily_limit: int = Field(1, ge=1)
+    action_url: Optional[str] = None
     is_active: bool = True
     starts_at: Optional[datetime] = None
     ends_at: Optional[datetime] = None
@@ -73,6 +74,7 @@ class AdminQuestUpdate(BaseModel):
     verification_type: Optional[str] = None
     min_role: Optional[str] = None
     daily_limit: Optional[int] = None
+    action_url: Optional[str] = None
     is_active: Optional[bool] = None
     starts_at: Optional[datetime] = None
     ends_at: Optional[datetime] = None
@@ -123,6 +125,9 @@ class AdminCompletion(BaseModel):
     id: uuid.UUID
     user_id: uuid.UUID
     quest_id: uuid.UUID
+    user_name: Optional[str] = None
+    user_email: Optional[str] = None
+    quest_title: Optional[str] = None
     status: str
     pp_awarded: float
     created_at: datetime

@@ -70,8 +70,11 @@ export default function AdminReviewsPage() {
               {items.map((c: any) => (
                 <div key={c.id} className="flex items-center justify-between gap-md px-lg py-md">
                   <div className="min-w-0">
-                    <div className="font-mono text-label text-ink-muted">
-                      user {String(c.user_id).slice(0, 8)} · quest {String(c.quest_id).slice(0, 8)}
+                    <div className="font-medium text-ink-primary">
+                      {c.quest_title || `Quest ${String(c.quest_id).slice(0, 8)}`}
+                    </div>
+                    <div className="mt-0.5 text-label text-ink-muted">
+                      {c.user_name || c.user_email || `User ${String(c.user_id).slice(0, 8)}`}
                     </div>
                     <div className="mt-1 flex items-center gap-sm">
                       <PPAmount value={Math.round(c.pp_awarded)} size="sm" />

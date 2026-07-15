@@ -22,6 +22,7 @@ export default function AdminQuestsPage() {
     verification_type: 'manual',
     min_role: 'Explorer',
     daily_limit: '1',
+    action_url: '',
     starts_at: '',
     ends_at: '',
   });
@@ -38,6 +39,7 @@ export default function AdminQuestsPage() {
       verification_type: 'manual',
       min_role: 'Explorer',
       daily_limit: '1',
+      action_url: '',
       starts_at: '',
       ends_at: '',
     });
@@ -58,6 +60,7 @@ export default function AdminQuestsPage() {
         min_role: form.min_role,
         daily_limit: parseInt(form.daily_limit, 10) || 1,
       };
+      if (form.action_url.trim()) body.action_url = form.action_url.trim();
       if (form.starts_at) body.starts_at = new Date(form.starts_at).toISOString();
       if (form.ends_at) body.ends_at = new Date(form.ends_at).toISOString();
 
@@ -186,6 +189,12 @@ export default function AdminQuestsPage() {
             placeholder="What does the user need to do?"
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
+          />
+          <Input
+            label="Action Link (optional)"
+            placeholder="https://x.com/username"
+            value={form.action_url}
+            onChange={(e) => setForm({ ...form, action_url: e.target.value })}
           />
           <div className="grid grid-cols-1 gap-md sm:grid-cols-2">
             <Input

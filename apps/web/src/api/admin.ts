@@ -36,6 +36,7 @@ export interface AdminQuest {
   verification_type: string;
   min_role: string;
   daily_limit: number;
+  action_url?: string | null;
   is_active: boolean;
   starts_at?: string | null;
   ends_at?: string | null;

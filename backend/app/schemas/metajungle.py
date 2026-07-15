@@ -29,6 +29,7 @@ class QuestResponse(BaseModel):
     min_role: str
     steps: Optional[Any] = None
     daily_limit: int
+    action_url: Optional[str] = None
     is_active: bool
     starts_at: Optional[datetime] = None
     ends_at: Optional[datetime] = None
