@@ -2,6 +2,7 @@
 import uuid
 from typing import Annotated, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
@@ -87,6 +88,46 @@ async def get_me(current_user: Annotated[User, Depends(get_current_user)]):
     Get current user profile.
     """
     return current_user
+
+
+@router.get("/me/stats")
+async def get_me_stats(
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """
+    Get current user's dashboard stats (PP, quest counts, etc.).
+    """
+    from app.models import QuestCompletion
+
+    # Quest completion counts
+    total_completions = int((await db.execute(
+        select(func.count()).select_from(QuestCompletion).where(
+            QuestCompletion.user_id == current_user.id
+        )
+    )).scalar() or 0)
+
+    approved = int((await db.execute(
+        select(func.count()).select_from(QuestCompletion).where(
+            QuestCompletion.user_id == current_user.id,
+            QuestCompletion.status == "approved",
+        )
+    )).scalar() or 0)
+
+    pending = int((await db.execute(
+        select(func.count()).select_from(QuestCompletion).where(
+            QuestCompletion.user_id == current_user.id,
+            QuestCompletion.status == "pending",
+        )
+    )).scalar() or 0)
+
+    return {
+        "total_points": float(current_user.points or 0),
+        "total_tasks": total_completions,
+        "tasks_completed": approved,
+        "tasks_pending": pending,
+        "pending_submissions": pending,
+    }
 
 
 @router.get("", response_model=UserListResponse)
