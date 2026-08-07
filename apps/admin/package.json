@@ -1,15 +1,14 @@
 {
-  "name": "@meta-jungle/web",
+  "name": "@meta-jungle/admin",
   "version": "3.0.0",
   "private": true,
-  "description": "Meta-Jungle web app (Next.js 14) — White & Blue Panda in the Jungle",
+  "description": "Meta-Jungle admin console — standalone deployment (Next.js 14)",
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --port 3001",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "type-check": "tsc --noEmit",
-    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\""
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@meta-jungle/ui": "*",
@@ -21,16 +20,13 @@
     "react-dom": "^18.2.0",
     "axios": "^1.6.0",
     "react-query": "^3.39.3",
-    "zustand": "^4.4.0",
     "react-hook-form": "^7.48.0",
     "zod": "^3.22.0",
     "@hookform/resolvers": "^3.3.0",
-    "date-fns": "^2.30.0",
     "clsx": "^2.0.0",
     "tailwind-merge": "^2.0.0",
     "lucide-react": "^0.292.0",
-    "sonner": "^1.2.0",
-    "recharts": "^2.10.0"
+    "sonner": "^1.2.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
@@ -41,10 +37,7 @@
     "postcss": "^8.4.0",
     "autoprefixer": "^10.4.0",
     "eslint": "^8.0.0",
-    "eslint-config-next": "^14.0.0",
-    "prettier": "^3.0.0",
-    "@typescript-eslint/eslint-plugin": "^6.0.0",
-    "@typescript-eslint/parser": "^6.0.0"
+    "eslint-config-next": "^14.0.0"
   },
   "engines": {
     "node": ">=18.0.0",

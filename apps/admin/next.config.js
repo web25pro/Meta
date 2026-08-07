@@ -2,7 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
-  // Transpile the workspace design system + shared types (Meta-Jungle monorepo).
+  // Transpile the workspace packages (Meta-Jungle monorepo).
   transpilePackages: [
     '@meta-jungle/ui',
     '@meta-jungle/types',
