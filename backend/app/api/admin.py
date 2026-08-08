@@ -11,10 +11,10 @@ from app.services.admin_service import AdminService
 from app.schemas.admin import (
     AdminOverview, AdminUserList, AdminUser, AdminUserUpdate, AdminPointsAdjust,
     AdminQuestCreate, AdminQuestUpdate,
-    AdminPartnerCreate, AdminPartner, AdminCampaignCreate, AdminCampaignStatus,
+    AdminPartnerCreate, AdminPartner,
     AdminNFTGrant, AdminCompletionList, GenericOk,
 )
-from app.schemas.metajungle import QuestResponse, CampaignResponse, NFTResponse
+from app.schemas.metajungle import QuestResponse, NFTResponse
 
 
 async def require_admin(current_user: Annotated[User, Depends(get_current_user)]) -> User:
@@ -112,25 +112,8 @@ async def create_partner(body: AdminPartnerCreate, admin: Admin, db: DB):
     return await AdminService.create_partner(db, body)
 
 
-@router.get("/campaigns", response_model=list[CampaignResponse])
-async def list_campaigns(admin: Admin, db: DB):
-    return await AdminService.list_campaigns(db)
-
-
-@router.post("/campaigns", response_model=CampaignResponse)
-async def create_campaign(body: AdminCampaignCreate, admin: Admin, db: DB):
-    try:
-        return await AdminService.create_campaign(db, body)
-    except ValueError as e:
-        raise _bad(e)
-
-
-@router.patch("/campaigns/{campaign_id}", response_model=CampaignResponse)
-async def set_campaign_status(campaign_id: uuid.UUID, body: AdminCampaignStatus, admin: Admin, db: DB):
-    try:
-        return await AdminService.set_campaign_status(db, campaign_id, body.status)
-    except ValueError as e:
-        raise _bad(e)
+# Campaign CRUD moved to app/api/campaigns.py (admin_router) — same
+# /api/v1/admin/campaigns paths, now backed by CampaignService.
 
 
 # ── NFT grant ───────────────────────────────────────────────────────────────

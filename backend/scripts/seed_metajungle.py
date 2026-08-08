@@ -11,7 +11,7 @@ from datetime import datetime, timezone, timedelta
 from sqlalchemy import select, func
 
 from app.core.database import AsyncSessionLocal
-from app.models import Quest, Course, Partner, Campaign
+from app.models import Quest, Course, Partner, Campaign, CampaignTask
 
 
 QUESTS = [
@@ -62,25 +62,57 @@ async def seed() -> None:
             db.add_all(partners)
             await db.flush()
             campaigns = [
-                Campaign(partner_id=partners[0].id, title="Provide liquidity & earn",
+                Campaign(partner_id=partners[0].id, slug="provide-liquidity-earn",
+                         title="Provide liquidity & earn",
                          blurb="Add liquidity to the LPANDA/USDC pool and verify on-chain.",
-                         pp_budget=500000, pp_per_task=500, pp_claimed=310000, status="active",
-                         featured=True, total_participants=1240, ends_at=now + timedelta(days=6)),
-                Campaign(partner_id=partners[1].id, title="Shop & review challenge",
+                         pp_budget=500000, pp_per_task=500, status="active",
+                         featured=True, starts_at=now, ends_at=now + timedelta(days=6)),
+                Campaign(partner_id=partners[1].id, slug="shop-review-challenge",
+                         title="Shop & review challenge",
                          blurb="Make a verified purchase and leave a review.",
-                         pp_budget=120000, pp_per_task=200, pp_claimed=49000, status="active",
-                         total_participants=880, ends_at=now + timedelta(days=12)),
-                Campaign(partner_id=partners[2].id, title="Bridge to Base quest",
+                         pp_budget=120000, pp_per_task=200, status="active",
+                         starts_at=now, ends_at=now + timedelta(days=12)),
+                Campaign(partner_id=partners[2].id, slug="bridge-to-base-quest",
+                         title="Bridge to Base quest",
                          blurb="Bridge any asset to Base and complete a swap.",
-                         pp_budget=250000, pp_per_task=350, pp_claimed=220000, status="active",
-                         total_participants=2010, ends_at=now + timedelta(days=3)),
-                Campaign(partner_id=partners[3].id, title="Learn a language streak",
+                         pp_budget=250000, pp_per_task=350, status="active",
+                         starts_at=now, ends_at=now + timedelta(days=3)),
+                Campaign(partner_id=partners[3].id, slug="learn-a-language-streak",
+                         title="Learn a language streak",
                          blurb="Hit a 7-day streak in any course.",
-                         pp_budget=80000, pp_per_task=150, pp_claimed=18400, status="active",
-                         total_participants=540, ends_at=now + timedelta(days=20)),
+                         pp_budget=80000, pp_per_task=150, status="active",
+                         starts_at=now, ends_at=now + timedelta(days=20)),
             ]
             db.add_all(campaigns)
-            print(f"seeded {len(partners)} partners and {len(campaigns)} campaigns")
+            await db.flush()
+
+            # Real tasks, so joining a campaign leads somewhere. pp_claimed and
+            # total_participants start at 0 and are driven by actual completions.
+            tasks = [
+                CampaignTask(campaign_id=campaigns[0].id, title="Add LPANDA/USDC liquidity",
+                             description="Supply at least $50 of liquidity to the pool.",
+                             pp_reward=500, verification_type="on_chain", order_index=0),
+                CampaignTask(campaign_id=campaigns[0].id, title="Hold the position for 7 days",
+                             description="Keep your liquidity in the pool for a full week.",
+                             pp_reward=250, verification_type="on_chain", order_index=1),
+                CampaignTask(campaign_id=campaigns[1].id, title="Make a verified purchase",
+                             description="Buy anything from the partner store.",
+                             pp_reward=200, verification_type="screenshot", order_index=0),
+                CampaignTask(campaign_id=campaigns[1].id, title="Leave a product review",
+                             description="Post an honest review of what you bought.",
+                             pp_reward=100, verification_type="manual", order_index=1),
+                CampaignTask(campaign_id=campaigns[2].id, title="Bridge an asset to Base",
+                             description="Bridge any supported asset to the Base network.",
+                             pp_reward=350, verification_type="on_chain", order_index=0),
+                CampaignTask(campaign_id=campaigns[2].id, title="Complete a swap on Base",
+                             description="Swap any pair on a supported Base DEX.",
+                             pp_reward=150, verification_type="on_chain", order_index=1),
+                CampaignTask(campaign_id=campaigns[3].id, title="Study for 7 days straight",
+                             description="Keep a 7-day streak in any Learn-to-earn course.",
+                             pp_reward=150, verification_type="webhook", daily_limit=1, order_index=0),
+            ]
+            db.add_all(tasks)
+            print(f"seeded {len(partners)} partners, {len(campaigns)} campaigns, {len(tasks)} campaign tasks")
 
         await db.commit()
     print("Meta-Jungle seed complete.")

@@ -185,17 +185,65 @@ export interface Partner {
   isVerified: boolean;
 }
 
+export type CampaignStatus = 'draft' | 'active' | 'paused' | 'ended';
+
 export interface Campaign {
   id: string;
+  slug: string;
   partnerId: string;
   title: string;
+  blurb: string;
   ppBudget: number;
   ppPerTask: number;
+  /** Settled spend — approved completions only. */
+  ppClaimed: number;
+  /** Held for pending completions awaiting review. */
+  ppReserved: number;
+  /** ppBudget - ppClaimed - ppReserved. */
+  ppAvailable: number;
   startAt: string;
   endAt: string;
   targetRegions: Region[];
   targetRoles: Role[];
-  status: 'draft' | 'active' | 'paused' | 'ended';
+  minRole: Role;
+  maxParticipants: number | null;
+  status: CampaignStatus;
+  featured: boolean;
   totalParticipants: number;
+  createdAt: string;
+}
+
+export type CampaignVerificationType =
+  | 'oauth'
+  | 'webhook'
+  | 'manual'
+  | 'screenshot'
+  | 'on_chain';
+
+export interface CampaignTask {
+  id: string;
+  campaignId: string;
+  title: string;
+  description: string;
+  ppReward: number;
+  verificationType: CampaignVerificationType;
+  dailyLimit: number;
+  actionUrl: string | null;
+  orderIndex: number;
+  isActive: boolean;
+}
+
+export type CampaignCompletionStatus = 'pending' | 'approved' | 'rejected';
+
+export interface CampaignCompletion {
+  id: string;
+  campaignId: string;
+  taskId: string;
+  userId: string;
+  status: CampaignCompletionStatus;
+  ppAwarded: number;
+  proof: Record<string, unknown> | null;
+  reviewedBy: string | null;
+  reviewedAt: string | null;
   createdAt: string;
 }

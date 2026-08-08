@@ -14,7 +14,6 @@ from app.schemas.metajungle import (
     NFTListResponse, NFTResponse,
     P2POrderListResponse, P2POrderResponse, P2POrderCreate,
     StakeListResponse, StakeResponse, StakeCreate,
-    CampaignListResponse, CampaignResponse,
     CourseListResponse, CourseResponse, QuizSubmitRequest, QuizResultResponse,
     RedeemRequest, RedemptionResponse, MarketCatalogResponse,
 )
@@ -121,22 +120,8 @@ async def claim_stake(stake_id: uuid.UUID, current_user: CurrentUser, db: DB):
 
 
 # ── Campaigns ───────────────────────────────────────────────────────────────
-campaigns_router = APIRouter(prefix="/api/v1/campaigns", tags=["campaigns"])
-
-
-@campaigns_router.get("", response_model=CampaignListResponse)
-async def list_campaigns(current_user: CurrentUser, db: DB):
-    campaigns = await MetaJungleService.list_campaigns(db)
-    return {"campaigns": campaigns, "total": len(campaigns)}
-
-
-@campaigns_router.post("/{campaign_id}/join")
-async def join_campaign(campaign_id: uuid.UUID, current_user: CurrentUser, db: DB):
-    try:
-        await MetaJungleService.join_campaign(db, current_user, campaign_id)
-        return {"success": True, "message": "Joined campaign"}
-    except ValueError as e:
-        raise _bad(e)
+# Moved to app/api/campaigns.py — see docs/ARCHITECTURE.md for the
+# campaign-service boundary.
 
 
 # ── Learn ───────────────────────────────────────────────────────────────────
@@ -176,5 +161,5 @@ async def redeem(body: RedeemRequest, current_user: CurrentUser, db: DB):
 
 routers = [
     reputation_router, quests_router, nft_router, p2p_router,
-    staking_router, campaigns_router, learn_router, marketplace_router,
+    staking_router, learn_router, marketplace_router,
 ]

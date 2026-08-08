@@ -17,8 +17,12 @@ JWT Bearer token.
 | GET | `/api/v1/staking` | Active stakes, totals (Ch. 7) |
 | POST | `/api/v1/staking` | Lock PP for 30/90/180 days at 1.2×/1.5×/2.0× |
 | POST | `/api/v1/staking/{id}/claim` | Claim accrued staking rewards |
-| GET | `/api/v1/campaigns` | Active partner campaigns (Ch. 11) |
-| POST | `/api/v1/campaigns/{id}/join` | Join a campaign |
+| GET | `/api/v1/campaigns` | Active partner campaigns, join-state annotated (Ch. 11) |
+| GET | `/api/v1/campaigns/{id}` | One campaign |
+| GET | `/api/v1/campaigns/{id}/eligibility` | Targeting check — region, role, min_role |
+| POST | `/api/v1/campaigns/{id}/join` | Join a campaign (eligibility enforced) |
+| GET | `/api/v1/campaigns/{id}/tasks` | Campaign tasks + the caller's progress today |
+| POST | `/api/v1/campaigns/{id}/tasks/{task_id}/complete` | Complete a task, award or reserve PP |
 | GET | `/api/v1/learn/courses` | Learn-to-earn courses (Ch. 13) |
 | POST | `/api/v1/learn/courses/{id}/quiz` | Submit quiz; 80%+ awards PP once |
 | GET | `/api/v1/marketplace/catalog` | VTU + gift-card catalog (Ch. 12) |
@@ -37,12 +41,59 @@ Reputation is **derived** from platform activity (streak, quests, level, PP,
 account age, email verification, NFT count, referrals, penalties) — no extra
 table. Roles follow the Chapter 6.2 thresholds.
 
+## Campaign domain (Chapter 11)
+
+Campaigns live in their own module — `services/campaign_service.py`,
+`api/campaigns.py`, `schemas/campaign.py` — so the Chapter-8 `campaign-service`
+extraction is a directory move. See `docs/ARCHITECTURE.md`.
+
+**Admin** (all `require_admin`):
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET/POST | `/api/v1/admin/campaigns` | List every campaign / create one |
+| PATCH | `/api/v1/admin/campaigns/{id}` | Set lifecycle status (alias of `/status`) |
+| GET/POST | `/api/v1/admin/campaigns/{id}/tasks` | List / create campaign tasks |
+| PATCH | `/api/v1/admin/campaigns/{id}/tasks/{task_id}/active` | Enable/disable a task |
+| GET | `/api/v1/admin/campaigns/review-queue` | Pending completions awaiting review |
+| POST | `/api/v1/admin/campaigns/review-queue/{completion_id}` | Approve or reject |
+
+**Lifecycle**: `draft → active → paused → ended`, enforced by the
+`ck_campaign_status` CHECK constraint. Only `active` campaigns inside their date
+window are listed, joinable or completable.
+
+**Targeting**: `target_regions` (ISO-3166 alpha-2, matched against `users.region`),
+`target_roles` and `min_role` (reputation roles, not auth roles). An empty list
+means no restriction on that axis; a populated `target_regions` **excludes** users
+with no region set, so partner budget is never spent on an unverifiable audience.
+
+**Billing — reserve → claim → settle**: `oauth`/`webhook` tasks credit the ledger
+immediately and add to `pp_claimed`. Every other verification type adds to
+`pp_reserved` and waits for review; approval moves the PP to `pp_claimed`,
+rejection releases it. A campaign never commits more than `pp_budget` across both,
+and task awards are clamped to the remaining budget.
+
+Campaign task rewards go through the same PP economy as quests — role multiplier,
+per-task daily limit, and the platform daily earn cap — via
+`TransactionType.CAMPAIGN_REWARD`.
+
 ## Schema & seed
 
 - Migration: `alembic/versions/010_metajungle_models.py` (11 new tables).
   Run `alembic upgrade head`.
-- Seed catalogs (quests, courses, partners, campaigns):
+- Campaign architecture: `014_campaign_architecture.py` (campaign tasks,
+  completions, targeting columns, `users.region`) and
+  `015_add_campaign_reward_enum.py`.
+- Seed catalogs (quests, courses, partners, campaigns, campaign tasks):
   `python -m scripts.seed_metajungle` (idempotent).
+
+## Tests
+
+```bash
+python -m tests.test_metajungle_integration   # 42 economy + security checks
+python -m tests.test_admin_integration        # 18 admin + gate checks
+python -m tests.test_campaign_integration     # campaign earn loop, budget, targeting
+```
 
 ## Notes
 

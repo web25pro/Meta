@@ -132,7 +132,9 @@ class AdminService:
         quest.is_active = False
         await db.flush()
 
-    # ── Partners & campaigns ─────────────────────────────────────────────────
+    # ── Partners ─────────────────────────────────────────────────────────────
+    # Campaign CRUD moved to app/services/campaign_service.py — see
+    # docs/ARCHITECTURE.md for the campaign-service boundary.
     @staticmethod
     async def list_partners(db: AsyncSession):
         return list((await db.execute(select(Partner).order_by(Partner.name))).scalars().all())
@@ -144,44 +146,6 @@ class AdminService:
         await db.flush()
         await db.refresh(partner)
         return partner
-
-    @staticmethod
-    async def list_campaigns(db: AsyncSession):
-        rows = (await db.execute(
-            select(Campaign, Partner.name).join(Partner, Partner.id == Campaign.partner_id).order_by(desc(Campaign.created_at))
-        )).all()
-        out = []
-        for c, brand in rows:
-            c.brand = brand
-            out.append(c)
-        return out
-
-    @staticmethod
-    async def create_campaign(db: AsyncSession, data) -> Campaign:
-        partner = (await db.execute(select(Partner).where(Partner.id == data.partner_id))).scalar_one_or_none()
-        if not partner:
-            raise ValueError("Partner not found")
-        now = datetime.now(timezone.utc)
-        campaign = Campaign(
-            partner_id=data.partner_id, title=data.title, blurb=data.blurb,
-            pp_budget=data.pp_budget, pp_per_task=data.pp_per_task, featured=data.featured,
-            status="active", starts_at=now, ends_at=now + timedelta(days=data.days),
-        )
-        db.add(campaign)
-        await db.flush()
-        await db.refresh(campaign)
-        campaign.brand = partner.name
-        return campaign
-
-    @staticmethod
-    async def set_campaign_status(db: AsyncSession, campaign_id: uuid.UUID, status: str) -> Campaign:
-        campaign = (await db.execute(select(Campaign).where(Campaign.id == campaign_id))).scalar_one_or_none()
-        if not campaign:
-            raise ValueError("Campaign not found")
-        campaign.status = status
-        await db.flush()
-        await db.refresh(campaign)
-        return campaign
 
     # ── NFT grant ────────────────────────────────────────────────────────────
     @staticmethod

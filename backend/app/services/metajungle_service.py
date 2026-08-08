@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import (
     User, PointsTransaction, TransactionType,
     Quest, QuestCompletion, NFTHolding, P2POrder, Stake,
-    Partner, Campaign, CampaignParticipation, Course, CourseCompletion, Redemption,
+    Partner, Course, CourseCompletion, Redemption,
 )
 from app.services.points_service import PointsService
 
@@ -417,40 +417,9 @@ class MetaJungleService:
         await db.refresh(stake)
         return stake
 
-    # ── Campaigns (Chapter 11) ──────────────────────────────────────────────
-    @staticmethod
-    async def list_campaigns(db: AsyncSession) -> list[Campaign]:
-        rows = (await db.execute(
-            select(Campaign, Partner.name)
-            .join(Partner, Partner.id == Campaign.partner_id)
-            .where(Campaign.status == "active")
-            .order_by(Campaign.featured.desc(), Campaign.created_at.desc())
-        )).all()
-        campaigns = []
-        for campaign, brand in rows:
-            campaign.brand = brand  # transient attr for the response schema
-            campaigns.append(campaign)
-        return campaigns
-
-    @staticmethod
-    async def join_campaign(db: AsyncSession, user: User, campaign_id: uuid.UUID) -> CampaignParticipation:
-        campaign = (await db.execute(select(Campaign).where(Campaign.id == campaign_id))).scalar_one_or_none()
-        if not campaign or campaign.status != "active":
-            raise ValueError("Campaign not found or inactive")
-        existing = (await db.execute(
-            select(CampaignParticipation).where(
-                CampaignParticipation.campaign_id == campaign_id,
-                CampaignParticipation.user_id == user.id,
-            )
-        )).scalar_one_or_none()
-        if existing:
-            raise ValueError("Already joined this campaign")
-        part = CampaignParticipation(campaign_id=campaign_id, user_id=user.id)
-        db.add(part)
-        campaign.total_participants += 1
-        await db.flush()
-        await db.refresh(part)
-        return part
+    # ── Campaigns ───────────────────────────────────────────────────────────
+    # Moved to app/services/campaign_service.py — see docs/ARCHITECTURE.md for
+    # the campaign-service boundary.
 
     # ── Learn (Chapter 13) ──────────────────────────────────────────────────
     @staticmethod

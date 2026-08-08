@@ -19,6 +19,7 @@ from app.middleware.idempotency import IdempotencyMiddleware
 from app.middleware.security_headers import SecurityHeadersMiddleware
 from app.api import leaderboard, schedule, announcement, community, auth, user, task, submission, points
 from app.api import metajungle
+from app.api import campaigns
 from app.api import admin
 from app.api import public
 
@@ -354,9 +355,13 @@ app.include_router(announcement.router)
 app.include_router(community.router)
 
 # Meta-Jungle ecosystem routers (reputation, quests, NFT vault, P2P, staking,
-# campaigns, learn-to-earn, marketplace)
+# learn-to-earn, marketplace)
 for mj_router in metajungle.routers:
     app.include_router(mj_router)
+
+# Campaign domain (public + admin) — own module boundary, see docs/ARCHITECTURE.md
+app.include_router(campaigns.campaigns_router)
+app.include_router(campaigns.admin_router)
 
 # Admin panel router (Overall_Admin only)
 app.include_router(admin.router)

@@ -72,6 +72,21 @@ reproducible roadmap. Built to the *Meta-Jungle Master Prompt v3.0*.
 18. **Rotated the app signing keys** (`SECRET_KEY`, `JWT_SECRET_KEY`); external
     secrets (Supabase, Resend) must be rotated in their dashboards.
 
+## Phase 7 — Campaign architecture
+19. **Gave campaigns a real domain.** They were the thinnest area of the app:
+    `pp_claimed` was never incremented anywhere (only fabricated in the seed),
+    there were no campaign tasks, no targeting and no budget guard — joining a
+    campaign awarded nothing. Added `CampaignTask` + `CampaignTaskCompletion`
+    mirroring the quest pattern, targeting (`target_regions`/`target_roles`/
+    `min_role` + `users.region`), a `draft/active/paused/ended` lifecycle behind a
+    CHECK constraint, and reserve → claim → settle budget accounting so a campaign
+    can never overspend its `pp_budget`.
+20. **Extracted the module boundary** — `services/campaign_service.py`,
+    `api/campaigns.py`, `schemas/campaign.py` — so the Chapter-8 `campaign-service`
+    split is a directory move. Admin gains task CRUD, lifecycle controls and a
+    completion review queue. Migrations `014`/`015`; new
+    `tests/test_campaign_integration.py`.
+
 ---
 
 ## Running it locally
@@ -102,13 +117,16 @@ cd backend
 # against a live Postgres with migrations + seed applied:
 python -m tests.test_metajungle_integration   # 42 economy + security checks
 python -m tests.test_admin_integration         # 18 admin + gate checks
+python -m tests.test_campaign_integration      # campaign earn loop, budget, targeting
 ```
 
 ## What's built vs pending
-- **Built:** full web UI, the PP/reputation economy backend, admin panel, all
-  tested against live Postgres.
+- **Built:** full web UI, the PP/reputation economy backend, the campaign domain
+  (earn loop, targeting, budget accounting), admin panel, all tested against live
+  Postgres.
 - **Pending (per the doc):** Solidity contracts on Base, the React Native app,
-  and splitting the monolith into the Chapter-8 microservices.
+  and splitting the monolith into the Chapter-8 microservices (campaign-service
+  boundary is prepared, not yet a separate deployable).
 
 See also: `docs/ARCHITECTURE.md`, `backend/METAJUNGLE_API.md`,
 `backend/DEPLOY_SECRETS.md`.

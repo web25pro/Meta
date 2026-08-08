@@ -103,6 +103,13 @@ class User(Base):
         String(45),
         nullable=True
     )
+    # ISO-3166 alpha-2, used for campaign targeting. NULL == unknown, which is
+    # deliberately excluded from region-targeted campaigns.
+    region: Mapped[str | None] = mapped_column(
+        String(2),
+        nullable=True,
+        index=True
+    )
     password_changed_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,

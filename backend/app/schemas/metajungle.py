@@ -128,24 +128,7 @@ class StakeCreate(BaseModel):
 
 
 # ── Campaigns (Chapter 11) ──────────────────────────────────────────────────
-class CampaignResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-    id: uuid.UUID
-    brand: Optional[str] = None
-    title: str
-    blurb: str
-    pp_budget: int
-    pp_per_task: int
-    pp_claimed: int
-    status: str
-    featured: bool
-    total_participants: int
-    ends_at: Optional[datetime] = None
-
-
-class CampaignListResponse(BaseModel):
-    campaigns: List[CampaignResponse]
-    total: int
+# Moved to app/schemas/campaign.py — see docs/ARCHITECTURE.md.
 
 
 # ── Learn (Chapter 13) ──────────────────────────────────────────────────────

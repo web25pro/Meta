@@ -44,15 +44,50 @@ export interface AdminQuest {
 
 export interface AdminCampaign {
   id: string;
+  slug: string;
   brand?: string | null;
   title: string;
   blurb: string;
   pp_budget: number;
   pp_per_task: number;
   pp_claimed: number;
-  status: string;
+  pp_reserved: number;
+  pp_available: number;
+  status: 'draft' | 'active' | 'paused' | 'ended';
   featured: boolean;
   total_participants: number;
+  max_participants?: number | null;
+  target_regions: string[];
+  target_roles: string[];
+  min_role: string;
+  starts_at?: string | null;
+  ends_at?: string | null;
+}
+
+export interface AdminCampaignTask {
+  id: string;
+  campaign_id: string;
+  title: string;
+  description: string;
+  pp_reward: number;
+  verification_type: string;
+  daily_limit: number;
+  action_url?: string | null;
+  order_index: number;
+  is_active: boolean;
+}
+
+export interface AdminCampaignReviewItem {
+  id: string;
+  campaign_id: string;
+  campaign_title: string;
+  task_id: string;
+  task_title: string;
+  user_id: string;
+  username: string;
+  pp_awarded: number;
+  proof?: Record<string, unknown> | null;
+  created_at: string;
 }
 
 export interface AdminPartner {
@@ -91,9 +126,39 @@ export const adminAPI = {
     pp_per_task: number;
     featured?: boolean;
     days?: number;
+    status?: string;
+    target_regions?: string[];
+    target_roles?: string[];
+    min_role?: string;
+    max_participants?: number | null;
   }) => (await apiClient.post('/admin/campaigns', body)).data,
   setCampaignStatus: async (id: string, status: string) =>
     (await apiClient.patch(`/admin/campaigns/${id}`, { status })).data,
+  deleteCampaign: async (id: string): Promise<{ rejected_pending: number }> =>
+    (await apiClient.delete(`/admin/campaigns/${id}`)).data,
+
+  listCampaignTasks: async (id: string): Promise<AdminCampaignTask[]> =>
+    (await apiClient.get(`/admin/campaigns/${id}/tasks`)).data.tasks,
+  createCampaignTask: async (
+    id: string,
+    body: {
+      title: string;
+      description?: string;
+      pp_reward: number;
+      verification_type?: string;
+      daily_limit?: number;
+      action_url?: string | null;
+      order_index?: number;
+    },
+  ) => (await apiClient.post(`/admin/campaigns/${id}/tasks`, body)).data,
+  setCampaignTaskActive: async (campaignId: string, taskId: string, is_active: boolean) =>
+    (await apiClient.patch(`/admin/campaigns/${campaignId}/tasks/${taskId}/active`, { is_active }))
+      .data,
+
+  campaignReviewQueue: async (): Promise<AdminCampaignReviewItem[]> =>
+    (await apiClient.get('/admin/campaigns/review-queue')).data.completions,
+  reviewCampaignCompletion: async (completionId: string, approve: boolean) =>
+    (await apiClient.post(`/admin/campaigns/review-queue/${completionId}`, { approve })).data,
 
   grantNFT: async (body: { user_id: string; name?: string; tier?: string; daily_pp_rate?: number }) =>
     (await apiClient.post('/admin/nft/grant', body)).data,

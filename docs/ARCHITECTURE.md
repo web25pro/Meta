@@ -44,7 +44,7 @@ PostgreSQL (materialized views + pg_cron) and BullMQ via pg-boss.
 | quest-service | Quest defs, verification, webhooks |
 | ledger-service | PP issuance, balance, anti-fraud |
 | wallet-service | P2P escrow, swap, fiat ramps |
-| campaign-service | Partner campaigns, targeting, billing |
+| campaign-service | Partner campaigns, targeting, billing — **module boundary done** (`app/services/campaign_service.py`, `app/api/campaigns.py`, `app/schemas/campaign.py`); not yet a separate deployable |
 | utility-service | Airtime, tickets, gift cards, DeFi |
 | notification-service | Push, email, in-app |
 | analytics-service | Events, dashboards, leaderboard compute |
@@ -58,6 +58,18 @@ PostgreSQL (materialized views + pg_cron) and BullMQ via pg-boss.
    thresholds. Then begin extracting the Chapter 8 service boundaries.
 3. **Contracts** — implement and test the Chapter 7 contracts on Base Sepolia.
 4. **Wallet & P2P, Utility & Partners, Mobile, Governance** — Phases 2–5.
+
+## Module boundaries extracted so far
+
+The Chapter 8 split is being prepared domain-by-domain: each domain moves into
+its own service/router/schema trio inside the monolith first, so extracting it
+later is a directory move rather than a rewrite.
+
+- **campaign-service** — done. Owns campaign lifecycle (`draft/active/paused/
+  ended`), targeting (region + reputation role), the campaign task earn loop, and
+  reserve → claim → settle budget accounting. Depends on the shared PP economy
+  only through `MetaJungleService` (reputation, daily cap) and `PointsService`
+  (ledger) — the two seams that become RPC calls after a split.
 
 ## Current backend
 

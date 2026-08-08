@@ -9,6 +9,7 @@ import uuid
 from datetime import datetime
 from sqlalchemy import (
     String, Text, Numeric, Integer, Boolean, DateTime, ForeignKey, UniqueConstraint,
+    CheckConstraint,
 )
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import Mapped, mapped_column
@@ -131,25 +132,95 @@ class Partner(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
 
 
+#: Campaign lifecycle states. Stored as a plain string + CHECK constraint rather
+#: than a PG enum, matching the convention in this module's docstring.
+CAMPAIGN_STATUSES = ("draft", "active", "paused", "ended")
+
+#: Completion review states, mirroring ``QuestCompletion.status``.
+CAMPAIGN_COMPLETION_STATUSES = ("pending", "approved", "rejected")
+
+
 class Campaign(Base):
-    """A partner campaign with a PP budget (Chapter 9: campaigns)."""
+    """A partner campaign with a PP budget (Chapter 9: campaigns).
+
+    Budget accounting is reserve → claim → settle: ``pp_reserved`` holds PP owed
+    to completions awaiting review, ``pp_claimed`` holds PP actually credited.
+    A campaign never commits more than ``pp_budget`` across both.
+    """
     __tablename__ = "campaigns"
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('draft', 'active', 'paused', 'ended')",
+            name="ck_campaign_status",
+        ),
+    )
 
     id: Mapped[uuid.UUID] = _pk()
     partner_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("partners.id", ondelete="CASCADE"), nullable=False, index=True
     )
+    slug: Mapped[str] = mapped_column(String(64), nullable=False, unique=True, index=True)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     blurb: Mapped[str] = mapped_column(Text, nullable=False, default="")
     pp_budget: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     pp_per_task: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     pp_claimed: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    status: Mapped[str] = mapped_column(String(16), nullable=False, default="active", index=True)
+    pp_reserved: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="draft", index=True)
     featured: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     total_participants: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    max_participants: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # Targeting. Empty list == no restriction on that axis.
+    target_regions: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
+    target_roles: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
+    min_role: Mapped[str] = mapped_column(String(32), nullable=False, default="Explorer")
     starts_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     ends_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+
+
+class CampaignTask(Base):
+    """A single earn action inside a campaign — the campaign analogue of ``Quest``."""
+    __tablename__ = "campaign_tasks"
+
+    id: Mapped[uuid.UUID] = _pk()
+    campaign_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("campaigns.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    description: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    pp_reward: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    verification_type: Mapped[str] = mapped_column(String(32), nullable=False, default="manual")
+    daily_limit: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    action_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    order_index: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+
+
+class CampaignTaskCompletion(Base):
+    """A user's attempt at a campaign task, mirroring ``QuestCompletion``."""
+    __tablename__ = "campaign_task_completions"
+
+    id: Mapped[uuid.UUID] = _pk()
+    campaign_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("campaigns.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    task_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("campaign_tasks.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="pending", index=True)
+    pp_awarded: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False, default=0)
+    proof: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    reviewed_by_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow, index=True)
 
 
 class CampaignParticipation(Base):

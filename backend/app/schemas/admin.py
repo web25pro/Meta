@@ -97,18 +97,7 @@ class AdminPartner(BaseModel):
     is_verified: bool
 
 
-class AdminCampaignCreate(BaseModel):
-    partner_id: uuid.UUID
-    title: str = Field(..., min_length=1)
-    blurb: str = ""
-    pp_budget: int = Field(..., ge=0)
-    pp_per_task: int = Field(..., ge=0)
-    featured: bool = False
-    days: int = Field(14, ge=1, description="Days until the campaign ends")
-
-
-class AdminCampaignStatus(BaseModel):
-    status: str = Field(..., pattern="^(active|paused|ended|draft)$")
+# Campaign schemas moved to app/schemas/campaign.py — see docs/ARCHITECTURE.md.
 
 
 # ── NFT grant ───────────────────────────────────────────────────────────────

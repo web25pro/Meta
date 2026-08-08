@@ -76,16 +76,63 @@ export interface ApiStake {
 // ── Campaigns ───────────────────────────────────────────────────────────────
 export interface ApiCampaign {
   id: string;
+  slug: string;
   brand?: string | null;
   title: string;
   blurb: string;
   pp_budget: number;
   pp_per_task: number;
   pp_claimed: number;
-  status: string;
+  pp_reserved: number;
+  pp_available: number;
+  status: 'draft' | 'active' | 'paused' | 'ended';
   featured: boolean;
   total_participants: number;
+  max_participants?: number | null;
+  target_regions: string[];
+  target_roles: string[];
+  min_role: string;
+  joined: boolean;
+  starts_at?: string | null;
   ends_at?: string | null;
+}
+
+export type ApiVerificationType =
+  | 'oauth'
+  | 'webhook'
+  | 'manual'
+  | 'screenshot'
+  | 'on_chain';
+
+export interface ApiCampaignTask {
+  id: string;
+  campaign_id: string;
+  title: string;
+  description: string;
+  pp_reward: number;
+  verification_type: ApiVerificationType;
+  daily_limit: number;
+  action_url?: string | null;
+  order_index: number;
+  is_active: boolean;
+  completed_today: number;
+  can_complete: boolean;
+}
+
+export interface ApiCampaignEligibility {
+  eligible: boolean;
+  reason?: string | null;
+  role: string;
+  earn_multiplier: number;
+}
+
+export interface ApiCampaignCompletion {
+  id: string;
+  campaign_id: string;
+  task_id: string;
+  status: 'pending' | 'approved' | 'rejected';
+  pp_awarded: number;
+  created_at: string;
 }
 
 // ── Learn ───────────────────────────────────────────────────────────────────
@@ -158,6 +205,17 @@ export const metajungleAPI = {
     (await apiClient.get('/campaigns')).data.campaigns,
   joinCampaign: async (id: string) =>
     (await apiClient.post(`/campaigns/${id}/join`)).data,
+  listCampaignTasks: async (id: string): Promise<ApiCampaignTask[]> =>
+    (await apiClient.get(`/campaigns/${id}/tasks`)).data.tasks,
+  campaignEligibility: async (id: string): Promise<ApiCampaignEligibility> =>
+    (await apiClient.get(`/campaigns/${id}/eligibility`)).data,
+  completeCampaignTask: async (
+    campaignId: string,
+    taskId: string,
+    proof?: Record<string, unknown>,
+  ): Promise<ApiCampaignCompletion> =>
+    (await apiClient.post(`/campaigns/${campaignId}/tasks/${taskId}/complete`, { proof }))
+      .data,
 
   listCourses: async (): Promise<ApiCourse[]> =>
     (await apiClient.get('/learn/courses')).data.courses,
