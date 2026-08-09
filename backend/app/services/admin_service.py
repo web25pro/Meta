@@ -206,17 +206,36 @@ class AdminService:
                 "quest_title": quest_title,
                 "status": comp.status,
                 "pp_awarded": float(comp.pp_awarded),
+                "proof": comp.proof,
+                "reviewed_by_id": comp.reviewed_by_id,
+                "reviewed_at": comp.reviewed_at,
+                "review_reason": comp.review_reason,
                 "created_at": comp.created_at,
             })
         return results, total
 
     @staticmethod
-    async def review_completion(db: AsyncSession, completion_id: uuid.UUID, approve: bool) -> QuestCompletion:
-        comp = (await db.execute(select(QuestCompletion).where(QuestCompletion.id == completion_id))).scalar_one_or_none()
+    async def review_completion(
+        db: AsyncSession,
+        completion_id: uuid.UUID,
+        approve: bool,
+        admin_user_id: uuid.UUID,
+        reason: str | None = None,
+    ) -> QuestCompletion:
+        comp = (await db.execute(
+            select(QuestCompletion).where(QuestCompletion.id == completion_id).with_for_update()
+        )).scalar_one_or_none()
         if not comp:
             raise ValueError("Completion not found")
+        if comp.status != "pending":
+            raise ValueError(f"This completion is already {comp.status}")
+        if not approve and not reason:
+            raise ValueError("A rejection reason is required")
         was_pending = comp.status == "pending"
         comp.status = "approved" if approve else "rejected"
+        comp.reviewed_by_id = admin_user_id
+        comp.reviewed_at = datetime.utcnow()
+        comp.review_reason = reason
         # Award PP only on transition pending -> approved, using QUEST_REWARD type
         if approve and was_pending and comp.pp_awarded and float(comp.pp_awarded) > 0:
             await PointsService.create_transaction(

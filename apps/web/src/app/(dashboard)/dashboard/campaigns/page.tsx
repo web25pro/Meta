@@ -19,12 +19,17 @@ import {
   type ApiCampaignTask,
 } from '@/api/metajungle';
 
-/** Proof payload each verification type expects, mirroring the backend rules. */
+/**
+ * Proof payload each verification type expects, mirroring the backend rules.
+ *
+ * oauth/webhook send nothing: the browser never asserts that the action
+ * happened. Those tasks submit and wait for review like the rest.
+ */
 function proofFor(task: ApiCampaignTask): Record<string, unknown> | undefined {
   switch (task.verification_type) {
     case 'oauth':
     case 'webhook':
-      return { verified: true };
+      return {};
     case 'on_chain':
       return { tx_hash: window.prompt('Paste the transaction hash') ?? '' };
     case 'screenshot':

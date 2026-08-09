@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useQuery, useQueryClient } from 'react-query';
 import {
   Phone,
@@ -25,7 +25,6 @@ import {
 } from '@meta-jungle/ui';
 import apiClient from '@/lib/api';
 import { metajungleAPI } from '@/api/metajungle';
-import { PointsTransaction, PaginatedResponse } from '@/types';
 import {
   CATEGORIES,
   FLAG,
@@ -42,6 +41,11 @@ const CATEGORY_ICON: Record<MarketCategory, React.ReactNode> = {
   giftcards: <Gift className="h-6 w-6" />,
 };
 
+// Redemption debits PP but no fulfilment provider is wired up yet, so the
+// voucher code it returns is not redeemable anywhere. Browsing stays open;
+// the action is disabled until a real provider is integrated.
+const REDEMPTION_ENABLED = false;
+
 type Step = 'confirm' | 'input' | 'processing' | 'success';
 
 export default function MarketplacePage() {
@@ -53,15 +57,13 @@ export default function MarketplacePage() {
 
   const queryClient = useQueryClient();
 
-  // Current PP balance (sum of ledger) — mirrors the Panda Wallet page.
-  const { data: ledger } = useQuery<PaginatedResponse<PointsTransaction>>(
-    'pointsHistory',
-    async () => (await apiClient.get('/points/transactions')).data,
+  // Never derive a spendable balance from one page of history. The balance
+  // endpoint is the canonical source and already reflects reserved funds.
+  const { data: balanceResponse } = useQuery<{ points: number; available_points?: number | null }>(
+    'pointsBalance',
+    async () => (await apiClient.get('/points/balance')).data,
   );
-  const balance = useMemo(
-    () => ledger?.items.reduce((s, t) => s + t.amount, 0) ?? 0,
-    [ledger],
-  );
+  const balance = balanceResponse?.available_points ?? balanceResponse?.points ?? 0;
 
   // Live catalog from the backend.
   const { data: catalog, isLoading } = useQuery('mjCatalog', metajungleAPI.getCatalog, {
@@ -232,7 +234,7 @@ function ProductCard({ product, onRedeem }: { product: Product; onRedeem: () => 
           <PPAmount value={product.pp} size="md" />
           <p className="text-label text-ink-muted">{product.fiat}</p>
         </div>
-        <Button size="sm" onClick={onRedeem}>
+        <Button size="sm" onClick={onRedeem} disabled={!REDEMPTION_ENABLED}>
           Redeem
         </Button>
       </div>

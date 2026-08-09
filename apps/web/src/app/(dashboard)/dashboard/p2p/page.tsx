@@ -89,19 +89,24 @@ export default function P2PPage() {
         <div>
           <h1 className="font-display text-h1 text-ink-primary">P2P Trade</h1>
           <p className="mt-1 text-body text-ink-muted">
-            Buy and sell Panda Points peer-to-peer with on-chain escrow.
+            Post an order to buy or sell Panda Points peer-to-peer.
           </p>
         </div>
-        <Button onClick={() => setCreateOpen(true)}>
+        <Button disabled title="P2P escrow trading is not enabled yet">
           <Plus className="h-4 w-4" /> Create Order
         </Button>
       </div>
 
-      {/* Escrow trust banner */}
-      <div className="flex items-center gap-sm rounded-card border border-line-blue bg-bg-elevated px-md py-sm">
-        <Badge tone="cobalt">🔒 Escrow protected</Badge>
+      {/*
+        No smart-contract escrow exists — the contracts are not implemented, so
+        the previous "locked in smart-contract escrow / 1.5% trade fee" banner
+        described behavior the platform does not have.
+      */}
+      <div className="flex items-center gap-sm rounded-card border border-line bg-bg-elevated px-md py-sm">
+        <Badge tone="amber">In preparation</Badge>
         <span className="text-label text-ink-muted">
-          PP is locked in smart-contract escrow until both sides confirm. 1.5% trade fee.
+          P2P trading is being prepared. Escrow trading is not yet enabled, so
+          orders are listings only — no PP moves until it ships.
         </span>
       </div>
 
@@ -143,7 +148,6 @@ export default function P2PPage() {
               price={o.price}
               paymentMethods={o.methods}
               postedAgo={o.postedAgo}
-              onTrade={() => toast.success(`Trade request sent to ${o.trader}`)}
             />
           ))}
         </div>
@@ -184,7 +188,10 @@ export default function P2PPage() {
             value={form.payment_method}
             onChange={(e) => setForm({ ...form, payment_method: e.target.value })}
           />
-          <p className="text-label text-ink-muted">A 50 PP listing fee applies (refunded on completion).</p>
+          <p className="text-label text-ink-muted">
+            A 50 PP listing fee applies to sell orders. It is charged when the
+            order is posted and is not refunded.
+          </p>
           <Button className="w-full" onClick={postOrder} disabled={posting}>
             {posting ? 'Posting…' : 'Post Order'}
           </Button>

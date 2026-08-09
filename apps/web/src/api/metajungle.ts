@@ -200,6 +200,8 @@ export const metajungleAPI = {
     (await apiClient.post('/staking', { pp_amount, lock_days })).data,
   claimStake: async (id: string) =>
     (await apiClient.post(`/staking/${id}/claim`)).data,
+  unstake: async (id: string) =>
+    (await apiClient.post(`/staking/${id}/unstake`)).data,
 
   listCampaigns: async (): Promise<ApiCampaign[]> =>
     (await apiClient.get('/campaigns')).data.campaigns,

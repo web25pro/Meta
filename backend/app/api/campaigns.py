@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.models import User
-from app.api.user import get_current_user
+from app.api.user import get_current_user, get_economic_user
 from app.api.admin import require_admin
 from app.services.campaign_service import CampaignService
 from app.schemas.campaign import (
@@ -33,6 +33,7 @@ from app.schemas.campaign import (
 )
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
+EconomicUser = Annotated[User, Depends(get_economic_user)]
 Admin = Annotated[User, Depends(require_admin)]
 DB = Annotated[AsyncSession, Depends(get_db)]
 
@@ -70,7 +71,7 @@ async def check_eligibility(campaign_id: uuid.UUID, current_user: CurrentUser, d
 
 
 @campaigns_router.post("/{campaign_id}/join")
-async def join_campaign(campaign_id: uuid.UUID, current_user: CurrentUser, db: DB):
+async def join_campaign(campaign_id: uuid.UUID, current_user: EconomicUser, db: DB):
     try:
         await CampaignService.join_campaign(db, current_user, campaign_id)
         return {"success": True, "message": "Joined campaign"}
@@ -95,7 +96,7 @@ async def complete_task(
     campaign_id: uuid.UUID,
     task_id: uuid.UUID,
     body: CampaignTaskCompleteRequest,
-    current_user: CurrentUser,
+    current_user: EconomicUser,
     db: DB,
 ):
     try:
@@ -207,6 +208,6 @@ async def admin_review_completion(
     completion_id: uuid.UUID, body: CampaignReviewRequest, admin: Admin, db: DB
 ):
     try:
-        return await CampaignService.review_completion(db, admin, completion_id, body.approve)
+        return await CampaignService.review_completion(db, admin, completion_id, body.approve, body.reason)
     except ValueError as e:
         raise _bad(e, status.HTTP_404_NOT_FOUND)

@@ -8,9 +8,8 @@ ledger) — the two seams that would become RPC calls after a split.
 
 Budget accounting is reserve → claim → settle:
 
-* auto-verified completions credit the ledger and add to ``pp_claimed``
-* review-gated completions add to ``pp_reserved``; admin approval moves the PP
-  to ``pp_claimed``, rejection releases it
+* a completion adds to ``pp_reserved``; admin approval moves the PP to
+  ``pp_claimed`` and credits the ledger, rejection releases the reserve
 
 A campaign therefore never commits more than ``pp_budget`` in total.
 """
@@ -28,9 +27,6 @@ from app.models import (
 )
 from app.services.points_service import PointsService
 from app.services.metajungle_service import MetaJungleService, DAILY_CAP_HARD
-
-#: Verification types that need no human review, matching quest semantics.
-AUTO_APPROVE_TYPES = {"oauth", "webhook"}
 
 
 def _utcnow() -> datetime:
@@ -199,7 +195,11 @@ class CampaignService:
     async def join_campaign(
         db: AsyncSession, user: User, campaign_id: uuid.UUID
     ) -> CampaignParticipation:
-        campaign = await CampaignService.get_campaign(db, campaign_id)
+        campaign = (await db.execute(
+            select(Campaign).where(Campaign.id == campaign_id).with_for_update()
+        )).scalar_one_or_none()
+        if not campaign or campaign.deleted_at is not None:
+            raise ValueError("Campaign not found")
         CampaignService._assert_live(campaign)
 
         eligibility = await CampaignService.check_eligibility(db, user, campaign)
@@ -228,12 +228,13 @@ class CampaignService:
     # ── Earn loop ───────────────────────────────────────────────────────────
     @staticmethod
     def _validate_proof(task: CampaignTask, proof: Optional[dict]) -> None:
-        """Same proof rules as ``MetaJungleService.complete_quest``."""
+        """Same proof rules as ``MetaJungleService.complete_quest``.
+
+        A client-supplied ``{"verified": true}`` is not proof of anything, so
+        oauth/webhook tasks no longer accept it as grounds for auto-approval.
+        """
         vtype = task.verification_type
-        if vtype in AUTO_APPROVE_TYPES:
-            if not proof or proof.get("verified") is not True:
-                raise ValueError(f'This {vtype} task requires proof with {{"verified": true}}')
-        elif vtype == "on_chain":
+        if vtype == "on_chain":
             if not proof or not proof.get("tx_hash"):
                 raise ValueError("On-chain tasks require a 'tx_hash' in your proof")
         elif vtype == "screenshot":
@@ -254,7 +255,11 @@ class CampaignService:
         per-task daily limit, proof validity, the campaign budget, and finally
         the platform daily earn cap with the caller's role multiplier.
         """
-        campaign = await CampaignService.get_campaign(db, campaign_id)
+        campaign = (await db.execute(
+            select(Campaign).where(Campaign.id == campaign_id).with_for_update()
+        )).scalar_one_or_none()
+        if not campaign or campaign.deleted_at is not None:
+            raise ValueError("Campaign not found")
         CampaignService._assert_live(campaign)
 
         task = (await db.execute(
@@ -309,30 +314,24 @@ class CampaignService:
         if remaining <= 0:
             raise ValueError("Daily earn cap reached")
         award = int(min(award, remaining))
+        if award <= 0:
+            raise ValueError("No reward remains within the daily earn cap")
 
-        auto = task.verification_type in AUTO_APPROVE_TYPES
+        # Nothing auto-approves: every completion reserves budget and waits for
+        # an admin decision, which is what moves pp_reserved -> pp_claimed.
         completion = CampaignTaskCompletion(
             campaign_id=campaign_id,
             task_id=task_id,
             user_id=user.id,
-            status="approved" if auto else "pending",
+            status="pending",
             pp_awarded=award,
             proof=proof or {},
         )
         db.add(completion)
         await db.flush()
 
-        if auto:
-            if award > 0:
-                await PointsService.create_transaction(
-                    db=db, user_id=user.id, amount=float(award),
-                    transaction_type=TransactionType.CAMPAIGN_REWARD,
-                    reason=f"Campaign reward: {campaign.title} — {task.title}",
-                )
-            campaign.pp_claimed += award
-        else:
-            # Escrow against the budget until an admin settles it.
-            campaign.pp_reserved += award
+        # Escrow against the budget until an admin settles it.
+        campaign.pp_reserved += award
 
         await db.flush()
         await db.refresh(completion)
@@ -345,17 +344,26 @@ class CampaignService:
         admin: User,
         completion_id: uuid.UUID,
         approve: bool,
+        reason: str | None = None,
     ) -> CampaignTaskCompletion:
         """Approve or reject a pending completion, settling its reserved PP."""
         completion = (await db.execute(
-            select(CampaignTaskCompletion).where(CampaignTaskCompletion.id == completion_id)
+            select(CampaignTaskCompletion)
+            .where(CampaignTaskCompletion.id == completion_id)
+            .with_for_update()
         )).scalar_one_or_none()
         if not completion:
             raise ValueError("Completion not found")
         if completion.status != "pending":
             raise ValueError(f"This completion is already {completion.status}")
+        if not approve and not reason:
+            raise ValueError("A rejection reason is required")
 
-        campaign = await CampaignService.get_campaign(db, completion.campaign_id)
+        campaign = (await db.execute(
+            select(Campaign).where(Campaign.id == completion.campaign_id).with_for_update()
+        )).scalar_one_or_none()
+        if not campaign or campaign.deleted_at is not None:
+            raise ValueError("Campaign not found")
         award = int(completion.pp_awarded or 0)
 
         # Release the reservation either way.
@@ -376,6 +384,7 @@ class CampaignService:
 
         completion.reviewed_by_id = admin.id
         completion.reviewed_at = _utcnow()
+        completion.review_reason = reason
         await db.flush()
         await db.refresh(completion)
         return completion
@@ -442,7 +451,19 @@ class CampaignService:
     async def set_campaign_status(db: AsyncSession, campaign_id: uuid.UUID, status: str) -> Campaign:
         if status not in CAMPAIGN_STATUSES:
             raise ValueError(f"Status must be one of: {', '.join(CAMPAIGN_STATUSES)}")
-        campaign = await CampaignService.get_campaign(db, campaign_id)
+        campaign = (await db.execute(
+            select(Campaign).where(Campaign.id == campaign_id).with_for_update()
+        )).scalar_one_or_none()
+        if not campaign or campaign.deleted_at is not None:
+            raise ValueError("Campaign not found")
+        allowed = {
+            "draft": {"active"},
+            "active": {"paused", "ended"},
+            "paused": {"active", "ended"},
+            "ended": set(),
+        }
+        if status != campaign.status and status not in allowed.get(campaign.status, set()):
+            raise ValueError(f"Campaign cannot move from {campaign.status} to {status}")
         campaign.status = status
         await db.flush()
         await db.refresh(campaign)
@@ -493,7 +514,14 @@ class CampaignService:
         reserved PP is released and they leave the review queue — otherwise they
         would sit there forever against a campaign nobody can see.
         """
-        campaign = await CampaignService.get_campaign(db, campaign_id)
+        campaign = (await db.execute(
+            select(Campaign).where(
+                Campaign.id == campaign_id,
+                Campaign.deleted_at.is_(None),
+            ).with_for_update()
+        )).scalar_one_or_none()
+        if not campaign:
+            raise ValueError("Campaign not found")
 
         pending = list((await db.execute(
             select(CampaignTaskCompletion).where(
@@ -508,6 +536,7 @@ class CampaignService:
             completion.pp_awarded = 0
             completion.reviewed_by_id = admin.id
             completion.reviewed_at = now
+            completion.review_reason = "Campaign deleted by administrator"
 
         campaign.pp_reserved = 0
         campaign.status = "ended"

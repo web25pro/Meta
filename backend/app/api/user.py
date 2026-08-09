@@ -49,6 +49,13 @@ async def get_current_user(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User not found",
         )
+
+    if not user.is_active or user.deleted_at is not None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User account is inactive",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     
     # Validate token issuance time against password change
     # If password was changed after token was issued, invalidate token
@@ -60,6 +67,18 @@ async def get_current_user(
         )
     
     return user
+
+
+async def get_economic_user(
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> User:
+    """Authenticated user allowed to earn or spend platform value."""
+    if not current_user.email_verified:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Email verification is required for economic features",
+        )
+    return current_user
 
 
 async def get_optional_user(

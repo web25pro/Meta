@@ -67,8 +67,9 @@ class AuditService:
             )
             
             db.add(audit_log)
-            await db.commit()
-            await db.refresh(audit_log)
+            # Keep audit records in the caller's transaction. A privileged
+            # action and its audit entry must commit or roll back together.
+            await db.flush()
             
             logger.info(
                 f"Audit log created: admin={admin_user_id}, action={action.value}, "

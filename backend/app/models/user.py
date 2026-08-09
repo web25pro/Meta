@@ -122,6 +122,10 @@ class User(Base):
     
     # Gamification fields
     points: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False, default=0.0)
+    # Transitional buckets. ``points`` remains the compatibility total.
+    available_points: Mapped[float | None] = mapped_column(Numeric(18, 2), nullable=True, default=None)
+    locked_points: Mapped[float | None] = mapped_column(Numeric(18, 2), nullable=True, default=None)
+    escrow_points: Mapped[float | None] = mapped_column(Numeric(18, 2), nullable=True, default=None)
     xp: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False, default=0.0)
     level: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     current_streak: Mapped[int] = mapped_column(Integer, nullable=False, default=0)

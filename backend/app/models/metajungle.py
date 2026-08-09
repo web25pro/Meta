@@ -56,6 +56,11 @@ class QuestCompletion(Base):
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="approved", index=True)
     pp_awarded: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False, default=0)
     proof: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    reviewed_by_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    review_reason: Mapped[str | None] = mapped_column(String(500), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow, index=True)
 
 
@@ -220,6 +225,7 @@ class CampaignTaskCompletion(Base):
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
     reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    review_reason: Mapped[str | None] = mapped_column(String(500), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow, index=True)
 
 

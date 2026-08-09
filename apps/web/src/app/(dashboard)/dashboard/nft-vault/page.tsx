@@ -2,19 +2,17 @@
 
 import { useState } from 'react';
 import { useQuery } from 'react-query';
-import { toast } from 'sonner';
 import { metajungleAPI } from '@/api/metajungle';
 import {
   NFTVaultTile,
   Modal,
-  Button,
   Badge,
   PPAmount,
   StatCard,
   cn,
   type NFTTier,
 } from '@meta-jungle/ui';
-import { Sparkles, Send } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 
 interface VaultNFT {
   id: string;
@@ -137,14 +135,11 @@ export default function NFTVaultPage() {
               <PPAmount value={selected.dailyPP} size="sm" />
             </div>
 
-            <div className="flex gap-sm">
-              <Button variant="ghost" className="flex-1" onClick={() => toast.success('Listing flow coming soon')}>
-                List for Sale
-              </Button>
-              <Button className="flex-1" onClick={() => toast.success('Transfer flow coming soon')}>
-                <Send className="h-4 w-4" /> Transfer
-              </Button>
-            </div>
+            {/*
+              The vault is read-only: listing and transfer need wallet
+              ownership proof and contract support, neither of which exists.
+              Buttons that only showed a "coming soon" toast are removed.
+            */}
           </div>
         )}
       </Modal>

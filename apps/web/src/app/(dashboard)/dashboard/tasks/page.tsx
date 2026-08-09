@@ -18,8 +18,12 @@ const CATEGORY_TONE: Record<string, 'cobalt' | 'sky' | 'gold' | 'success' | 'amb
 
 const ALL_CATEGORIES = ['all', 'daily', 'social', 'partner', 'nft', 'learning', 'referral'] as const;
 
-/** Verification types that auto-approve (no admin review needed). */
-const AUTO_APPROVE_TYPES = new Set(['oauth', 'webhook']);
+/**
+ * Verification types that collect no proof from the user — they submit
+ * straight away and wait for review. Nothing auto-approves: server-side
+ * provider verification does not exist yet.
+ */
+const NO_PROOF_TYPES = new Set(['oauth', 'webhook']);
 
 export default function QuestsPage() {
   const queryClient = useQueryClient();
@@ -45,16 +49,13 @@ export default function QuestsPage() {
     ? quests
     : quests?.filter((q) => q.category === category);
 
-  /** Complete an auto-approve quest directly. */
+  /** Submit a quest that collects no proof from the user. */
   const completeDirect = async (q: ApiQuest) => {
     setCompleting(q.id);
     try {
-      const proof: Record<string, unknown> = {};
-      // For oauth/webhook, send verified flag
-      if (AUTO_APPROVE_TYPES.has(q.verification_type)) {
-        proof.verified = true;
-      }
-      const res = await metajungleAPI.completeQuest(q.id, proof);
+      // No client-side verification: the browser never asserts that the
+      // action happened. The server decides, and every quest is reviewed.
+      const res = await metajungleAPI.completeQuest(q.id, {});
       if (res.status === 'pending') {
         toast.success('Submitted for review! You\'ll receive PP once approved.');
       } else {
@@ -91,7 +92,14 @@ export default function QuestsPage() {
           return;
         }
         proof.tx_hash = proofInput.trim();
-      } else if (proofModal.verification_type === 'screenshot' || proofModal.verification_type === 'manual') {
+      } else if (proofModal.verification_type === 'screenshot') {
+        if (!proofInput.trim()) {
+          toast.error('Please provide a link to your screenshot');
+          setCompleting(null);
+          return;
+        }
+        proof.screenshot_url = proofInput.trim();
+      } else if (proofModal.verification_type === 'manual') {
         if (proofInput.trim()) {
           proof.note = proofInput.trim();
         }
@@ -120,7 +128,7 @@ export default function QuestsPage() {
   };
 
   const handleComplete = (q: ApiQuest) => {
-    if (AUTO_APPROVE_TYPES.has(q.verification_type)) {
+    if (NO_PROOF_TYPES.has(q.verification_type)) {
       completeDirect(q);
     } else {
       openProofModal(q);
@@ -199,7 +207,10 @@ export default function QuestsPage() {
                   {completions?.[q.id] === 'pending' && (
                     <Badge tone="amber" className="text-xs">Pending review</Badge>
                   )}
-                  {!completions?.[q.id] && !AUTO_APPROVE_TYPES.has(q.verification_type) && (
+                  {completions?.[q.id] === 'rejected' && (
+                    <Badge tone="danger" className="text-xs">Needs resubmission</Badge>
+                  )}
+                  {!completions?.[q.id] && (
                     <Badge tone="neutral" className="text-xs">Requires review</Badge>
                   )}
                 </div>
@@ -279,8 +290,8 @@ export default function QuestsPage() {
           {(proofModal?.verification_type === 'manual' || proofModal?.verification_type === 'screenshot') && (
             <div>
               <Input
-                label="Notes (optional)"
-                placeholder="Describe how you completed this quest..."
+                label={proofModal.verification_type === 'screenshot' ? 'Screenshot link' : 'Notes (optional)'}
+                placeholder={proofModal.verification_type === 'screenshot' ? 'https://...' : 'Describe how you completed this quest...'}
                 value={proofInput}
                 onChange={(e) => setProofInput(e.target.value)}
               />

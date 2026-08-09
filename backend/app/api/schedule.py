@@ -1,4 +1,5 @@
 """Schedule API endpoints"""
+import math
 import uuid
 from datetime import datetime
 from typing import Annotated
@@ -572,10 +573,11 @@ async def list_schedules(
     ]
     
     return ScheduleListResponse(
-        schedules=schedule_responses,
+        items=schedule_responses,
         total=total,
         page=page,
-        page_size=page_size
+        page_size=page_size,
+        total_pages=math.ceil(total / page_size) if page_size else 0
     )
 
 
@@ -665,8 +667,9 @@ async def list_all_schedules_admin(
     ]
     
     return ScheduleListResponse(
-        schedules=schedule_responses,
+        items=schedule_responses,
         total=total,
         page=page,
-        page_size=page_size
+        page_size=page_size,
+        total_pages=math.ceil(total / page_size) if page_size else 0
     )

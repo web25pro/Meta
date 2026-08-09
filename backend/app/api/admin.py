@@ -139,9 +139,15 @@ async def list_completions(
 
 
 @router.post("/quest-completions/{completion_id}/review", response_model=GenericOk)
-async def review_completion(completion_id: uuid.UUID, admin: Admin, db: DB, approve: bool = Query(True)):
+async def review_completion(
+    completion_id: uuid.UUID,
+    admin: Admin,
+    db: DB,
+    approve: bool = Query(True),
+    reason: Optional[str] = Query(None, max_length=500),
+):
     try:
-        await AdminService.review_completion(db, completion_id, approve)
+        await AdminService.review_completion(db, completion_id, approve, admin.id, reason)
         return {"success": True, "message": "Reviewed"}
     except ValueError as e:
         raise _bad(e)

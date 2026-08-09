@@ -7,7 +7,7 @@ from datetime import datetime
 import uuid
 
 from app.models import (
-    PointsTransaction, User, TaskSubmission, UserType, 
+    PointsTransaction, PPLedgerEntry, User, TaskSubmission, UserType,
     TransactionType, UserRole
 )
 from app.core.rbac import Permission, has_permission
@@ -31,7 +31,11 @@ class PointsService:
         transaction_type: TransactionType,
         reason: str,
         related_task_id: Optional[uuid.UUID] = None,
-        related_submission_id: Optional[uuid.UUID] = None
+        related_submission_id: Optional[uuid.UUID] = None,
+        bucket: str = "available",
+        source_type: Optional[str] = None,
+        source_id: Optional[str] = None,
+        idempotency_key: Optional[str] = None,
     ) -> PointsTransaction:
         """
         Create a points transaction and update user balance.
@@ -48,7 +52,37 @@ class PointsService:
         Returns:
             PointsTransaction: Created transaction
         """
-        # Create transaction
+        if bucket != "available":
+            raise ValueError("Only available-bucket postings are supported by the legacy adapter")
+
+        # Lock the balance row for the whole business operation. This prevents
+        # two concurrent rewards or debits from overwriting one another.
+        result = await db.execute(
+            select(User).where(User.id == user_id).with_for_update()
+        )
+        user = result.scalar_one()
+        if user.available_points is None:
+            user.available_points = user.points or Decimal(0)
+
+        amt = Decimal(str(amount))
+        if idempotency_key:
+            existing = await db.scalar(
+                select(PPLedgerEntry).where(PPLedgerEntry.idempotency_key == idempotency_key)
+            )
+            if existing:
+                legacy = await db.scalar(
+                    select(PointsTransaction).where(
+                        PointsTransaction.id == uuid.UUID(existing.source_id)
+                    )
+                ) if existing.source_id else None
+                if legacy:
+                    return legacy
+                raise ValueError("Idempotency key already used")
+
+        if user.available_points + amt < 0:
+            raise ValueError("Insufficient available Panda Points")
+
+        # Create compatibility transaction and canonical ledger entry.
         transaction = PointsTransaction(
             user_id=user_id,
             amount=amount,
@@ -59,16 +93,21 @@ class PointsService:
         )
         
         db.add(transaction)
-        
-        # Update user points and gamification stats
-        result = await db.execute(
-            select(User).where(User.id == user_id)
+        await db.flush()
+        ledger_entry = PPLedgerEntry(
+            user_id=user_id,
+            amount=amt,
+            bucket=bucket,
+            transaction_type=transaction_type.value,
+            source_type=source_type,
+            source_id=str(transaction.id),
+            idempotency_key=idempotency_key,
+            entry_metadata={"reason": reason},
         )
-        user = result.scalar_one()
-        # `points`/`xp` are Numeric (Decimal) once loaded; coerce the float
-        # amount to Decimal so we never mix Decimal and float arithmetic.
-        amt = Decimal(str(amount))
-        user.points = (user.points or Decimal(0)) + amt
+        db.add(ledger_entry)
+
+        user.available_points += amt
+        user.points = user.available_points
 
         # Award XP if amount is positive
         if amt > 0:
@@ -91,8 +130,7 @@ class PointsService:
             
         user.last_activity_at = now
         
-        await db.commit()
-        await db.refresh(transaction)
+        await db.flush()
         
         return transaction
     

@@ -1,7 +1,8 @@
 'use client';
 
 import { useQuery } from 'react-query';
-import { Send, Download, Repeat, Lock } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Lock } from 'lucide-react';
 import {
   WalletBalanceCard,
   Card,
@@ -14,12 +15,20 @@ import { PointsTransaction, PaginatedResponse, TransactionType } from '@/types';
 import { format } from 'date-fns';
 
 export default function PandaWalletPage() {
+  const router = useRouter();
+  // The balance comes from the server, not from summing a page of history —
+  // that only ever added up the transactions on the current page.
+  const { data: balance } = useQuery<{ points: number; rank?: number | null }>(
+    'pointsBalance',
+    async () => (await apiClient.get('/points/balance')).data,
+  );
+
   const { data, isLoading } = useQuery<PaginatedResponse<PointsTransaction>>(
     'pointsHistory',
     async () => (await apiClient.get('/points/transactions')).data,
   );
 
-  const totalPoints = data?.items.reduce((sum, t) => sum + t.amount, 0) || 0;
+  const totalPoints = balance?.points ?? 0;
 
   return (
     <div className="animate-page-in space-y-xl">
@@ -30,13 +39,15 @@ export default function PandaWalletPage() {
         </p>
       </div>
 
+      {/*
+        Only actions that actually go somewhere are rendered. Send/Receive
+        need the wallet transfer API and Swap has no implementation, so they
+        stay out until they work rather than sitting here doing nothing.
+      */}
       <WalletBalanceCard
         ppBalance={totalPoints}
         actions={[
-          { label: 'Send', icon: <Send className="h-4 w-4" /> },
-          { label: 'Receive', icon: <Download className="h-4 w-4" /> },
-          { label: 'Swap', icon: <Repeat className="h-4 w-4" /> },
-          { label: 'Stake', icon: <Lock className="h-4 w-4" /> },
+          { label: 'Stake', icon: <Lock className="h-4 w-4" />, onClick: () => router.push('/dashboard/staking') },
         ]}
       />
 

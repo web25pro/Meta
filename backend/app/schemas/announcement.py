@@ -71,15 +71,16 @@ class AnnouncementResponse(BaseModel):
 
 class AnnouncementListResponse(BaseModel):
     """Announcement list response schema"""
-    announcements: List[AnnouncementResponse] = Field(..., description="List of announcements")
+    items: List[AnnouncementResponse] = Field(..., description="List of announcements")
     total: int = Field(..., description="Total number of announcements", ge=0)
     page: int = Field(..., description="Current page number (1-indexed)", ge=1)
     page_size: int = Field(..., description="Number of items per page", ge=1, le=100)
+    total_pages: int = Field(..., description="Total number of pages", ge=0)
     
     class Config:
         json_schema_extra = {
             "example": {
-                "announcements": [
+                "items": [
                     {
                         "id": "123e4567-e89b-12d3-a456-426614174000",
                         "title": "New Task Deadline Policy",

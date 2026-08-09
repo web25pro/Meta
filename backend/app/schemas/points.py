@@ -83,7 +83,7 @@ class PointsTransactionListResponse(BaseModel):
         json_schema_extra={
             "examples": [
                 {
-                    "transactions": [
+                    "items": [
                         {
                             "id": "123e4567-e89b-12d3-a456-426614174000",
                             "user_id": "234e5678-e90b-12d3-a456-426614174000",
@@ -97,13 +97,14 @@ class PointsTransactionListResponse(BaseModel):
                     ],
                     "total": 42,
                     "page": 1,
-                    "page_size": 20
+                    "page_size": 20,
+                    "total_pages": 3
                 }
             ]
         }
     )
     
-    transactions: List[PointsTransactionResponse] = Field(
+    items: List[PointsTransactionResponse] = Field(
         ...,
         description="List of transactions for current page"
     )
@@ -125,6 +126,12 @@ class PointsTransactionListResponse(BaseModel):
         ge=1,
         le=100,
         examples=[20]
+    )
+    total_pages: int = Field(
+        ...,
+        description="Total number of pages",
+        ge=0,
+        examples=[3]
     )
 
 
@@ -156,6 +163,9 @@ class UserPointsResponse(BaseModel):
         description="Current Panda Points (PP) balance",
         examples=[350.0]
     )
+    available_points: Optional[float] = None
+    locked_points: Optional[float] = None
+    escrow_points: Optional[float] = None
     rank: Optional[int] = Field(
         None,
         description="User's current leaderboard rank (if available)",

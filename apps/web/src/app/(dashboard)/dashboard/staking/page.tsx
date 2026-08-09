@@ -27,11 +27,17 @@ interface Stake {
   accrued: number;
 }
 
+/**
+ * Lock tiers. Rewards are settled at maturity using the stored multiplier;
+ * early exit returns principal without rewards.
+ */
 const TIERS = [
-  { days: 30, mult: '1.2×', apr: '8%' },
-  { days: 90, mult: '1.5×', apr: '14%' },
-  { days: 180, mult: '2.0×', apr: '22%' },
+  { days: 30, mult: '1.2×' },
+  { days: 90, mult: '1.5×' },
+  { days: 180, mult: '2.0×' },
 ];
+
+const STAKING_ENABLED = true;
 
 interface DisplayStake {
   id: string;
@@ -102,19 +108,42 @@ export default function StakingPage() {
     }
   };
 
+  const unstake = async (s: DisplayStake) => {
+    try {
+      await metajungleAPI.unstake(s.id);
+      toast.success('Stake principal returned');
+      queryClient.invalidateQueries('mjStakes');
+      queryClient.invalidateQueries('pointsHistory');
+    } catch (err: any) {
+      toast.error(err?.response?.data?.detail || 'Could not unstake');
+    }
+  };
+
   return (
     <div className="animate-page-in space-y-xl">
       <div className="flex flex-wrap items-start justify-between gap-md">
         <div>
           <h1 className="font-display text-h1 text-ink-primary">Staking</h1>
           <p className="mt-1 text-body text-ink-muted">
-            Lock PP and NFTs to boost your earn multiplier and grow rewards.
+            Lock PP to boost your earn multiplier.
           </p>
         </div>
-        <Button onClick={() => setOpen(true)}>
-          <Plus className="h-4 w-4" /> New Stake
-        </Button>
+        {STAKING_ENABLED && (
+          <Button onClick={() => setOpen(true)}>
+            <Plus className="h-4 w-4" /> New Stake
+          </Button>
+        )}
       </div>
+
+      {!STAKING_ENABLED && (
+        <div className="flex items-center gap-sm rounded-card border border-line bg-bg-elevated px-md py-sm">
+          <Badge tone="amber">Paused</Badge>
+          <span className="text-label text-ink-muted">
+            New stakes are paused while the unstake and reward lifecycle is
+            completed. Existing stakes still apply their earn multiplier.
+          </span>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-lg lg:grid-cols-3">
         <StatCard icon={<Lock className="h-6 w-6" />} label="PP Staked" value={totalStaked} isPP />
@@ -132,7 +161,7 @@ export default function StakingPage() {
           </div>
         ) : stakes.length === 0 ? (
           <div className="rounded-card border border-line bg-bg-primary p-xl text-center text-ink-muted">
-            No active stakes. Create a new stake to start earning rewards!
+            No active stakes.
           </div>
         ) : stakes.map((s) => {
           const pct = Math.round((s.elapsedDays / s.lockDays) * 100);
@@ -157,11 +186,16 @@ export default function StakingPage() {
                 <PPAmount value={s.accrued} size="sm" />
               </div>
               <div className="flex gap-sm">
-                <Button variant="ghost" className="flex-1" onClick={() => claim(s)}>
-                  Claim
+                <Button
+                  variant="ghost"
+                  className="flex-1"
+                  onClick={() => claim(s)}
+                  disabled={s.elapsedDays < s.lockDays}
+                >
+                  {s.elapsedDays < s.lockDays ? 'Locked' : 'Claim & unlock'}
                 </Button>
-                <Button variant="ghost" className="flex-1" onClick={() => toast('Early exit incurs a penalty', { icon: '⚠️' })}>
-                  Unstake early
+                <Button variant="ghost" className="flex-1" onClick={() => unstake(s)}>
+                  Early exit
                 </Button>
               </div>
             </Card>
@@ -194,7 +228,6 @@ export default function StakingPage() {
                 >
                   <div className="font-display text-h2 text-ink-primary">{t.days}d</div>
                   <div className="text-label text-reward-gold">{t.mult}</div>
-                  <div className="text-label text-ink-muted">{t.apr} APR</div>
                 </button>
               ))}
             </div>

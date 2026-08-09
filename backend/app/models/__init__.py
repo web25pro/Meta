@@ -3,7 +3,7 @@ from app.models.user import User, UserRole, UserType
 from app.models.task import Task, TaskAssignment, AssignedGroup
 from app.models.submission import TaskSubmission, SubmissionFile, SubmissionStatus, FileScanStatus
 from app.models.points_and_audit import (
-    PointsTransaction, TransactionType, DeadlinePenaltyApplied,
+    PointsTransaction, PPLedgerEntry, IdempotencyKey, TransactionType, DeadlinePenaltyApplied,
     AuditLog, AuditActionType
 )
 from app.models.leaderboard_schedule_announcement import (
@@ -28,6 +28,8 @@ __all__ = [
     "SubmissionStatus",
     "FileScanStatus",
     "PointsTransaction",
+    "PPLedgerEntry",
+    "IdempotencyKey",
     "TransactionType",
     "DeadlinePenaltyApplied",
     "AuditLog",

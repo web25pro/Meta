@@ -2,9 +2,10 @@
 import math
 import uuid
 from datetime import datetime
-from typing import Optional, List
+from typing import Annotated, Optional, List
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Query, UploadFile, File, Form
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import func, select
 
 from app.core.database import get_db
 from app.schemas.community import (
@@ -47,6 +48,7 @@ from app.services.public_task_service import (
 from app.core.email import send_verification_email, send_password_reset_email
 from app.services.submission_service import SubmissionService
 from app.core.security import verify_password, create_access_token, create_refresh_token, hash_password
+from app.core.config import settings
 from app.models.user import User
 from app.api.user import get_current_user
 
@@ -429,9 +431,32 @@ async def get_referral_code(
     
     Returns referral code and shareable link.
     """
-    referral_link = f"{settings.SITE_BASE_URL}/register?ref={current_user.referral_code}"
+    referral_link = f"{settings.SITE_BASE_URL}/auth/register?ref={current_user.referral_code}"
     
     return ReferralCodeResponse(
         referral_code=current_user.referral_code,
         referral_link=referral_link
     )
+
+
+@router.get("/referral-stats")
+async def get_referral_stats(
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """Return referral counts from the canonical user relationship."""
+    total = int((await db.execute(
+        select(func.count()).select_from(User).where(User.referred_by_id == current_user.id)
+    )).scalar() or 0)
+    successful = int((await db.execute(
+        select(func.count()).select_from(User).where(
+            User.referred_by_id == current_user.id,
+            User.email_verified.is_(True),
+            User.deleted_at.is_(None),
+        )
+    )).scalar() or 0)
+    return {
+        "total_referrals": total,
+        "successful_referrals": successful,
+        "referral_earnings": 0,
+    }

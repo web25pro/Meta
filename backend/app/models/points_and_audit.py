@@ -2,7 +2,7 @@
 import uuid
 from datetime import datetime
 from enum import Enum
-from sqlalchemy import String, Text, Numeric, DateTime, ForeignKey, Enum as SQLEnum, UniqueConstraint, Integer
+from sqlalchemy import String, Text, Numeric, DateTime, ForeignKey, Enum as SQLEnum, UniqueConstraint, Integer, Index, Boolean
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -17,6 +17,59 @@ class TransactionType(str, Enum):
     ADMIN_PENALTY = "Admin_Penalty"
     QUEST_REWARD = "Quest_Reward"
     CAMPAIGN_REWARD = "Campaign_Reward"
+
+
+class PPLedgerEntry(Base):
+    """Canonical immutable record of a Panda Points movement.
+
+    ``PointsTransaction`` remains as a compatibility projection for the legacy
+    API. New economic code should write this ledger through ``PointsService``.
+    """
+
+    __tablename__ = "pp_ledger_entries"
+    __table_args__ = (
+        UniqueConstraint("idempotency_key", name="uq_pp_ledger_idempotency_key"),
+        Index("ix_pp_ledger_user_created", "user_id", "created_at"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    amount: Mapped[float] = mapped_column(Numeric(18, 2), nullable=False)
+    bucket: Mapped[str] = mapped_column(String(32), nullable=False, default="available")
+    transaction_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    source_type: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    source_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    idempotency_key: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default="posted")
+    entry_metadata: Mapped[dict | None] = mapped_column("metadata", JSONB, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+
+
+class IdempotencyKey(Base):
+    """Persistent request replay record for mutating API operations."""
+
+    __tablename__ = "idempotency_keys"
+    __table_args__ = (
+        UniqueConstraint("user_id", "key", name="uq_idempotency_user_key"),
+        Index("ix_idempotency_expires_at", "expires_at"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    key: Mapped[str] = mapped_column(String(255), nullable=False)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    method: Mapped[str] = mapped_column(String(10), nullable=False)
+    path: Mapped[str] = mapped_column(String(500), nullable=False)
+    body_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    status_code: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    response_json: Mapped[dict | list | None] = mapped_column(JSONB, nullable=True)
+    response_content_type: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    processing: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
 class AuditActionType(str, Enum):

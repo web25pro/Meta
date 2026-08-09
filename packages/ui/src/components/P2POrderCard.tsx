@@ -72,9 +72,17 @@ export function P2POrderCard({
         {postedAgo && <span className="text-label text-ink-muted">{postedAgo}</span>}
       </div>
 
+      {/* Without a handler the CTA would be decorative, so it renders disabled. */}
       <button
         onClick={onTrade}
-        className="mt-md w-full rounded-pill bg-brand-cobalt py-sm text-body font-medium text-ink-inverse transition-transform active:scale-[0.98]"
+        disabled={!onTrade}
+        title={onTrade ? undefined : 'Trading is not enabled yet'}
+        className={cn(
+          'mt-md w-full rounded-pill py-sm text-body font-medium transition-transform',
+          onTrade
+            ? 'bg-brand-cobalt text-ink-inverse active:scale-[0.98]'
+            : 'cursor-not-allowed border border-line bg-bg-elevated text-ink-muted',
+        )}
       >
         Trade
       </button>

@@ -1,7 +1,7 @@
 """Admin panel schemas (Overall_Admin only)."""
 import uuid
 from datetime import datetime
-from typing import Optional, List
+from typing import Any, Optional, List
 from pydantic import BaseModel, Field, ConfigDict
 
 
@@ -55,7 +55,7 @@ class AdminPointsAdjust(BaseModel):
 class AdminQuestCreate(BaseModel):
     title: str = Field(..., min_length=1)
     description: str = ""
-    pp_reward: int = Field(..., ge=0)
+    pp_reward: int = Field(..., gt=0)
     category: str = "daily"
     verification_type: str = "manual"
     min_role: str = "Explorer"
@@ -69,11 +69,11 @@ class AdminQuestCreate(BaseModel):
 class AdminQuestUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
-    pp_reward: Optional[int] = None
+    pp_reward: Optional[int] = Field(None, gt=0)
     category: Optional[str] = None
     verification_type: Optional[str] = None
     min_role: Optional[str] = None
-    daily_limit: Optional[int] = None
+    daily_limit: Optional[int] = Field(None, ge=1)
     action_url: Optional[str] = None
     is_active: Optional[bool] = None
     starts_at: Optional[datetime] = None
@@ -119,6 +119,10 @@ class AdminCompletion(BaseModel):
     quest_title: Optional[str] = None
     status: str
     pp_awarded: float
+    proof: Optional[Any] = None
+    reviewed_by_id: Optional[uuid.UUID] = None
+    reviewed_at: Optional[datetime] = None
+    review_reason: Optional[str] = None
     created_at: datetime
 
 

@@ -1,4 +1,5 @@
 """Announcement API endpoints"""
+import math
 import uuid
 from datetime import datetime
 from typing import Annotated
@@ -565,10 +566,11 @@ async def list_announcements(
     ]
     
     return AnnouncementListResponse(
-        announcements=announcement_responses,
+        items=announcement_responses,
         total=total,
         page=page,
-        page_size=page_size
+        page_size=page_size,
+        total_pages=math.ceil(total / page_size) if page_size else 0
     )
 
 
@@ -659,8 +661,9 @@ async def list_all_announcements_admin(
     ]
     
     return AnnouncementListResponse(
-        announcements=announcement_responses,
+        items=announcement_responses,
         total=total,
         page=page,
-        page_size=page_size
+        page_size=page_size,
+        total_pages=math.ceil(total / page_size) if page_size else 0
     )

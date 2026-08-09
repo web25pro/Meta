@@ -1,4 +1,5 @@
 """Points and rewards API endpoints"""
+import math
 import uuid
 from typing import Annotated, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
@@ -36,6 +37,9 @@ async def get_my_points_balance(
     return {
         "user_id": current_user.id,
         "points": current_user.points,
+        "available_points": current_user.available_points,
+        "locked_points": current_user.locked_points,
+        "escrow_points": current_user.escrow_points,
         "rank": rank
     }
 
@@ -58,10 +62,11 @@ async def get_my_transactions(
     )
     
     return {
-        "transactions": transactions,
+        "items": transactions,
         "total": total,
         "page": page,
-        "page_size": page_size
+        "page_size": page_size,
+        "total_pages": math.ceil(total / page_size) if page_size else 0
     }
 
 
@@ -83,6 +88,7 @@ async def get_user_points_balance(
         return {
             "user_id": user_id,
             "points": points,
+            "available_points": points,
             "rank": None
         }
     except ValueError as e:

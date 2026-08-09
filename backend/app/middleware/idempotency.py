@@ -1,170 +1,181 @@
-"""Idempotency middleware to prevent duplicate submissions"""
+"""Database-backed idempotency for mutating API requests."""
 import hashlib
-import time
-from typing import Callable, Dict, Optional, Tuple
+import json
+import uuid
+from datetime import datetime, timedelta, timezone
+from typing import Callable
 
 from fastapi import Request, Response, status
 from fastapi.responses import JSONResponse
+from sqlalchemy import delete, select
+from sqlalchemy.exc import IntegrityError
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import Response as StarletteResponse
 from starlette.types import ASGIApp
 
+from app.core.database import AsyncSessionLocal
 from app.core.logging import get_logger
+from app.core.security import verify_token
+from app.models import IdempotencyKey
 
 logger = get_logger(__name__)
 
-# Methods that require idempotency keys
-IDEMPOTENT_METHODS = {"POST"}
-
-# TTL for idempotency keys (seconds)
-IDEMPOTENCY_TTL = 300  # 5 minutes
-
-# Endpoints exempt from idempotency requirements
-IDEMPOTENCY_EXEMPT_PREFIXES = {
-    "/api/v1/auth/login",
-    "/api/v1/auth/refresh",
-    "/api/v1/auth/logout",
-    "/api/v1/community/login",
-    "/api/v1/community/register",
-    "/api/v1/community/verify-email",
-    "/api/v1/community/password-reset",
-    "/api/v1/public",
-    "/",
-    "/health",
-}
-
+IDEMPOTENT_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
+IDEMPOTENCY_TTL = 300
 IDEMPOTENCY_HEADER = "x-idempotency-key"
+IDEMPOTENCY_EXEMPT_PREFIXES = {
+    "/api/v1/auth/login", "/api/v1/auth/refresh", "/api/v1/auth/logout",
+    "/api/v1/community/login", "/api/v1/community/register",
+    "/api/v1/community/verify-email", "/api/v1/community/password-reset",
+    "/api/v1/public", "/health",
+}
 
 
 class IdempotencyMiddleware(BaseHTTPMiddleware):
-    """
-    Idempotency middleware for duplicate submission prevention.
+    """Require and persist idempotency keys for authenticated mutations.
 
-    Flow:
-    1. On POST requests, require an `X-Idempotency-Key` header.
-    2. Store the key + request body hash with a 5-minute TTL.
-    3. If the same key is seen with the same body → return cached response.
-    4. If the same key is seen with a different body → return 409 Conflict.
-    5. Keys auto-expire after TTL to prevent memory leaks.
-
-    This prevents accidental double-submits from users clicking twice,
-    network retries, or frontend bugs.
+    A short-lived ``processing`` row is claimed before the handler runs. A
+    second request with the same user/key is replayed after completion, or gets
+    a conflict while the original request is still executing. Expired rows are
+    reclaimable, covering crashes between claim and response storage.
     """
 
     def __init__(self, app: ASGIApp, ttl: int = IDEMPOTENCY_TTL):
         super().__init__(app)
         self.ttl = ttl
-        # {key: (expiry_time, body_hash, status_code, response_body)}
-        self._store: Dict[str, Tuple[float, str, int, bytes]] = {}
-
-    def _cleanup_expired(self) -> None:
-        """Remove expired entries. Called on every request (cheap for small stores)."""
-        now = time.time()
-        expired = [k for k, (exp, *_) in self._store.items() if exp < now]
-        for k in expired:
-            del self._store[k]
 
     def _is_exempt(self, request: Request) -> bool:
-        """Check if the request is exempt from idempotency requirements."""
         if request.method not in IDEMPOTENT_METHODS:
             return True
+        return any(request.url.path.startswith(prefix) for prefix in IDEMPOTENCY_EXEMPT_PREFIXES)
 
-        path = request.url.path
-        for prefix in IDEMPOTENCY_EXEMPT_PREFIXES:
-            if path.startswith(prefix):
-                return True
-        return False
+    @staticmethod
+    def _user_id(request: Request) -> uuid.UUID | None:
+        authorization = request.headers.get("authorization", "")
+        if not authorization.lower().startswith("bearer "):
+            return None
+        token = verify_token(authorization[7:].strip())
+        if not token:
+            return None
+        try:
+            return uuid.UUID(token.user_id)
+        except ValueError:
+            return None
 
-    def _hash_body(self, body: bytes) -> str:
-        """Hash the request body for comparison."""
-        return hashlib.sha256(body).hexdigest()
-
-    async def dispatch(self, request: Request, call_next: Callable) -> Response:
-        # Skip exempt endpoints
-        if self._is_exempt(request):
-            return await call_next(request)
-
-        # Cleanup expired entries periodically
-        self._cleanup_expired()
-
-        # Get idempotency key
-        key = request.headers.get(IDEMPOTENCY_HEADER)
-        if not key:
-            return JSONResponse(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                content={
-                    "success": False,
-                    "error": {
-                        "code": "IDEMPOTENCY_KEY_REQUIRED",
-                        "message": "X-Idempotency-Key header is required for POST requests.",
-                        "details": {},
-                    },
-                },
-            )
-
-        # Read request body for hashing
+    @staticmethod
+    async def _body(request: Request) -> bytes:
         body = await request.body()
-        body_hash = self._hash_body(body)
 
-        # Check if we've seen this key before
-        if key in self._store:
-            stored_expiry, stored_hash, stored_status, stored_body = self._store[key]
-
-            if stored_hash == body_hash:
-                # Same request — return cached response
-                logger.info(
-                    "Idempotency replay",
-                    extra={"key": key, "path": request.url.path},
-                )
-                return JSONResponse(
-                    status_code=stored_status,
-                    content=stored_body.decode("utf-8") if stored_body else None,
-                    headers={"X-Idempotency-Replay": "true"},
-                )
-            else:
-                # Same key, different body — conflict
-                logger.warning(
-                    "Idempotency key conflict",
-                    extra={"key": key, "path": request.url.path},
-                )
-                return JSONResponse(
-                    status_code=status.HTTP_409_CONFLICT,
-                    content={
-                        "success": False,
-                        "error": {
-                            "code": "IDEMPOTENCY_CONFLICT",
-                            "message": "This idempotency key was already used with a different request body.",
-                            "details": {},
-                        },
-                    },
-                )
-
-        # Store the key and process the request
-        # We need to reconstruct the body stream since we consumed it
         async def receive():
             return {"type": "http.request", "body": body, "more_body": False}
 
         request._receive = receive  # noqa: SLF001
+        return body
 
-        response = await call_next(request)
+    @staticmethod
+    def _error(code: str, message: str, response_status: int) -> JSONResponse:
+        return JSONResponse(
+            status_code=response_status,
+            content={"success": False, "error": {"code": code, "message": message, "details": {}}},
+        )
 
-        # Cache successful responses only
-        if 200 <= response.status_code < 300:
-            response_body = b""
-            async for chunk in response.body_iterator:
-                if isinstance(chunk, str):
-                    response_body += chunk.encode("utf-8")
-                else:
-                    response_body += chunk
+    async def dispatch(self, request: Request, call_next: Callable) -> Response:
+        if self._is_exempt(request):
+            return await call_next(request)
 
-            self._store[key] = (
-                time.time() + self.ttl,
-                body_hash,
-                response.status_code,
-                response_body,
+        key = request.headers.get(IDEMPOTENCY_HEADER, "").strip()
+        if not key or len(key) > 255:
+            return self._error(
+                "IDEMPOTENCY_KEY_REQUIRED",
+                "A valid X-Idempotency-Key header is required for mutating requests.",
+                status.HTTP_400_BAD_REQUEST,
             )
 
-            # Return a new response with the same body
-            from starlette.responses import Response as StarletteResponse
+        body = await self._body(request)
+        body_hash = hashlib.sha256(body).hexdigest()
+        user_id = self._user_id(request)
+
+        # Let the normal auth dependency produce the correct 401 when a token
+        # is absent/invalid; there is no user scope to persist in that case.
+        if user_id is None:
+            return await call_next(request)
+
+        now = datetime.now(timezone.utc)
+        expires_at = now + timedelta(seconds=self.ttl)
+        record: IdempotencyKey | None = None
+
+        async with AsyncSessionLocal() as db:
+            await db.execute(delete(IdempotencyKey).where(IdempotencyKey.expires_at <= now))
+            await db.commit()
+            record = await db.scalar(
+                select(IdempotencyKey).where(
+                    IdempotencyKey.user_id == user_id,
+                    IdempotencyKey.key == key,
+                )
+            )
+            if record:
+                if record.body_hash != body_hash or record.method != request.method or record.path != request.url.path:
+                    return self._error(
+                        "IDEMPOTENCY_CONFLICT",
+                        "This idempotency key was already used with a different request.",
+                        status.HTTP_409_CONFLICT,
+                    )
+                if record.processing or record.status_code is None:
+                    return self._error(
+                        "IDEMPOTENCY_IN_PROGRESS",
+                        "The original request is still being processed.",
+                        status.HTTP_409_CONFLICT,
+                    )
+                return JSONResponse(
+                    status_code=record.status_code,
+                    content=record.response_json,
+                    headers={"X-Idempotency-Replay": "true"},
+                )
+
+            record = IdempotencyKey(
+                user_id=user_id,
+                key=key,
+                method=request.method,
+                path=request.url.path,
+                body_hash=body_hash,
+                processing=True,
+                expires_at=expires_at,
+            )
+            db.add(record)
+            try:
+                await db.commit()
+            except IntegrityError:
+                await db.rollback()
+                return self._error(
+                    "IDEMPOTENCY_IN_PROGRESS",
+                    "The original request is still being processed.",
+                    status.HTTP_409_CONFLICT,
+                )
+
+        try:
+            response = await call_next(request)
+            if not 200 <= response.status_code < 300:
+                async with AsyncSessionLocal() as db:
+                    await db.execute(delete(IdempotencyKey).where(IdempotencyKey.id == record.id))
+                    await db.commit()
+                return response
+
+            response_body = b""
+            async for chunk in response.body_iterator:
+                response_body += chunk.encode() if isinstance(chunk, str) else chunk
+            try:
+                response_json = json.loads(response_body.decode("utf-8")) if response_body else None
+            except (UnicodeDecodeError, json.JSONDecodeError):
+                response_json = {"_raw": response_body.decode("utf-8", errors="replace")}
+
+            async with AsyncSessionLocal() as db:
+                stored = await db.scalar(select(IdempotencyKey).where(IdempotencyKey.id == record.id))
+                if stored:
+                    stored.status_code = response.status_code
+                    stored.response_json = response_json
+                    stored.response_content_type = response.headers.get("content-type")
+                    stored.processing = False
+                    await db.commit()
 
             return StarletteResponse(
                 content=response_body,
@@ -172,5 +183,8 @@ class IdempotencyMiddleware(BaseHTTPMiddleware):
                 headers=dict(response.headers),
                 media_type=response.media_type,
             )
-
-        return response
+        except Exception:
+            async with AsyncSessionLocal() as db:
+                await db.execute(delete(IdempotencyKey).where(IdempotencyKey.id == record.id))
+                await db.commit()
+            raise

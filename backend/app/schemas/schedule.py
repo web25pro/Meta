@@ -76,15 +76,16 @@ class ScheduleResponse(BaseModel):
 
 class ScheduleListResponse(BaseModel):
     """Schedule list response schema"""
-    schedules: List[ScheduleResponse] = Field(..., description="List of schedule events")
+    items: List[ScheduleResponse] = Field(..., description="List of schedule events")
     total: int = Field(..., description="Total number of schedules", ge=0)
     page: int = Field(..., description="Current page number (1-indexed)", ge=1)
     page_size: int = Field(..., description="Number of items per page", ge=1, le=100)
+    total_pages: int = Field(..., description="Total number of pages", ge=0)
     
     class Config:
         json_schema_extra = {
             "example": {
-                "schedules": [
+                "items": [
                     {
                         "id": "123e4567-e89b-12d3-a456-426614174000",
                         "title": "Team Meeting",

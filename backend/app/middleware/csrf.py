@@ -23,7 +23,6 @@ CSRF_EXEMPT_PREFIXES: Set[str] = {
     "/api/v1/community/verify-email",
     "/api/v1/community/password-reset",
     "/api/v1/public",
-    "/",
     "/health",
 }
 

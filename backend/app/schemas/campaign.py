@@ -102,6 +102,10 @@ class CampaignTaskCompletionResponse(BaseModel):
     task_id: uuid.UUID
     status: CompletionStatus
     pp_awarded: float
+    proof: Optional[Any] = None
+    reviewed_by_id: Optional[uuid.UUID] = None
+    reviewed_at: Optional[datetime] = None
+    review_reason: Optional[str] = None
     created_at: datetime
 
 
@@ -110,8 +114,8 @@ class CampaignCreate(BaseModel):
     partner_id: uuid.UUID
     title: str = Field(..., min_length=1, max_length=255)
     blurb: str = ""
-    pp_budget: int = Field(..., ge=0)
-    pp_per_task: int = Field(..., ge=0)
+    pp_budget: int = Field(..., gt=0)
+    pp_per_task: int = Field(..., gt=0)
     days: int = Field(30, gt=0)
     featured: bool = False
     status: CampaignStatus = CampaignStatus.DRAFT
@@ -128,11 +132,11 @@ class CampaignStatusUpdate(BaseModel):
 class CampaignTaskCreate(BaseModel):
     title: str = Field(..., min_length=1, max_length=255)
     description: str = ""
-    pp_reward: int = Field(..., ge=0)
+    pp_reward: int = Field(..., gt=0)
     verification_type: VerificationType = VerificationType.MANUAL
     daily_limit: int = Field(1, gt=0)
     action_url: Optional[str] = None
-    order_index: int = 0
+    order_index: int = Field(0, ge=0)
 
 
 class CampaignTaskActiveUpdate(BaseModel):
@@ -141,6 +145,7 @@ class CampaignTaskActiveUpdate(BaseModel):
 
 class CampaignReviewRequest(BaseModel):
     approve: bool
+    reason: Optional[str] = Field(None, max_length=500)
 
 
 class CampaignDeleteResponse(BaseModel):

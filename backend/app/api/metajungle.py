@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.models import User
-from app.api.user import get_current_user
+from app.api.user import get_current_user, get_economic_user
 from app.services.metajungle_service import MetaJungleService, MARKET_CATALOG
 from app.schemas.metajungle import (
     ReputationResponse,
@@ -19,6 +19,7 @@ from app.schemas.metajungle import (
 )
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
+EconomicUser = Annotated[User, Depends(get_economic_user)]
 DB = Annotated[AsyncSession, Depends(get_db)]
 
 
@@ -52,7 +53,7 @@ async def list_quests(
 
 
 @quests_router.post("/{quest_id}/complete", response_model=QuestCompletionResponse)
-async def complete_quest(quest_id: uuid.UUID, body: QuestCompleteRequest, current_user: CurrentUser, db: DB):
+async def complete_quest(quest_id: uuid.UUID, body: QuestCompleteRequest, current_user: EconomicUser, db: DB):
     try:
         return await MetaJungleService.complete_quest(db, current_user, quest_id, body.proof)
     except ValueError as e:
@@ -86,7 +87,7 @@ async def list_orders(current_user: CurrentUser, db: DB, side: Optional[str] = Q
 
 
 @p2p_router.post("/orders", response_model=P2POrderResponse)
-async def create_order(body: P2POrderCreate, current_user: CurrentUser, db: DB):
+async def create_order(body: P2POrderCreate, current_user: EconomicUser, db: DB):
     try:
         return await MetaJungleService.create_order(db, current_user, body)
     except ValueError as e:
@@ -104,7 +105,7 @@ async def list_stakes(current_user: CurrentUser, db: DB):
 
 
 @staking_router.post("", response_model=StakeResponse)
-async def create_stake(body: StakeCreate, current_user: CurrentUser, db: DB):
+async def create_stake(body: StakeCreate, current_user: EconomicUser, db: DB):
     try:
         return await MetaJungleService.create_stake(db, current_user, body.pp_amount, body.lock_days)
     except ValueError as e:
@@ -112,9 +113,17 @@ async def create_stake(body: StakeCreate, current_user: CurrentUser, db: DB):
 
 
 @staking_router.post("/{stake_id}/claim", response_model=StakeResponse)
-async def claim_stake(stake_id: uuid.UUID, current_user: CurrentUser, db: DB):
+async def claim_stake(stake_id: uuid.UUID, current_user: EconomicUser, db: DB):
     try:
         return await MetaJungleService.claim_stake(db, current_user, stake_id)
+    except ValueError as e:
+        raise _bad(e)
+
+
+@staking_router.post("/{stake_id}/unstake", response_model=StakeResponse)
+async def unstake(stake_id: uuid.UUID, current_user: EconomicUser, db: DB):
+    try:
+        return await MetaJungleService.unstake(db, current_user, stake_id)
     except ValueError as e:
         raise _bad(e)
 
@@ -135,7 +144,7 @@ async def list_courses(current_user: CurrentUser, db: DB):
 
 
 @learn_router.post("/courses/{course_id}/quiz", response_model=QuizResultResponse)
-async def submit_quiz(course_id: uuid.UUID, body: QuizSubmitRequest, current_user: CurrentUser, db: DB):
+async def submit_quiz(course_id: uuid.UUID, body: QuizSubmitRequest, current_user: EconomicUser, db: DB):
     try:
         return await MetaJungleService.submit_quiz(db, current_user, course_id, body.answers)
     except ValueError as e:
@@ -152,7 +161,7 @@ async def get_catalog(current_user: CurrentUser):
 
 
 @marketplace_router.post("/redeem", response_model=RedemptionResponse)
-async def redeem(body: RedeemRequest, current_user: CurrentUser, db: DB):
+async def redeem(body: RedeemRequest, current_user: EconomicUser, db: DB):
     try:
         return await MetaJungleService.redeem(db, current_user, body.product_id, body.destination)
     except ValueError as e:

@@ -157,14 +157,14 @@ export const adminAPI = {
 
   campaignReviewQueue: async (): Promise<AdminCampaignReviewItem[]> =>
     (await apiClient.get('/admin/campaigns/review-queue')).data.completions,
-  reviewCampaignCompletion: async (completionId: string, approve: boolean) =>
-    (await apiClient.post(`/admin/campaigns/review-queue/${completionId}`, { approve })).data,
+  reviewCampaignCompletion: async (completionId: string, approve: boolean, reason?: string) =>
+    (await apiClient.post(`/admin/campaigns/review-queue/${completionId}`, { approve, reason })).data,
 
   grantNFT: async (body: { user_id: string; name?: string; tier?: string; daily_pp_rate?: number }) =>
     (await apiClient.post('/admin/nft/grant', body)).data,
 
   listCompletions: async (status = 'pending', page = 1) =>
     (await apiClient.get('/admin/quest-completions', { params: { status, page, page_size: 20 } })).data,
-  reviewCompletion: async (id: string, approve: boolean) =>
-    (await apiClient.post(`/admin/quest-completions/${id}/review`, null, { params: { approve } })).data,
+  reviewCompletion: async (id: string, approve: boolean, reason?: string) =>
+    (await apiClient.post(`/admin/quest-completions/${id}/review`, null, { params: { approve, reason } })).data,
 };

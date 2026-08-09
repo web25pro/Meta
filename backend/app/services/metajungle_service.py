@@ -8,7 +8,7 @@ from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import (
-    User, PointsTransaction, TransactionType,
+    User, PointsTransaction, PPLedgerEntry, TransactionType,
     Quest, QuestCompletion, NFTHolding, P2POrder, Stake,
     Partner, Course, CourseCompletion, Redemption,
 )
@@ -203,6 +203,11 @@ class MetaJungleService:
     async def complete_quest(
         db: AsyncSession, user: User, quest_id: uuid.UUID, proof: Optional[dict],
     ) -> QuestCompletion:
+        # Serialize attempts per user so daily limits cannot be bypassed by
+        # concurrent submissions.
+        user = (await db.execute(
+            select(User).where(User.id == user.id).with_for_update()
+        )).scalar_one()
         quest = (await db.execute(select(Quest).where(Quest.id == quest_id))).scalar_one_or_none()
         if not quest or not quest.is_active:
             raise ValueError("Quest not found or inactive")
@@ -265,22 +270,24 @@ class MetaJungleService:
                     f"'steps_completed' must be a list of {len(quest.steps)} boolean values"
                 )
 
-        # Validate proof based on verification_type
+        # Validate proof based on verification_type.
+        #
+        # The client is never trusted to assert that an action happened.
+        # oauth/webhook quests used to auto-approve on a browser-supplied
+        # {"verified": true}, which let anyone mint PP by posting that flag.
+        # Server-side provider verification does not exist yet, so those
+        # types are review-gated like the rest until it does.
         vtype = quest.verification_type
-        auto_approve_types = {"oauth", "webhook"}
 
-        if vtype in auto_approve_types:
-            # Require proof with verified flag
-            if not proof or proof.get("verified") is not True:
-                raise ValueError(
-                    f"This {vtype} quest requires proof with {{\"verified\": true}}"
-                )
-        elif vtype == "on_chain":
+        if vtype == "on_chain":
             # Require tx_hash in proof
             if not proof or not proof.get("tx_hash"):
                 raise ValueError(
                     "On-chain quests require a 'tx_hash' in your proof"
                 )
+        elif vtype == "screenshot":
+            if not proof or not proof.get("screenshot_url"):
+                raise ValueError("Screenshot quests require a 'screenshot_url' in your proof")
 
         # Daily earn cap with role multiplier
         award = int(round(quest.pp_reward * rep["earn_multiplier"]))
@@ -290,13 +297,13 @@ class MetaJungleService:
         if remaining <= 0:
             raise ValueError("Daily earn cap reached")
         award = int(min(award, remaining))
+        if award <= 0:
+            raise ValueError("No reward remains within the daily earn cap")
 
-        # Determine completion status based on verification type
-        if vtype in auto_approve_types:
-            status = "approved"
-        else:
-            # manual, screenshot, on_chain → pending admin review
-            status = "pending"
+        # No verification type self-approves. PP is awarded by
+        # AdminService.review_completion on the pending -> approved
+        # transition, so a completion never pays out from client input.
+        status = "pending"
 
         completion = QuestCompletion(
             user_id=user.id,
@@ -308,27 +315,19 @@ class MetaJungleService:
         db.add(completion)
         await db.flush()
 
-        # Award PP immediately only for auto-approve types
-        if status == "approved" and award > 0:
-            await PointsService.create_transaction(
-                db=db, user_id=user.id, amount=float(award),
-                transaction_type=TransactionType.QUEST_REWARD,
-                reason=f"Quest reward: {quest.title}",
-            )
-
         await db.refresh(completion)
         return completion
 
     @staticmethod
     async def get_user_completions_today(db: AsyncSession, user_id: uuid.UUID) -> dict[str, str]:
-        """Return {quest_id: status} for the user's completions today (approved/pending only)."""
+        """Return the latest status for each quest attempted by the user today."""
         now = _utcnow()
         start = now.replace(hour=0, minute=0, second=0, microsecond=0)
         rows = (await db.execute(
             select(QuestCompletion.quest_id, QuestCompletion.status).where(
                 QuestCompletion.user_id == user_id,
                 QuestCompletion.created_at >= start,
-                QuestCompletion.status.in_(["approved", "pending"]),
+                QuestCompletion.status.in_(["approved", "pending", "rejected"]),
             )
         )).all()
         return {str(qid): status for qid, status in rows}
@@ -351,26 +350,7 @@ class MetaJungleService:
 
     @staticmethod
     async def create_order(db: AsyncSession, user: User, data) -> P2POrder:
-        # Sellers must escrow PP up front + a 50 PP listing fee (Chapter 5.4).
-        if data.side == "sell":
-            required = data.pp_amount + 50
-            if float(user.points or 0) < required:
-                raise ValueError("Insufficient PP to escrow this sell order (incl. 50 PP listing fee)")
-            await PointsService.create_transaction(
-                db=db, user_id=user.id, amount=-50.0,
-                transaction_type=TransactionType.ADMIN_PENALTY,
-                reason="P2P listing fee",
-            )
-        order = P2POrder(
-            seller_id=user.id if data.side == "sell" else None,
-            buyer_id=user.id if data.side == "buy" else None,
-            side=data.side, pp_amount=data.pp_amount, price=data.price,
-            currency=data.currency, payment_method=data.payment_method, status="open",
-        )
-        db.add(order)
-        await db.flush()
-        await db.refresh(order)
-        return order
+        raise ValueError("P2P escrow trading is not enabled yet")
 
     # ── Staking (Chapter 7) ─────────────────────────────────────────────────
     @staticmethod
@@ -383,13 +363,22 @@ class MetaJungleService:
     async def create_stake(db: AsyncSession, user: User, pp_amount: int, lock_days: int) -> Stake:
         if lock_days not in STAKE_TIERS:
             raise ValueError("Lock duration must be 30, 90 or 180 days")
-        if float(user.points or 0) < pp_amount:
+        if float(user.available_points if user.available_points is not None else user.points or 0) < pp_amount:
             raise ValueError("Insufficient PP to stake")
         await PointsService.create_transaction(
             db=db, user_id=user.id, amount=-float(pp_amount),
             transaction_type=TransactionType.ADMIN_PENALTY,
             reason=f"Stake locked ({lock_days}d)",
         )
+        user.locked_points = (user.locked_points or 0) + pp_amount
+        db.add(PPLedgerEntry(
+            user_id=user.id,
+            amount=pp_amount,
+            bucket="locked",
+            transaction_type="STAKE_LOCK",
+            source_type="stake",
+            entry_metadata={"lock_days": lock_days},
+        ))
         stake = Stake(
             user_id=user.id, asset=f"{pp_amount} PP", pp_amount=pp_amount,
             multiplier=STAKE_TIERS[lock_days], lock_days=lock_days, status="active",
@@ -406,13 +395,68 @@ class MetaJungleService:
         )).scalar_one_or_none()
         if not stake or stake.status != "active":
             raise ValueError("Stake not found")
-        if stake.accrued and float(stake.accrued) > 0:
-            await PointsService.create_transaction(
-                db=db, user_id=user.id, amount=float(stake.accrued),
-                transaction_type=TransactionType.ADMIN_BONUS,
-                reason="Staking rewards claimed",
-            )
-            stake.accrued = 0
+        now = _utcnow()
+        started = stake.started_at.replace(tzinfo=timezone.utc) if stake.started_at.tzinfo is None else stake.started_at
+        maturity = started + timedelta(days=stake.lock_days)
+        if now < maturity:
+            raise ValueError("Stake has not reached maturity")
+
+        reward = float(stake.pp_amount) * (float(stake.multiplier) - 1.0)
+        total = float(stake.pp_amount) + reward
+        await PointsService.create_transaction(
+            db=db, user_id=user.id, amount=total,
+            transaction_type=TransactionType.ADMIN_BONUS,
+            reason="Stake principal and reward released",
+        )
+        user.locked_points = max(0, float(user.locked_points or 0) - stake.pp_amount)
+        db.add(PPLedgerEntry(
+            user_id=user.id,
+            amount=-stake.pp_amount,
+            bucket="locked",
+            transaction_type="STAKE_UNLOCK",
+            source_type="stake",
+            source_id=str(stake.id),
+        ))
+        db.add(PPLedgerEntry(
+            user_id=user.id,
+            amount=reward,
+            bucket="available",
+            transaction_type="STAKE_REWARD",
+            source_type="stake",
+            source_id=str(stake.id),
+        ))
+        stake.accrued = 0
+        stake.status = "completed"
+        stake.unlocked_at = now
+        await db.flush()
+        await db.refresh(stake)
+        return stake
+
+    @staticmethod
+    async def unstake(db: AsyncSession, user: User, stake_id: uuid.UUID) -> Stake:
+        """Return principal early without rewards, preserving the lock invariant."""
+        stake = (await db.execute(
+            select(Stake).where(Stake.id == stake_id, Stake.user_id == user.id).with_for_update()
+        )).scalar_one_or_none()
+        if not stake or stake.status != "active":
+            raise ValueError("Stake not found")
+        await PointsService.create_transaction(
+            db=db, user_id=user.id, amount=float(stake.pp_amount),
+            transaction_type=TransactionType.ADMIN_BONUS,
+            reason="Stake principal returned after early exit",
+        )
+        user.locked_points = max(0, float(user.locked_points or 0) - stake.pp_amount)
+        db.add(PPLedgerEntry(
+            user_id=user.id,
+            amount=-stake.pp_amount,
+            bucket="locked",
+            transaction_type="STAKE_UNLOCK",
+            source_type="stake",
+            source_id=str(stake.id),
+            entry_metadata={"early_exit": True},
+        ))
+        stake.status = "cancelled"
+        stake.unlocked_at = _utcnow()
         await db.flush()
         await db.refresh(stake)
         return stake
@@ -467,25 +511,4 @@ class MetaJungleService:
     # ── Marketplace (Chapter 12) ────────────────────────────────────────────
     @staticmethod
     async def redeem(db: AsyncSession, user: User, product_id: str, destination: Optional[str]) -> Redemption:
-        product = _CATALOG_BY_ID.get(product_id)
-        if not product:
-            raise ValueError("Unknown product")
-        cost = product["pp"]
-        if float(user.points or 0) < cost:
-            raise ValueError("Insufficient Panda Points for this redemption")
-
-        await PointsService.create_transaction(
-            db=db, user_id=user.id, amount=-float(cost),
-            transaction_type=TransactionType.ADMIN_PENALTY,
-            reason=f"Redeemed {product['name']}",
-        )
-        code = "MJ-" + secrets.token_hex(3).upper() + "-" + secrets.token_hex(3).upper()
-        redemption = Redemption(
-            user_id=user.id, product_id=product_id, product_name=product["name"],
-            category=product["category"], pp_cost=cost, destination=destination,
-            voucher_code=code, status="completed",
-        )
-        db.add(redemption)
-        await db.flush()
-        await db.refresh(redemption)
-        return redemption
+        raise ValueError("Marketplace fulfilment is not available yet")

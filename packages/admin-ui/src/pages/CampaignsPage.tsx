@@ -5,23 +5,27 @@ import { useQuery, useQueryClient } from 'react-query';
 import { Plus, Pause, Play, ListChecks, Check, X, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, Button, Input, Badge, Modal, Skeleton, PPAmount } from '@meta-jungle/ui';
-import { adminAPI, type AdminCampaign, type AdminPartner } from '../api/admin';
+import { adminAPI, type AdminCampaign, type AdminPartner, type AdminCampaignReviewItem } from '../api/admin';
 
 /** Pending manual/screenshot completions, oldest first. */
 function ReviewQueue() {
   const queryClient = useQueryClient();
+  const [rejecting, setRejecting] = useState<AdminCampaignReviewItem | null>(null);
+  const [reason, setReason] = useState('');
   const { data: queue, isLoading } = useQuery(
     'adminCampaignReviewQueue',
     adminAPI.campaignReviewQueue,
     { retry: false },
   );
 
-  const review = async (id: string, approve: boolean) => {
+  const review = async (id: string, approve: boolean, reviewReason?: string) => {
     try {
-      await adminAPI.reviewCampaignCompletion(id, approve);
+      await adminAPI.reviewCampaignCompletion(id, approve, reviewReason);
       toast.success(approve ? 'Approved — PP credited' : 'Rejected — budget released');
       queryClient.invalidateQueries('adminCampaignReviewQueue');
       queryClient.invalidateQueries('adminCampaigns');
+      setRejecting(null);
+      setReason('');
     } catch (e: any) {
       toast.error(e?.response?.data?.detail || 'Failed');
     }
@@ -50,12 +54,22 @@ function ReviewQueue() {
             <Button size="sm" onClick={() => review(item.id, true)}>
               <Check className="h-4 w-4" /> Approve
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => review(item.id, false)}>
+            <Button size="sm" variant="ghost" onClick={() => { setRejecting(item); setReason(''); }}>
               <X className="h-4 w-4" /> Reject
             </Button>
           </div>
         </Card>
       ))}
+      <Modal open={!!rejecting} onClose={() => setRejecting(null)} title="Reject campaign submission">
+        <div className="space-y-lg">
+          <p className="text-body text-ink-muted">Give the participant a clear reason so they know what to fix.</p>
+          <Input label="Reason" placeholder="The proof does not show the required action" value={reason} onChange={(e) => setReason(e.target.value)} />
+          <div className="flex gap-sm">
+            <Button variant="ghost" className="flex-1" onClick={() => setRejecting(null)}>Cancel</Button>
+            <Button className="flex-1" disabled={!reason.trim() || !rejecting} onClick={() => rejecting && review(rejecting.id, false, reason.trim())}>Reject submission</Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
