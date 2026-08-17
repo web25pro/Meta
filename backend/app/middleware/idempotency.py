@@ -27,7 +27,7 @@ IDEMPOTENCY_EXEMPT_PREFIXES = {
     "/api/v1/auth/login", "/api/v1/auth/refresh", "/api/v1/auth/logout",
     "/api/v1/community/login", "/api/v1/community/register",
     "/api/v1/community/verify-email", "/api/v1/community/password-reset",
-    "/api/v1/public", "/health",
+    "/api/v1/admin", "/api/v1/public", "/health",
 }
 
 
