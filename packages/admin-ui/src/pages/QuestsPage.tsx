@@ -23,6 +23,8 @@ export function QuestsPage() {
     min_role: 'Explorer',
     daily_limit: '1',
     action_url: '',
+    screenshot_required: false,
+    link_required: false,
     starts_at: '',
     ends_at: '',
   });
@@ -40,6 +42,8 @@ export function QuestsPage() {
       min_role: 'Explorer',
       daily_limit: '1',
       action_url: '',
+      screenshot_required: false,
+      link_required: false,
       starts_at: '',
       ends_at: '',
     });
@@ -59,6 +63,8 @@ export function QuestsPage() {
         verification_type: form.verification_type,
         min_role: form.min_role,
         daily_limit: parseInt(form.daily_limit, 10) || 1,
+        screenshot_required: form.screenshot_required,
+        link_required: form.link_required,
       };
       if (form.action_url.trim()) body.action_url = form.action_url.trim();
       if (form.starts_at) body.starts_at = new Date(form.starts_at).toISOString();
@@ -134,6 +140,8 @@ export function QuestsPage() {
                     <Badge tone={q.is_active ? 'success' : 'neutral'}>
                       {q.is_active ? 'Active' : 'Inactive'}
                     </Badge>
+                    {q.screenshot_required && <Badge tone="amber">Screenshot required</Badge>}
+                    {q.link_required && <Badge tone="cobalt">Link required</Badge>}
                   </div>
                   {q.description && (
                     <p className="mt-1 text-label text-ink-muted line-clamp-2 sm:truncate">{q.description}</p>
@@ -196,6 +204,10 @@ export function QuestsPage() {
             value={form.action_url}
             onChange={(e) => setForm({ ...form, action_url: e.target.value })}
           />
+          <div className="space-y-sm">
+            <label className="flex items-center gap-sm text-label text-ink-muted"><input type="checkbox" checked={form.screenshot_required} onChange={(e) => setForm({ ...form, screenshot_required: e.target.checked })} className="h-4 w-4 accent-brand-cobalt" /> Screenshot upload required</label>
+            <label className="flex items-center gap-sm text-label text-ink-muted"><input type="checkbox" checked={form.link_required} onChange={(e) => setForm({ ...form, link_required: e.target.checked })} className="h-4 w-4 accent-brand-cobalt" /> Completion link required</label>
+          </div>
           <div className="grid grid-cols-1 gap-md sm:grid-cols-2">
             <Input
               label="PP Reward"

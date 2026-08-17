@@ -37,6 +37,8 @@ export interface AdminQuest {
   min_role: string;
   daily_limit: number;
   action_url?: string | null;
+  screenshot_required: boolean;
+  link_required: boolean;
   is_active: boolean;
   starts_at?: string | null;
   ends_at?: string | null;
@@ -46,6 +48,7 @@ export interface AdminCampaign {
   id: string;
   slug: string;
   brand?: string | null;
+  partner_tier?: string | null;
   title: string;
   blurb: string;
   pp_budget: number;
@@ -73,6 +76,8 @@ export interface AdminCampaignTask {
   verification_type: string;
   daily_limit: number;
   action_url?: string | null;
+  screenshot_required: boolean;
+  link_required: boolean;
   order_index: number;
   is_active: boolean;
 }
@@ -134,6 +139,8 @@ export const adminAPI = {
   }) => (await apiClient.post('/admin/campaigns', body)).data,
   setCampaignStatus: async (id: string, status: string) =>
     (await apiClient.patch(`/admin/campaigns/${id}`, { status })).data,
+  setCampaignFeatured: async (id: string, featured: boolean) =>
+    (await apiClient.patch(`/admin/campaigns/${id}/featured`, { featured })).data,
   deleteCampaign: async (id: string): Promise<{ rejected_pending: number }> =>
     (await apiClient.delete(`/admin/campaigns/${id}`)).data,
 
@@ -148,9 +155,27 @@ export const adminAPI = {
       verification_type?: string;
       daily_limit?: number;
       action_url?: string | null;
+      screenshot_required?: boolean;
+      link_required?: boolean;
       order_index?: number;
     },
   ) => (await apiClient.post(`/admin/campaigns/${id}/tasks`, body)).data,
+  updateCampaignTask: async (
+    campaignId: string,
+    taskId: string,
+    body: {
+      title?: string;
+      description?: string;
+      pp_reward?: number;
+      verification_type?: string;
+      daily_limit?: number;
+      action_url?: string | null;
+      screenshot_required?: boolean;
+      link_required?: boolean;
+      order_index?: number;
+      is_active?: boolean;
+    },
+  ) => (await apiClient.patch(`/admin/campaigns/${campaignId}/tasks/${taskId}`, body)).data,
   setCampaignTaskActive: async (campaignId: string, taskId: string, is_active: boolean) =>
     (await apiClient.patch(`/admin/campaigns/${campaignId}/tasks/${taskId}/active`, { is_active }))
       .data,
