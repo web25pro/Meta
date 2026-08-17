@@ -30,6 +30,8 @@ class QuestResponse(BaseModel):
     steps: Optional[Any] = None
     daily_limit: int
     action_url: Optional[str] = None
+    screenshot_required: bool = False
+    link_required: bool = False
     is_active: bool
     starts_at: Optional[datetime] = None
     ends_at: Optional[datetime] = None

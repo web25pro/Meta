@@ -61,6 +61,8 @@ class AdminQuestCreate(BaseModel):
     min_role: str = "Explorer"
     daily_limit: int = Field(1, ge=1)
     action_url: Optional[str] = None
+    screenshot_required: bool = False
+    link_required: bool = False
     is_active: bool = True
     starts_at: Optional[datetime] = None
     ends_at: Optional[datetime] = None
@@ -75,6 +77,8 @@ class AdminQuestUpdate(BaseModel):
     min_role: Optional[str] = None
     daily_limit: Optional[int] = Field(None, ge=1)
     action_url: Optional[str] = None
+    screenshot_required: Optional[bool] = None
+    link_required: Optional[bool] = None
     is_active: Optional[bool] = None
     starts_at: Optional[datetime] = None
     ends_at: Optional[datetime] = None

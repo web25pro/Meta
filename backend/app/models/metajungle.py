@@ -35,6 +35,8 @@ class Quest(Base):
     steps: Mapped[list | None] = mapped_column(JSONB, nullable=True)
     daily_limit: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     action_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    screenshot_required: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    link_required: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, index=True)
     starts_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     ends_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -199,6 +201,8 @@ class CampaignTask(Base):
     verification_type: Mapped[str] = mapped_column(String(32), nullable=False, default="manual")
     daily_limit: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     action_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    screenshot_required: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    link_required: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     order_index: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
@@ -230,7 +234,11 @@ class CampaignTaskCompletion(Base):
 
 
 class CampaignParticipation(Base):
-    """A user joining a campaign."""
+    """A user's campaign escrow account.
+
+    Approved rewards accumulate here and are not credited to the main PP
+    balance until the campaign ends and the user withdraws them.
+    """
     __tablename__ = "campaign_participations"
     __table_args__ = (UniqueConstraint("campaign_id", "user_id", name="uq_campaign_participation"),)
 
@@ -241,6 +249,8 @@ class CampaignParticipation(Base):
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
+    pp_earned: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False, default=0)
+    pp_withdrawn: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
 
 
