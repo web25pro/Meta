@@ -22,6 +22,7 @@ CSRF_EXEMPT_PREFIXES: Set[str] = {
     "/api/v1/community/register",
     "/api/v1/community/verify-email",
     "/api/v1/community/password-reset",
+    "/api/v1/admin",
     "/api/v1/public",
     "/health",
 }
@@ -83,6 +84,8 @@ class CSRFMiddleware(BaseHTTPMiddleware):
                         "has_header": bool(header_token),
                     },
                 )
+                # Drain the request body to avoid ASGI RuntimeError on short-circuit
+                await request.body()
                 return JSONResponse(
                     status_code=status.HTTP_403_FORBIDDEN,
                     content={
@@ -103,6 +106,8 @@ class CSRFMiddleware(BaseHTTPMiddleware):
                         "method": request.method,
                     },
                 )
+                # Drain the request body to avoid ASGI RuntimeError on short-circuit
+                await request.body()
                 return JSONResponse(
                     status_code=status.HTTP_403_FORBIDDEN,
                     content={
