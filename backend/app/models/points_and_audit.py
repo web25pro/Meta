@@ -17,6 +17,7 @@ class TransactionType(str, Enum):
     ADMIN_PENALTY = "Admin_Penalty"
     QUEST_REWARD = "Quest_Reward"
     CAMPAIGN_REWARD = "Campaign_Reward"
+    REFERRAL_REWARD = "Referral_Reward"
 
 
 class PPLedgerEntry(Base):

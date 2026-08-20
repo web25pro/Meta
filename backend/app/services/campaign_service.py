@@ -9,11 +9,13 @@ ledger) — the two seams that would become RPC calls after a split.
 Budget accounting is reserve → claim → settle:
 
 * a completion adds to ``pp_reserved``; admin approval moves the PP to
-  ``pp_claimed`` and credits the ledger, rejection releases the reserve
+  ``pp_claimed`` and the participant's campaign escrow, rejection releases
+  the reserve; withdrawal credits the main PP ledger after campaign end
 
 A campaign therefore never commits more than ``pp_budget`` in total.
 """
 import uuid
+import re
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
@@ -103,36 +105,51 @@ class CampaignService:
     # ── Reads ───────────────────────────────────────────────────────────────
     @staticmethod
     async def list_campaigns(db: AsyncSession, user: Optional[User] = None) -> list[Campaign]:
-        """Active campaigns inside their date window, newest/featured first."""
+        """List live campaigns plus a user's finished joined campaigns."""
         now = _utcnow()
         rows = (await db.execute(
-            select(Campaign, Partner.name)
+            select(Campaign, Partner.name, Partner.tier)
             .join(Partner, Partner.id == Campaign.partner_id)
             .where(
-                Campaign.status == "active",
                 Campaign.deleted_at.is_(None),
-                (Campaign.starts_at.is_(None)) | (Campaign.starts_at <= now),
-                (Campaign.ends_at.is_(None)) | (Campaign.ends_at > now),
+                Campaign.status.in_(["active", "ended"]),
             )
             .order_by(Campaign.featured.desc(), Campaign.created_at.desc())
         )).all()
 
-        joined: set[uuid.UUID] = set()
+        joined: dict[uuid.UUID, CampaignParticipation] = {}
         if user is not None and rows:
             joined = {
-                cid for (cid,) in (await db.execute(
-                    select(CampaignParticipation.campaign_id).where(
+                participation.campaign_id: participation
+                for participation in (await db.execute(
+                    select(CampaignParticipation).where(
                         CampaignParticipation.user_id == user.id,
-                        CampaignParticipation.campaign_id.in_([c.id for c, _ in rows]),
+                        CampaignParticipation.campaign_id.in_([c.id for c, _, _ in rows]),
                     )
-                )).all()
+                )).scalars().all()
             }
 
         campaigns = []
-        for campaign, brand in rows:
+        for campaign, brand, partner_tier in rows:
+            in_window = (
+                campaign.status == "active"
+                and (campaign.starts_at is None or _aware(campaign.starts_at) <= now)
+                and (campaign.ends_at is None or _aware(campaign.ends_at) > now)
+            )
+            participation = joined.get(campaign.id)
+            finished_joined = participation is not None and (
+                campaign.status == "ended"
+                or (campaign.ends_at is not None and _aware(campaign.ends_at) <= now)
+            )
+            if not in_window and not finished_joined:
+                continue
             # Transient attrs consumed by CampaignResponse.
             campaign.brand = brand
-            campaign.joined = campaign.id in joined
+            campaign.partner_tier = partner_tier
+            campaign.joined = participation is not None
+            campaign.my_pp_earned = float(participation.pp_earned or 0) if participation else 0
+            campaign.my_pp_withdrawn = float(participation.pp_withdrawn or 0) if participation else 0
+            campaign.my_pp_available = max(0, campaign.my_pp_earned - campaign.my_pp_withdrawn)
             campaign.pp_available = max(
                 0, campaign.pp_budget - campaign.pp_claimed - campaign.pp_reserved
             )
@@ -151,6 +168,22 @@ class CampaignService:
         if campaign.deleted_at is not None and not include_deleted:
             raise ValueError("Campaign not found")
         return campaign
+
+    @staticmethod
+    async def get_public_campaign(
+        db: AsyncSession, user: User, campaign_id: uuid.UUID
+    ) -> Campaign:
+        """Return a campaign only when it is visible to this participant.
+
+        The raw lookup is intentionally kept for admin operations. Public
+        routes must not expose draft, paused, deleted, or another user's
+        finished campaign, and need the same derived balance fields as the
+        campaign list.
+        """
+        for campaign in await CampaignService.list_campaigns(db, user):
+            if campaign.id == campaign_id:
+                return campaign
+        raise ValueError("Campaign not found")
 
     @staticmethod
     async def list_tasks(
@@ -234,12 +267,31 @@ class CampaignService:
         oauth/webhook tasks no longer accept it as grounds for auto-approval.
         """
         vtype = task.verification_type
+        proof = proof or {}
+        proof_url = proof.get("proof_url") or proof.get("screenshot_url")
+        if proof_url is not None and (
+            not isinstance(proof_url, str) or not proof_url.startswith(("http://", "https://"))
+        ):
+            raise ValueError("Completion link must be a valid http(s) URL")
+        if task.link_required:
+            if not isinstance(proof_url, str) or not proof_url.strip():
+                raise ValueError("This task requires a link showing the completed action")
+            if not proof_url.startswith(("http://", "https://")):
+                raise ValueError("Completion link must be a valid http(s) URL")
+        if task.screenshot_required:
+            screenshot = proof.get("screenshot_image")
+            if not isinstance(screenshot, str) or not screenshot.startswith("data:image/"):
+                raise ValueError("This task requires an uploaded screenshot")
+        if proof.get("screenshot_image") or proof.get("screenshot_url") or proof.get("proof_url"):
+            MetaJungleService.validate_screenshot_proof(proof)
         if vtype == "on_chain":
-            if not proof or not proof.get("tx_hash"):
-                raise ValueError("On-chain tasks require a 'tx_hash' in your proof")
+            tx_hash = proof.get("tx_hash")
+            if not isinstance(tx_hash, str) or not re.match(r"^0x[a-fA-F0-9]{64}$", tx_hash):
+                raise ValueError("On-chain tasks require a valid 0x transaction hash")
         elif vtype == "screenshot":
-            if not proof or not proof.get("screenshot_url"):
-                raise ValueError("Screenshot tasks require a 'screenshot_url' in your proof")
+            if not (proof.get("screenshot_image") or proof.get("screenshot_url") or proof.get("proof_url")):
+                raise ValueError("Screenshot tasks require a screenshot or completion link")
+            MetaJungleService.validate_screenshot_proof(proof)
 
     @staticmethod
     async def complete_task(
@@ -370,14 +422,21 @@ class CampaignService:
         campaign.pp_reserved = max(0, campaign.pp_reserved - award)
 
         if approve:
-            if award > 0:
-                await PointsService.create_transaction(
-                    db=db, user_id=completion.user_id, amount=float(award),
-                    transaction_type=TransactionType.CAMPAIGN_REWARD,
-                    reason=f"Campaign reward: {campaign.title}",
-                )
+            participation = (await db.execute(
+                select(CampaignParticipation).where(
+                    CampaignParticipation.campaign_id == completion.campaign_id,
+                    CampaignParticipation.user_id == completion.user_id,
+                ).with_for_update()
+            )).scalar_one_or_none()
+            if not participation:
+                raise ValueError("Campaign participation not found")
+            participation.pp_earned += award
             campaign.pp_claimed += award
             completion.status = "approved"
+
+            # Approval settles the campaign budget into the participant's
+            # escrow. It must not also credit the main balance: that would
+            # make the later withdrawal either fail or pay twice.
         else:
             completion.status = "rejected"
             completion.pp_awarded = 0
@@ -388,6 +447,53 @@ class CampaignService:
         await db.flush()
         await db.refresh(completion)
         return completion
+
+    @staticmethod
+    async def withdraw_points(
+        db: AsyncSession, user: User, campaign_id: uuid.UUID
+    ) -> dict:
+        """Release a participant's approved campaign escrow after campaign end."""
+        campaign = (await db.execute(
+            select(Campaign).where(Campaign.id == campaign_id).with_for_update()
+        )).scalar_one_or_none()
+        if not campaign:
+            raise ValueError("Campaign not found")
+
+        ends_at = _aware(campaign.ends_at)
+        if campaign.status != "ended" and (ends_at is None or ends_at > _utcnow()):
+            raise ValueError("Campaign rewards can be withdrawn after the campaign ends")
+
+        participation = (await db.execute(
+            select(CampaignParticipation).where(
+                CampaignParticipation.campaign_id == campaign_id,
+                CampaignParticipation.user_id == user.id,
+            ).with_for_update()
+        )).scalar_one_or_none()
+        if not participation:
+            raise ValueError("Join this campaign before withdrawing rewards")
+
+        amount = float(participation.pp_earned or 0) - float(participation.pp_withdrawn or 0)
+        if amount <= 0:
+            raise ValueError("No campaign PP is available to withdraw")
+
+        await PointsService.create_transaction(
+            db=db,
+            user_id=user.id,
+            amount=amount,
+            transaction_type=TransactionType.CAMPAIGN_REWARD,
+            reason=f"Campaign rewards withdrawn: {campaign.title}",
+            source_type="campaign_withdrawal",
+            source_id=str(participation.id),
+            idempotency_key=f"campaign_withdrawal:{participation.id}",
+        )
+        participation.pp_withdrawn = float(participation.pp_withdrawn or 0) + amount
+        await db.flush()
+        return {
+            "campaign_id": campaign.id,
+            "amount": amount,
+            "total_withdrawn": float(participation.pp_withdrawn),
+            "message": "Campaign PP moved to your main balance",
+        }
 
     # ── Admin CRUD ──────────────────────────────────────────────────────────
     @staticmethod
@@ -400,14 +506,15 @@ class CampaignService:
     async def admin_list_campaigns(db: AsyncSession) -> list[Campaign]:
         """Every campaign regardless of status, newest first. Excludes deleted."""
         rows = (await db.execute(
-            select(Campaign, Partner.name)
+            select(Campaign, Partner.name, Partner.tier)
             .join(Partner, Partner.id == Campaign.partner_id)
             .where(Campaign.deleted_at.is_(None))
             .order_by(Campaign.created_at.desc())
         )).all()
         out = []
-        for campaign, brand in rows:
+        for campaign, brand, partner_tier in rows:
             campaign.brand = brand
+            campaign.partner_tier = partner_tier
             campaign.pp_available = max(
                 0, campaign.pp_budget - campaign.pp_claimed - campaign.pp_reserved
             )
@@ -445,6 +552,7 @@ class CampaignService:
         await db.flush()
         await db.refresh(campaign)
         campaign.brand = partner.name
+        campaign.partner_tier = partner.tier
         return campaign
 
     @staticmethod
@@ -470,8 +578,24 @@ class CampaignService:
         return campaign
 
     @staticmethod
+    async def set_campaign_featured(
+        db: AsyncSession, campaign_id: uuid.UUID, featured: bool
+    ) -> Campaign:
+        campaign = (await db.execute(
+            select(Campaign).where(Campaign.id == campaign_id).with_for_update()
+        )).scalar_one_or_none()
+        if not campaign or campaign.deleted_at is not None:
+            raise ValueError("Campaign not found")
+        campaign.featured = featured
+        await db.flush()
+        await db.refresh(campaign)
+        return campaign
+
+    @staticmethod
     async def create_task(db: AsyncSession, campaign_id: uuid.UUID, data) -> CampaignTask:
-        await CampaignService.get_campaign(db, campaign_id)
+        campaign = await CampaignService.get_campaign(db, campaign_id)
+        if campaign.status == "ended":
+            raise ValueError("Ended campaigns cannot receive new tasks")
         task = CampaignTask(
             campaign_id=campaign_id,
             title=data.title,
@@ -480,6 +604,8 @@ class CampaignService:
             verification_type=data.verification_type,
             daily_limit=data.daily_limit,
             action_url=data.action_url,
+            screenshot_required=getattr(data, "screenshot_required", False),
+            link_required=getattr(data, "link_required", False),
             order_index=data.order_index,
         )
         db.add(task)
@@ -500,6 +626,37 @@ class CampaignService:
         if not task:
             raise ValueError("Campaign task not found")
         task.is_active = is_active
+        await db.flush()
+        await db.refresh(task)
+        return task
+
+    @staticmethod
+    async def update_task(
+        db: AsyncSession,
+        campaign_id: uuid.UUID,
+        task_id: uuid.UUID,
+        data,
+    ) -> CampaignTask:
+        campaign = await CampaignService.get_campaign(db, campaign_id)
+        if campaign.status == "ended":
+            raise ValueError("Ended campaigns cannot receive task changes")
+        task = (await db.execute(
+            select(CampaignTask).where(
+                CampaignTask.id == task_id,
+                CampaignTask.campaign_id == campaign_id,
+            ).with_for_update()
+        )).scalar_one_or_none()
+        if not task:
+            raise ValueError("Campaign task not found")
+
+        for field in (
+            "title", "description", "pp_reward", "verification_type",
+            "daily_limit", "action_url", "screenshot_required",
+            "link_required", "order_index", "is_active",
+        ):
+            value = getattr(data, field, None)
+            if value is not None:
+                setattr(task, field, value.value if hasattr(value, "value") else value)
         await db.flush()
         await db.refresh(task)
         return task

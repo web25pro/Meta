@@ -41,6 +41,7 @@ from app.services.community_service import (
     verify_password_reset_token,
     get_user_by_email
 )
+from app.models.points_and_audit import PointsTransaction, TransactionType
 from app.services.public_task_service import (
     get_public_tasks,
     get_task_by_id,
@@ -446,17 +447,25 @@ async def get_referral_stats(
 ):
     """Return referral counts from the canonical user relationship."""
     total = int((await db.execute(
-        select(func.count()).select_from(User).where(User.referred_by_id == current_user.id)
+        select(func.count()).select_from(User).where(
+            User.referred_by_id == current_user.id,
+            User.deleted_at.is_(None),
+        )
     )).scalar() or 0)
     successful = int((await db.execute(
         select(func.count()).select_from(User).where(
             User.referred_by_id == current_user.id,
-            User.email_verified.is_(True),
             User.deleted_at.is_(None),
+        )
+    )).scalar() or 0)
+    earnings = float((await db.execute(
+        select(func.coalesce(func.sum(PointsTransaction.amount), 0)).where(
+            PointsTransaction.user_id == current_user.id,
+            PointsTransaction.transaction_type == TransactionType.REFERRAL_REWARD,
         )
     )).scalar() or 0)
     return {
         "total_referrals": total,
         "successful_referrals": successful,
-        "referral_earnings": 0,
+        "referral_earnings": earnings,
     }

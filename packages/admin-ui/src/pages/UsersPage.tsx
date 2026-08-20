@@ -29,7 +29,7 @@ export function UsersPage() {
       toast.success(u.is_banned ? 'User unbanned' : 'User banned');
       refresh();
     } catch (e: any) {
-      toast.error(e?.response?.data?.detail || 'Failed');
+      toast.error(e?.response?.data?.error?.message || e?.response?.data?.detail || 'Failed');
     }
   };
 
@@ -39,7 +39,7 @@ export function UsersPage() {
       toast.success(`Role set to ${role}`);
       refresh();
     } catch (e: any) {
-      toast.error(e?.response?.data?.detail || 'Failed');
+      toast.error(e?.response?.data?.error?.message || e?.response?.data?.detail || 'Failed');
     }
   };
 
@@ -58,7 +58,7 @@ export function UsersPage() {
       setPpReason('');
       refresh();
     } catch (e: any) {
-      toast.error(e?.response?.data?.detail || 'Failed');
+      toast.error(e?.response?.data?.error?.message || e?.response?.data?.detail || 'Failed');
     }
   };
 

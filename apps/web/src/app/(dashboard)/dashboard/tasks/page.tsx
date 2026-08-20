@@ -6,6 +6,7 @@ import { Target, Loader2, ChevronDown, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button, PPAmount, Skeleton, EmptyState, Badge, Modal, Input, cn } from '@meta-jungle/ui';
 import { metajungleAPI, type ApiQuest } from '@/api/metajungle';
+import { fileToDataUrl, validateScreenshotFile } from '@/lib/screenshot-proof';
 
 const CATEGORY_TONE: Record<string, 'cobalt' | 'sky' | 'gold' | 'success' | 'amber' | 'neutral'> = {
   daily: 'amber',
@@ -33,6 +34,7 @@ export default function QuestsPage() {
   // Proof modal state
   const [proofModal, setProofModal] = useState<ApiQuest | null>(null);
   const [proofInput, setProofInput] = useState('');
+  const [proofFile, setProofFile] = useState<File | null>(null);
   const [stepsCompleted, setStepsCompleted] = useState<boolean[]>([]);
 
   const { data: quests, isLoading } = useQuery<ApiQuest[]>('mjQuests', metajungleAPI.listQuests, {
@@ -75,6 +77,7 @@ export default function QuestsPage() {
   const openProofModal = (q: ApiQuest) => {
     setProofModal(q);
     setProofInput('');
+    setProofFile(null);
     setStepsCompleted(q.steps ? q.steps.map(() => false) : []);
   };
 
@@ -93,16 +96,34 @@ export default function QuestsPage() {
         }
         proof.tx_hash = proofInput.trim();
       } else if (proofModal.verification_type === 'screenshot') {
-        if (!proofInput.trim()) {
-          toast.error('Please provide a link to your screenshot');
-          setCompleting(null);
-          return;
-        }
-        proof.screenshot_url = proofInput.trim();
-      } else if (proofModal.verification_type === 'manual') {
         if (proofInput.trim()) {
+          proof.proof_url = proofInput.trim();
+        }
+        if (proofFile) {
+          proof.screenshot_image = await fileToDataUrl(proofFile);
+        }
+      } else if (proofModal.verification_type === 'manual') {
+        if (proofModal.link_required && proofInput.trim()) {
+          proof.proof_url = proofInput.trim();
+        } else if (proofInput.trim()) {
           proof.note = proofInput.trim();
         }
+      }
+
+      if (proofModal.link_required && !proofInput.trim()) {
+        toast.error('Paste the link showing the completed action');
+        setCompleting(null);
+        return;
+      }
+      if (proofModal.screenshot_required && !proofFile) {
+        toast.error('Upload a screenshot showing the completed action');
+        setCompleting(null);
+        return;
+      }
+      if (proofModal.verification_type === 'screenshot' && !proofInput.trim() && !proofFile) {
+        toast.error('Upload a screenshot or paste a completion link');
+        setCompleting(null);
+        return;
       }
 
       // Include steps if quest has them
@@ -128,7 +149,7 @@ export default function QuestsPage() {
   };
 
   const handleComplete = (q: ApiQuest) => {
-    if (NO_PROOF_TYPES.has(q.verification_type)) {
+    if (NO_PROOF_TYPES.has(q.verification_type) && !q.link_required && !q.screenshot_required) {
       completeDirect(q);
     } else {
       openProofModal(q);
@@ -287,17 +308,47 @@ export default function QuestsPage() {
             </div>
           )}
 
-          {(proofModal?.verification_type === 'manual' || proofModal?.verification_type === 'screenshot') && (
+          {(proofModal?.verification_type === 'manual' || proofModal?.verification_type === 'screenshot' || proofModal?.link_required || proofModal?.screenshot_required) && (
             <div>
               <Input
-                label={proofModal.verification_type === 'screenshot' ? 'Screenshot link' : 'Notes (optional)'}
+                label={proofModal.verification_type === 'screenshot' || proofModal.link_required ? `Completion link ${proofModal.link_required ? '(required)' : '(optional)'}` : 'Notes (optional)'}
                 placeholder={proofModal.verification_type === 'screenshot' ? 'https://...' : 'Describe how you completed this quest...'}
                 value={proofInput}
                 onChange={(e) => setProofInput(e.target.value)}
               />
+              {(proofModal.verification_type === 'screenshot' || proofModal.screenshot_required) && (
+                <div className="mt-md">
+                  <label className="mb-1 block text-label font-medium text-ink-primary">
+                    Upload screenshot {proofModal.screenshot_required ? '(required)' : '(optional)'}
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/gif,image/webp"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0] ?? null;
+                      if (!file) {
+                        setProofFile(null);
+                        return;
+                      }
+                      const error = validateScreenshotFile(file);
+                      if (error) {
+                        toast.error(error);
+                        e.currentTarget.value = '';
+                        setProofFile(null);
+                        return;
+                      }
+                      setProofFile(file);
+                    }}
+                    className="block w-full rounded-card border border-line bg-bg-primary px-md py-sm text-label text-ink-muted"
+                  />
+                  {proofFile && (
+                    <p className="mt-1 text-label text-ink-muted">Attached: {proofFile.name}</p>
+                  )}
+                </div>
+              )}
               <p className="mt-1 text-label text-ink-muted">
-                {proofModal.verification_type === 'screenshot'
-                  ? 'Your submission will be reviewed by an admin. Include any relevant details.'
+                {proofModal.verification_type === 'screenshot' || proofModal.link_required || proofModal.screenshot_required
+                  ? 'Provide the evidence marked required above. Optional evidence can also be added.'
                   : 'An admin will verify your completion and approve it.'}
               </p>
             </div>

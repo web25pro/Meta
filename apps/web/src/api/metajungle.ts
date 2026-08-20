@@ -28,6 +28,8 @@ export interface ApiQuest {
   steps?: { label: string; verification: string }[] | null;
   daily_limit: number;
   action_url?: string | null;
+  screenshot_required: boolean;
+  link_required: boolean;
   is_active: boolean;
   starts_at?: string | null;
   ends_at?: string | null;
@@ -78,6 +80,7 @@ export interface ApiCampaign {
   id: string;
   slug: string;
   brand?: string | null;
+  partner_tier?: string | null;
   title: string;
   blurb: string;
   pp_budget: number;
@@ -93,6 +96,9 @@ export interface ApiCampaign {
   target_roles: string[];
   min_role: string;
   joined: boolean;
+  my_pp_earned: number;
+  my_pp_withdrawn: number;
+  my_pp_available: number;
   starts_at?: string | null;
   ends_at?: string | null;
 }
@@ -113,6 +119,8 @@ export interface ApiCampaignTask {
   verification_type: ApiVerificationType;
   daily_limit: number;
   action_url?: string | null;
+  screenshot_required: boolean;
+  link_required: boolean;
   order_index: number;
   is_active: boolean;
   completed_today: number;
@@ -218,6 +226,8 @@ export const metajungleAPI = {
   ): Promise<ApiCampaignCompletion> =>
     (await apiClient.post(`/campaigns/${campaignId}/tasks/${taskId}/complete`, { proof }))
       .data,
+  withdrawCampaignPoints: async (campaignId: string) =>
+    (await apiClient.post(`/campaigns/${campaignId}/withdraw`)).data,
 
   listCourses: async (): Promise<ApiCourse[]> =>
     (await apiClient.get('/learn/courses')).data.courses,

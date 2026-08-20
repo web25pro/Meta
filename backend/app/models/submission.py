@@ -65,7 +65,8 @@ class TaskSubmission(Base):
     )
     content: Mapped[str] = mapped_column(Text, nullable=False)
     status: Mapped[SubmissionStatus] = mapped_column(
-        SQLEnum(SubmissionStatus, name="submission_status", create_type=True),
+        SQLEnum(SubmissionStatus, name="submission_status", create_type=True,
+                values_callable=lambda enum: [member.value for member in enum]),
         nullable=False,
         default=SubmissionStatus.PENDING,
         index=True
@@ -158,7 +159,8 @@ class SubmissionFile(Base):
     file_data: Mapped[bytes] = mapped_column(nullable=False)
     mime_type: Mapped[str] = mapped_column(String(100), nullable=False)
     scan_status: Mapped[FileScanStatus] = mapped_column(
-        SQLEnum(FileScanStatus, name="file_scan_status", create_type=True),
+        SQLEnum(FileScanStatus, name="file_scan_status", create_type=True,
+                values_callable=lambda enum: [member.value for member in enum]),
         nullable=False,
         default=FileScanStatus.PENDING,
         index=True

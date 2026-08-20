@@ -39,6 +39,12 @@ export interface ReferralCodeResponse {
   referral_link: string;
 }
 
+export interface ReferralStatsResponse {
+  total_referrals: number;
+  successful_referrals: number;
+  referral_earnings: number;
+}
+
 export const communityAPI = {
   /**
    * Register a new community user
@@ -95,6 +101,11 @@ export const communityAPI = {
    */
   getReferralCode: async (): Promise<ReferralCodeResponse> => {
     const response = await apiClient.get<ReferralCodeResponse>('/community/referral-code');
+    return response.data;
+  },
+
+  getReferralStats: async (): Promise<ReferralStatsResponse> => {
+    const response = await apiClient.get<ReferralStatsResponse>('/community/referral-stats');
     return response.data;
   },
 };

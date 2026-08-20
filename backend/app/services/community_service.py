@@ -10,8 +10,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status
 
 from app.models.user import User, UserRole, UserType
+from app.models.points_and_audit import TransactionType
 from app.core.security import hash_password, verify_password
 from app.core.config import settings
+from app.services.points_service import PointsService
 from jose import JWTError, jwt
 
 
@@ -290,6 +292,23 @@ async def create_community_user(
         new_user.email_verification_sent_at = None
 
     db.add(new_user)
+    await db.flush()
+
+    # A referral is earned exactly once, at the moment the referred account is
+    # created. The ledger idempotency key makes retries safe and prevents a
+    # duplicate reward if this flow is ever replayed.
+    if referred_by_id:
+        await PointsService.create_transaction(
+            db=db,
+            user_id=referred_by_id,
+            amount=10,
+            transaction_type=TransactionType.REFERRAL_REWARD,
+            reason=f"Referral reward for signing up {new_user.username}",
+            source_type="referral_signup",
+            source_id=str(new_user.id),
+            idempotency_key=f"referral_signup:{new_user.id}",
+        )
+
     await db.commit()
     await db.refresh(new_user)
 

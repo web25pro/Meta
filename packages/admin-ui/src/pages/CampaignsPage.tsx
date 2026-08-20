@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery, useQueryClient } from 'react-query';
-import { Plus, Pause, Play, ListChecks, Check, X, Trash2 } from 'lucide-react';
+import { Plus, Pause, Play, ListChecks, Check, X, Trash2, Star } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, Button, Input, Badge, Modal, Skeleton, PPAmount } from '@meta-jungle/ui';
 import { adminAPI, type AdminCampaign, type AdminPartner, type AdminCampaignReviewItem } from '../api/admin';
@@ -27,7 +27,7 @@ function ReviewQueue() {
       setRejecting(null);
       setReason('');
     } catch (e: any) {
-      toast.error(e?.response?.data?.detail || 'Failed');
+      toast.error(e?.response?.data?.error?.message || e?.response?.data?.detail || 'Failed');
     }
   };
 
@@ -77,13 +77,14 @@ function ReviewQueue() {
 /** Task editor for a single campaign. */
 function TasksModal({ campaign, onClose }: { campaign: AdminCampaign; onClose: () => void }) {
   const queryClient = useQueryClient();
+  const emptyForm = {
+    title: '', description: '', pp_reward: '', verification_type: 'manual', daily_limit: '1',
+    action_url: '', screenshot_required: false, link_required: false,
+  };
   const [form, setForm] = useState({
-    title: '',
-    description: '',
-    pp_reward: '',
-    verification_type: 'manual',
-    daily_limit: '1',
+    ...emptyForm,
   });
+  const [editingId, setEditingId] = useState<string | null>(null);
   const { data: tasks } = useQuery(
     ['adminCampaignTasks', campaign.id],
     () => adminAPI.listCampaignTasks(campaign.id),
@@ -97,19 +98,43 @@ function TasksModal({ campaign, onClose }: { campaign: AdminCampaign; onClose: (
       return;
     }
     try {
-      await adminAPI.createCampaignTask(campaign.id, {
+      const payload = {
         title: form.title,
         description: form.description,
         pp_reward: reward,
         verification_type: form.verification_type,
         daily_limit: parseInt(form.daily_limit, 10) || 1,
-      });
-      toast.success('Task added');
-      setForm({ title: '', description: '', pp_reward: '', verification_type: 'manual', daily_limit: '1' });
+        action_url: form.action_url.trim() || undefined,
+        screenshot_required: form.screenshot_required,
+        link_required: form.link_required,
+      };
+      if (editingId) {
+        await adminAPI.updateCampaignTask(campaign.id, editingId, payload);
+        toast.success('Task updated');
+      } else {
+        await adminAPI.createCampaignTask(campaign.id, payload);
+        toast.success('Task added');
+      }
+      setEditingId(null);
+      setForm({ ...emptyForm });
       queryClient.invalidateQueries(['adminCampaignTasks', campaign.id]);
     } catch (e: any) {
-      toast.error(e?.response?.data?.detail || 'Failed');
+      toast.error(e?.response?.data?.error?.message || e?.response?.data?.detail || 'Failed');
     }
+  };
+
+  const editTask = (task: any) => {
+    setEditingId(task.id);
+    setForm({
+      title: task.title,
+      description: task.description ?? '',
+      pp_reward: String(task.pp_reward),
+      verification_type: task.verification_type,
+      daily_limit: String(task.daily_limit),
+      action_url: task.action_url ?? '',
+      screenshot_required: !!task.screenshot_required,
+      link_required: !!task.link_required,
+    });
   };
 
   return (
@@ -127,7 +152,10 @@ function TasksModal({ campaign, onClose }: { campaign: AdminCampaign; onClose: (
                   {t.verification_type} · {t.daily_limit}/day
                 </p>
               </div>
-              <PPAmount value={t.pp_reward} size="sm" />
+              <div className="flex shrink-0 items-center gap-sm">
+                <PPAmount value={t.pp_reward} size="sm" />
+                <Button size="sm" variant="ghost" onClick={() => editTask(t)}>Edit</Button>
+              </div>
             </div>
           ))}
           {tasks?.length === 0 && (
@@ -174,7 +202,15 @@ function TasksModal({ campaign, onClose }: { campaign: AdminCampaign; onClose: (
               onChange={(e) => setForm({ ...form, daily_limit: e.target.value })}
             />
           </div>
-          <Button className="w-full" onClick={create}>Add Task</Button>
+          <Input label="Clickable task link" placeholder="https://..." value={form.action_url} onChange={(e) => setForm({ ...form, action_url: e.target.value })} />
+          <div className="space-y-sm">
+            <label className="flex items-center gap-sm text-label text-ink-muted"><input type="checkbox" checked={form.screenshot_required} onChange={(e) => setForm({ ...form, screenshot_required: e.target.checked })} className="h-4 w-4 accent-brand-cobalt" /> Screenshot upload required</label>
+            <label className="flex items-center gap-sm text-label text-ink-muted"><input type="checkbox" checked={form.link_required} onChange={(e) => setForm({ ...form, link_required: e.target.checked })} className="h-4 w-4 accent-brand-cobalt" /> Completion link required</label>
+          </div>
+          <div className="flex gap-sm">
+            {editingId && <Button variant="ghost" className="flex-1" onClick={() => { setEditingId(null); setForm({ ...emptyForm }); }}>Cancel edit</Button>}
+            <Button className="flex-1" onClick={create}>{editingId ? 'Save task' : 'Add task'}</Button>
+          </div>
         </div>
       </div>
     </Modal>
@@ -186,7 +222,10 @@ export function CampaignsPage() {
   const [open, setOpen] = useState(false);
   const [partnerOpen, setPartnerOpen] = useState(false);
   const [form, setForm] = useState({ partner_id: '', title: '', blurb: '', pp_budget: '', pp_per_task: '', days: '14', featured: false });
+  const [taskDraft, setTaskDraft] = useState({ title: '', description: '', pp_reward: '', verification_type: 'manual', daily_limit: '1', action_url: '', screenshot_required: false, link_required: false });
+  const [draftTasks, setDraftTasks] = useState<Array<typeof taskDraft>>([]);
   const [partnerName, setPartnerName] = useState('');
+  const [partnerTier, setPartnerTier] = useState('bronze');
   const [tasksFor, setTasksFor] = useState<AdminCampaign | null>(null);
 
   const { data: campaigns, isLoading } = useQuery('adminCampaigns', adminAPI.listCampaigns, { retry: false });
@@ -199,13 +238,14 @@ export function CampaignsPage() {
   const createPartner = async () => {
     if (!partnerName.trim()) return;
     try {
-      await adminAPI.createPartner({ name: partnerName });
+      await adminAPI.createPartner({ name: partnerName, tier: partnerTier });
       toast.success('Partner created');
       setPartnerName('');
+      setPartnerTier('bronze');
       setPartnerOpen(false);
       refresh();
     } catch (e: any) {
-      toast.error(e?.response?.data?.detail || 'Failed');
+      toast.error(e?.response?.data?.error?.message || e?.response?.data?.detail || 'Failed');
     }
   };
 
@@ -217,16 +257,31 @@ export function CampaignsPage() {
       return;
     }
     try {
-      await adminAPI.createCampaign({
+      const campaign = await adminAPI.createCampaign({
         partner_id: form.partner_id, title: form.title, blurb: form.blurb,
         pp_budget: budget, pp_per_task: perTask, featured: form.featured, days: parseInt(form.days, 10) || 14,
       });
-      toast.success('Campaign created');
+      for (const task of draftTasks) {
+        await adminAPI.createCampaignTask(campaign.id, {
+          title: task.title.trim(),
+          description: task.description.trim(),
+          pp_reward: parseInt(task.pp_reward, 10),
+          verification_type: task.verification_type,
+          daily_limit: parseInt(task.daily_limit, 10) || 1,
+          action_url: task.action_url.trim() || undefined,
+          screenshot_required: task.screenshot_required,
+          link_required: task.link_required,
+          order_index: draftTasks.indexOf(task),
+        });
+      }
+      toast.success(`Campaign created with ${draftTasks.length} task${draftTasks.length === 1 ? '' : 's'}`);
       setOpen(false);
       setForm({ partner_id: '', title: '', blurb: '', pp_budget: '', pp_per_task: '', days: '14', featured: false });
+      setTaskDraft({ title: '', description: '', pp_reward: '', verification_type: 'manual', daily_limit: '1', action_url: '', screenshot_required: false, link_required: false });
+      setDraftTasks([]);
       refresh();
     } catch (e: any) {
-      toast.error(e?.response?.data?.detail || 'Failed');
+      toast.error(e?.response?.data?.error?.message || e?.response?.data?.detail || 'Failed');
     }
   };
 
@@ -238,7 +293,17 @@ export function CampaignsPage() {
       toast.success(`Campaign ${next}`);
       refresh();
     } catch (e: any) {
-      toast.error(e?.response?.data?.detail || 'Failed');
+      toast.error(e?.response?.data?.error?.message || e?.response?.data?.detail || 'Failed');
+    }
+  };
+
+  const toggleFeatured = async (c: AdminCampaign) => {
+    try {
+      await adminAPI.setCampaignFeatured(c.id, !c.featured);
+      toast.success(c.featured ? 'Removed from featured campaigns' : 'Added to featured campaigns');
+      refresh();
+    } catch (e: any) {
+      toast.error(e?.response?.data?.error?.message || e?.response?.data?.detail || 'Could not update featured setting');
     }
   };
 
@@ -248,7 +313,7 @@ export function CampaignsPage() {
       toast.success('Campaign ended');
       refresh();
     } catch (e: any) {
-      toast.error(e?.response?.data?.detail || 'Failed');
+      toast.error(e?.response?.data?.error?.message || e?.response?.data?.detail || 'Failed');
     }
   };
 
@@ -269,7 +334,7 @@ export function CampaignsPage() {
       queryClient.invalidateQueries('adminCampaignReviewQueue');
       refresh();
     } catch (e: any) {
-      toast.error(e?.response?.data?.detail || 'Failed');
+      toast.error(e?.response?.data?.error?.message || e?.response?.data?.detail || 'Failed');
     }
   };
 
@@ -299,7 +364,7 @@ export function CampaignsPage() {
                   <span className="font-medium text-ink-primary">{c.brand}</span>
                   <span className="text-ink-muted">·</span>
                   <span className="truncate text-ink-primary">{c.title}</span>
-                  {c.featured && <Badge tone="gold">Featured</Badge>}
+                {c.featured && <Badge tone="gold">Featured</Badge>}
                   <Badge tone={c.status === 'active' ? 'success' : 'neutral'} className="capitalize">{c.status}</Badge>
                 </div>
                 <div className="mt-1 flex flex-wrap items-center gap-md text-label text-ink-muted">
@@ -312,9 +377,15 @@ export function CampaignsPage() {
                 </div>
               </div>
               <div className="flex shrink-0 items-center gap-sm">
-                <button onClick={() => setTasksFor(c)} title="Manage tasks"
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-card bg-brand-ice text-brand-cobalt">
+                <button onClick={() => toggleFeatured(c)} title={c.featured ? 'Remove from featured' : 'Add to featured'}
+                  className={`inline-flex h-9 w-9 items-center justify-center rounded-card ${c.featured ? 'bg-reward-gold/15 text-reward-gold' : 'bg-bg-elevated text-ink-muted'}`}>
+                  <Star className="h-4 w-4" fill={c.featured ? 'currentColor' : 'none'} />
+                </button>
+                <button onClick={() => setTasksFor(c)} title={c.status === 'ended' ? 'Ended campaigns cannot receive tasks' : 'Manage tasks'}
+                  disabled={c.status === 'ended'}
+                  className="inline-flex h-9 items-center justify-center gap-1 rounded-card bg-brand-ice px-sm text-label font-medium text-brand-cobalt disabled:cursor-not-allowed disabled:opacity-40">
                   <ListChecks className="h-4 w-4" />
+                  <span>Tasks</span>
                 </button>
                 <button onClick={() => toggleStatus(c)} title={c.status === 'active' ? 'Pause' : 'Activate'}
                   className="inline-flex h-9 w-9 items-center justify-center rounded-card bg-brand-ice text-brand-cobalt">
@@ -342,6 +413,15 @@ export function CampaignsPage() {
       <Modal open={partnerOpen} onClose={() => setPartnerOpen(false)} title="New partner">
         <div className="space-y-lg">
           <Input label="Partner name" value={partnerName} onChange={(e) => setPartnerName(e.target.value)} />
+          <div>
+            <label className="mb-2 block text-label font-medium text-ink-primary">Partner tier</label>
+            <select value={partnerTier} onChange={(e) => setPartnerTier(e.target.value)} className="w-full rounded-card border border-line bg-bg-primary px-md py-3 text-body text-ink-primary">
+              <option value="bronze">Bronze</option>
+              <option value="silver">Silver</option>
+              <option value="gold">Gold</option>
+              <option value="platinum">Platinum</option>
+            </select>
+          </div>
           <Button className="w-full" onClick={createPartner}>Create Partner</Button>
         </div>
       </Modal>
@@ -367,6 +447,55 @@ export function CampaignsPage() {
             <input type="checkbox" checked={form.featured} onChange={(e) => setForm({ ...form, featured: e.target.checked })} className="h-4 w-4 accent-brand-cobalt" />
             Feature this campaign
           </label>
+          <div className="space-y-md rounded-card border border-line bg-bg-elevated p-md">
+            <div>
+              <p className="font-medium text-ink-primary">Campaign tasks</p>
+              <p className="text-label text-ink-muted">Add the actions participants must complete during this campaign.</p>
+            </div>
+            {draftTasks.length > 0 && (
+              <div className="space-y-1">
+                {draftTasks.map((task, index) => (
+                  <div key={`${task.title}-${index}`} className="flex items-center justify-between rounded-card bg-bg-primary px-sm py-2 text-label">
+                    <span className="truncate text-ink-primary">{index + 1}. {task.title}</span>
+                    <span className="ml-sm shrink-0 text-ink-muted">{task.pp_reward} PP</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <Input label="Task title" value={taskDraft.title} onChange={(e) => setTaskDraft({ ...taskDraft, title: e.target.value })} />
+            <Input label="Task instructions" value={taskDraft.description} onChange={(e) => setTaskDraft({ ...taskDraft, description: e.target.value })} />
+            <div className="grid grid-cols-2 gap-md">
+              <Input label="Task reward (PP)" type="number" value={taskDraft.pp_reward} onChange={(e) => setTaskDraft({ ...taskDraft, pp_reward: e.target.value })} />
+              <Input label="Daily limit" type="number" value={taskDraft.daily_limit} onChange={(e) => setTaskDraft({ ...taskDraft, daily_limit: e.target.value })} />
+            </div>
+            <div>
+              <label className="mb-2 block text-label font-medium text-ink-primary">Verification</label>
+              <select value={taskDraft.verification_type} onChange={(e) => setTaskDraft({ ...taskDraft, verification_type: e.target.value })}
+                className="w-full rounded-card border border-line bg-bg-primary px-md py-3 text-body text-ink-primary">
+                <option value="manual">Manual review</option>
+                <option value="screenshot">Screenshot</option>
+                <option value="on_chain">On-chain transaction</option>
+                <option value="oauth">OAuth review</option>
+                <option value="webhook">Webhook review</option>
+              </select>
+            </div>
+            <Input label="Task action URL (optional)" value={taskDraft.action_url} onChange={(e) => setTaskDraft({ ...taskDraft, action_url: e.target.value })} />
+            <div className="space-y-sm">
+              <label className="flex items-center gap-sm text-label text-ink-muted"><input type="checkbox" checked={taskDraft.screenshot_required} onChange={(e) => setTaskDraft({ ...taskDraft, screenshot_required: e.target.checked })} className="h-4 w-4 accent-brand-cobalt" /> Screenshot upload required</label>
+              <label className="flex items-center gap-sm text-label text-ink-muted"><input type="checkbox" checked={taskDraft.link_required} onChange={(e) => setTaskDraft({ ...taskDraft, link_required: e.target.checked })} className="h-4 w-4 accent-brand-cobalt" /> Completion link required</label>
+            </div>
+            <Button variant="ghost" className="w-full" onClick={() => {
+              const reward = parseInt(taskDraft.pp_reward, 10);
+              if (!taskDraft.title.trim() || !reward || reward <= 0) {
+                toast.error('Task title and reward are required');
+                return;
+              }
+              setDraftTasks([...draftTasks, taskDraft]);
+              setTaskDraft({ title: '', description: '', pp_reward: '', verification_type: 'manual', daily_limit: '1', action_url: '', screenshot_required: false, link_required: false });
+            }}>
+              <ListChecks className="h-4 w-4" /> Add task to campaign
+            </Button>
+          </div>
           <Button className="w-full" onClick={createCampaign}>Create Campaign</Button>
         </div>
       </Modal>

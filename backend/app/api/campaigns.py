@@ -22,9 +22,12 @@ from app.schemas.campaign import (
     EligibilityResponse,
     CampaignTaskCompleteRequest,
     CampaignTaskCompletionResponse,
+    CampaignWithdrawalResponse,
     CampaignCreate,
     CampaignStatusUpdate,
+    CampaignFeaturedUpdate,
     CampaignTaskCreate,
+    CampaignTaskUpdate,
     CampaignTaskActiveUpdate,
     CampaignReviewRequest,
     CampaignDeleteResponse,
@@ -56,7 +59,7 @@ async def list_campaigns(current_user: CurrentUser, db: DB):
 @campaigns_router.get("/{campaign_id}", response_model=CampaignResponse)
 async def get_campaign(campaign_id: uuid.UUID, current_user: CurrentUser, db: DB):
     try:
-        return await CampaignService.get_campaign(db, campaign_id)
+        return await CampaignService.get_public_campaign(db, current_user, campaign_id)
     except ValueError as e:
         raise _bad(e, status.HTTP_404_NOT_FOUND)
 
@@ -64,7 +67,7 @@ async def get_campaign(campaign_id: uuid.UUID, current_user: CurrentUser, db: DB
 @campaigns_router.get("/{campaign_id}/eligibility", response_model=EligibilityResponse)
 async def check_eligibility(campaign_id: uuid.UUID, current_user: CurrentUser, db: DB):
     try:
-        campaign = await CampaignService.get_campaign(db, campaign_id)
+        campaign = await CampaignService.get_public_campaign(db, current_user, campaign_id)
         return await CampaignService.check_eligibility(db, current_user, campaign)
     except ValueError as e:
         raise _bad(e, status.HTTP_404_NOT_FOUND)
@@ -75,6 +78,17 @@ async def join_campaign(campaign_id: uuid.UUID, current_user: EconomicUser, db: 
     try:
         await CampaignService.join_campaign(db, current_user, campaign_id)
         return {"success": True, "message": "Joined campaign"}
+    except ValueError as e:
+        raise _bad(e)
+
+
+@campaigns_router.post(
+    "/{campaign_id}/withdraw",
+    response_model=CampaignWithdrawalResponse,
+)
+async def withdraw_campaign_points(campaign_id: uuid.UUID, current_user: EconomicUser, db: DB):
+    try:
+        return await CampaignService.withdraw_points(db, current_user, campaign_id)
     except ValueError as e:
         raise _bad(e)
 
@@ -140,6 +154,19 @@ async def admin_set_campaign_status(
         raise _bad(e, status.HTTP_404_NOT_FOUND)
 
 
+@admin_router.patch("/{campaign_id}/featured", response_model=CampaignResponse)
+async def admin_set_campaign_featured(
+    campaign_id: uuid.UUID,
+    body: CampaignFeaturedUpdate,
+    admin: Admin,
+    db: DB,
+):
+    try:
+        return await CampaignService.set_campaign_featured(db, campaign_id, body.featured)
+    except ValueError as e:
+        raise _bad(e, status.HTTP_404_NOT_FOUND)
+
+
 @admin_router.get("/{campaign_id}/tasks", response_model=CampaignTaskListResponse)
 async def admin_list_tasks(campaign_id: uuid.UUID, admin: Admin, db: DB):
     try:
@@ -153,6 +180,23 @@ async def admin_list_tasks(campaign_id: uuid.UUID, admin: Admin, db: DB):
 async def admin_create_task(campaign_id: uuid.UUID, body: CampaignTaskCreate, admin: Admin, db: DB):
     try:
         return await CampaignService.create_task(db, campaign_id, body)
+    except ValueError as e:
+        raise _bad(e, status.HTTP_404_NOT_FOUND)
+
+
+@admin_router.patch(
+    "/{campaign_id}/tasks/{task_id}",
+    response_model=CampaignTaskResponse,
+)
+async def admin_update_task(
+    campaign_id: uuid.UUID,
+    task_id: uuid.UUID,
+    body: CampaignTaskUpdate,
+    admin: Admin,
+    db: DB,
+):
+    try:
+        return await CampaignService.update_task(db, campaign_id, task_id, body)
     except ValueError as e:
         raise _bad(e, status.HTTP_404_NOT_FOUND)
 

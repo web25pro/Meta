@@ -76,7 +76,7 @@ export function QuestsPage() {
       resetForm();
       refresh();
     } catch (e: any) {
-      toast.error(e?.response?.data?.detail || 'Failed to create quest');
+      toast.error(e?.response?.data?.error?.message || e?.response?.data?.detail || 'Failed to create quest');
     }
   };
 
@@ -85,7 +85,7 @@ export function QuestsPage() {
       await adminAPI.updateQuest(q.id, { is_active: !q.is_active });
       refresh();
     } catch (e: any) {
-      toast.error(e?.response?.data?.detail || 'Failed');
+      toast.error(e?.response?.data?.error?.message || e?.response?.data?.detail || 'Failed');
     }
   };
 
@@ -96,7 +96,7 @@ export function QuestsPage() {
       toast.success('Quest deleted');
       refresh();
     } catch (e: any) {
-      toast.error(e?.response?.data?.detail || 'Failed');
+      toast.error(e?.response?.data?.error?.message || e?.response?.data?.detail || 'Failed');
     }
   };
 

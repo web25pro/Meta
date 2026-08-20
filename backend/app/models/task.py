@@ -67,7 +67,8 @@ class Task(Base):
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False)
     assigned_to_group: Mapped[AssignedGroup] = mapped_column(
-        SQLEnum(AssignedGroup, name="assigned_group", create_type=True),
+        SQLEnum(AssignedGroup, name="assigned_group", create_type=True,
+                values_callable=lambda enum: [member.value for member in enum]),
         nullable=False,
         index=True
     )
@@ -91,7 +92,8 @@ class Task(Base):
         index=True
     )
     category: Mapped[TaskCategory | None] = mapped_column(
-        SQLEnum(TaskCategory, name="task_category", create_type=True),
+        SQLEnum(TaskCategory, name="task_category", create_type=True,
+                values_callable=lambda enum: [member.value for member in enum]),
         nullable=True,
         index=True
     )
@@ -112,7 +114,8 @@ class Task(Base):
         default=False
     )
     difficulty_level: Mapped[DifficultyLevel | None] = mapped_column(
-        SQLEnum(DifficultyLevel, name="difficulty_level", create_type=True),
+        SQLEnum(DifficultyLevel, name="difficulty_level", create_type=True,
+                values_callable=lambda enum: [member.value for member in enum]),
         nullable=True
     )
     estimated_time_minutes: Mapped[int | None] = mapped_column(

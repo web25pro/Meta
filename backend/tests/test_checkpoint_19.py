@@ -23,7 +23,7 @@ from app.services.points_service import PointsService
 @pytest.mark.asyncio
 async def test_deadline_enforcement_no_overdue_tasks(db_session: AsyncSession):
     """Test deadline enforcement with no overdue tasks"""
-    result = await _check_deadline_penalties_async()
+    result = await _check_deadline_penalties_async(db_session)
     
     assert result["status"] == "completed"
     assert result["penalties_applied"] == 0
@@ -36,8 +36,8 @@ async def test_deadline_enforcement_with_submission(db_session: AsyncSession):
     # Create user
     user = User(
         email="test@example.com",
-        hashed_password="hashed",
-        full_name="Test User",
+        password_hash="hashed",
+        name="Test User",
         role=UserRole.TEAM_MEMBER,
         user_type=UserType.TEAM_MEMBER,
         points=100.0
@@ -67,13 +67,13 @@ async def test_deadline_enforcement_with_submission(db_session: AsyncSession):
     submission = TaskSubmission(
         task_id=task.id,
         user_id=user.id,
-        submission_text="Test submission"
+        content="Test submission"
     )
     db_session.add(submission)
     await db_session.commit()
     
     # Run deadline enforcement
-    result = await _check_deadline_penalties_async()
+    result = await _check_deadline_penalties_async(db_session)
     
     # Verify no penalty was applied
     assert result["status"] == "completed"
@@ -91,8 +91,8 @@ async def test_deadline_enforcement_applies_penalty(db_session: AsyncSession):
     # Create user with sufficient points
     user = User(
         email="test2@example.com",
-        hashed_password="hashed",
-        full_name="Test User 2",
+        password_hash="hashed",
+        name="Test User 2",
         role=UserRole.TEAM_MEMBER,
         user_type=UserType.TEAM_MEMBER,
         points=200.0
@@ -120,7 +120,7 @@ async def test_deadline_enforcement_applies_penalty(db_session: AsyncSession):
     await db_session.commit()
     
     # Run deadline enforcement
-    result = await _check_deadline_penalties_async()
+    result = await _check_deadline_penalties_async(db_session)
     
     # Verify penalty was applied
     assert result["status"] == "completed"
@@ -160,8 +160,8 @@ async def test_deadline_enforcement_idempotency(db_session: AsyncSession):
     # Create user
     user = User(
         email="test3@example.com",
-        hashed_password="hashed",
-        full_name="Test User 3",
+        password_hash="hashed",
+        name="Test User 3",
         role=UserRole.TEAM_MEMBER,
         user_type=UserType.TEAM_MEMBER,
         points=300.0
@@ -189,7 +189,7 @@ async def test_deadline_enforcement_idempotency(db_session: AsyncSession):
     await db_session.commit()
     
     # Run deadline enforcement first time
-    result1 = await _check_deadline_penalties_async()
+    result1 = await _check_deadline_penalties_async(db_session)
     assert result1["penalties_applied"] == 1
     
     # Verify points after first run
@@ -198,7 +198,7 @@ async def test_deadline_enforcement_idempotency(db_session: AsyncSession):
     assert points_after_first == 200.0
     
     # Run deadline enforcement second time
-    result2 = await _check_deadline_penalties_async()
+    result2 = await _check_deadline_penalties_async(db_session)
     
     # Verify no additional penalty was applied
     assert result2["penalties_applied"] == 0
@@ -214,16 +214,16 @@ async def test_deadline_enforcement_multiple_users(db_session: AsyncSession):
     # Create users
     user1 = User(
         email="user1@example.com",
-        hashed_password="hashed",
-        full_name="User 1",
+        password_hash="hashed",
+        name="User 1",
         role=UserRole.TEAM_MEMBER,
         user_type=UserType.TEAM_MEMBER,
         points=150.0
     )
     user2 = User(
         email="user2@example.com",
-        hashed_password="hashed",
-        full_name="User 2",
+        password_hash="hashed",
+        name="User 2",
         role=UserRole.TEAM_MEMBER,
         user_type=UserType.TEAM_MEMBER,
         points=250.0
@@ -255,13 +255,13 @@ async def test_deadline_enforcement_multiple_users(db_session: AsyncSession):
     submission = TaskSubmission(
         task_id=task.id,
         user_id=user1.id,
-        submission_text="User 1 submission"
+        content="User 1 submission"
     )
     db_session.add(submission)
     await db_session.commit()
     
     # Run deadline enforcement
-    result = await _check_deadline_penalties_async()
+    result = await _check_deadline_penalties_async(db_session)
     
     # Verify only user2 was penalized
     assert result["penalties_applied"] == 1
@@ -291,8 +291,8 @@ async def test_leaderboard_cache_refresh_with_users(db_session: AsyncSession):
     users = [
         User(
             email=f"user{i}@example.com",
-            hashed_password="hashed",
-            full_name=f"User {i}",
+            password_hash="hashed",
+            name=f"User {i}",
             role=UserRole.TEAM_MEMBER,
             user_type=UserType.TEAM_MEMBER,
             points=float(100 * i)
@@ -331,16 +331,16 @@ async def test_leaderboard_cache_updates_after_points_change(db_session: AsyncSe
     # Create users
     user1 = User(
         email="leader1@example.com",
-        hashed_password="hashed",
-        full_name="Leader 1",
+        password_hash="hashed",
+        name="Leader 1",
         role=UserRole.TEAM_MEMBER,
         user_type=UserType.TEAM_MEMBER,
         points=100.0
     )
     user2 = User(
         email="leader2@example.com",
-        hashed_password="hashed",
-        full_name="Leader 2",
+        password_hash="hashed",
+        name="Leader 2",
         role=UserRole.TEAM_MEMBER,
         user_type=UserType.TEAM_MEMBER,
         points=200.0
@@ -387,16 +387,16 @@ async def test_integrated_workflow_deadline_and_leaderboard(db_session: AsyncSes
     # Create users
     user1 = User(
         email="workflow1@example.com",
-        hashed_password="hashed",
-        full_name="Workflow User 1",
+        password_hash="hashed",
+        name="Workflow User 1",
         role=UserRole.AMBASSADOR,
         user_type=UserType.AMBASSADOR,
         points=300.0
     )
     user2 = User(
         email="workflow2@example.com",
-        hashed_password="hashed",
-        full_name="Workflow User 2",
+        password_hash="hashed",
+        name="Workflow User 2",
         role=UserRole.AMBASSADOR,
         user_type=UserType.AMBASSADOR,
         points=250.0
@@ -435,7 +435,7 @@ async def test_integrated_workflow_deadline_and_leaderboard(db_session: AsyncSes
     await db_session.commit()
     
     # Run deadline enforcement
-    penalty_result = await _check_deadline_penalties_async()
+    penalty_result = await _check_deadline_penalties_async(db_session)
     assert penalty_result["penalties_applied"] == 1
     
     # Refresh leaderboard

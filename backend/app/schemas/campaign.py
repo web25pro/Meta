@@ -19,7 +19,7 @@ class CampaignStatus(str, Enum):
 
 
 class VerificationType(str, Enum):
-    """Same vocabulary as quests; oauth/webhook auto-approve."""
+    """Same vocabulary as quests; every client submission is review-gated."""
     OAUTH = "oauth"
     WEBHOOK = "webhook"
     MANUAL = "manual"
@@ -39,6 +39,7 @@ class CampaignResponse(BaseModel):
     id: uuid.UUID
     slug: str
     brand: Optional[str] = None
+    partner_tier: Optional[str] = None
     title: str
     blurb: str
     pp_budget: int
@@ -54,6 +55,9 @@ class CampaignResponse(BaseModel):
     target_roles: List[str] = []
     min_role: str
     joined: bool = False
+    my_pp_earned: float = 0
+    my_pp_withdrawn: float = 0
+    my_pp_available: float = 0
     starts_at: Optional[datetime] = None
     ends_at: Optional[datetime] = None
 
@@ -73,6 +77,8 @@ class CampaignTaskResponse(BaseModel):
     verification_type: VerificationType
     daily_limit: int
     action_url: Optional[str] = None
+    screenshot_required: bool = False
+    link_required: bool = False
     order_index: int
     is_active: bool
     completed_today: int = 0
@@ -109,6 +115,13 @@ class CampaignTaskCompletionResponse(BaseModel):
     created_at: datetime
 
 
+class CampaignWithdrawalResponse(BaseModel):
+    campaign_id: uuid.UUID
+    amount: float
+    total_withdrawn: float
+    message: str
+
+
 # ── Admin ───────────────────────────────────────────────────────────────────
 class CampaignCreate(BaseModel):
     partner_id: uuid.UUID
@@ -129,6 +142,10 @@ class CampaignStatusUpdate(BaseModel):
     status: CampaignStatus
 
 
+class CampaignFeaturedUpdate(BaseModel):
+    featured: bool
+
+
 class CampaignTaskCreate(BaseModel):
     title: str = Field(..., min_length=1, max_length=255)
     description: str = ""
@@ -136,7 +153,22 @@ class CampaignTaskCreate(BaseModel):
     verification_type: VerificationType = VerificationType.MANUAL
     daily_limit: int = Field(1, gt=0)
     action_url: Optional[str] = None
+    screenshot_required: bool = False
+    link_required: bool = False
     order_index: int = Field(0, ge=0)
+
+
+class CampaignTaskUpdate(BaseModel):
+    title: Optional[str] = Field(None, min_length=1, max_length=255)
+    description: Optional[str] = None
+    pp_reward: Optional[int] = Field(None, gt=0)
+    verification_type: Optional[VerificationType] = None
+    daily_limit: Optional[int] = Field(None, gt=0)
+    action_url: Optional[str] = None
+    screenshot_required: Optional[bool] = None
+    link_required: Optional[bool] = None
+    order_index: Optional[int] = Field(None, ge=0)
+    is_active: Optional[bool] = None
 
 
 class CampaignTaskActiveUpdate(BaseModel):

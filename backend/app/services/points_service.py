@@ -22,6 +22,25 @@ class PointsService:
     TEAM_MEMBER_TASK_REWARD = 50.0
     AMBASSADOR_TASK_REWARD = 138.6
     DEADLINE_PENALTY = -100.0
+
+    @staticmethod
+    async def award_bonus_points(
+        db: AsyncSession,
+        user_id: uuid.UUID,
+        amount: float,
+        reason: str,
+        admin_id: uuid.UUID | None = None,
+    ) -> PointsTransaction:
+        """Compatibility entry point for trusted background/admin workflows."""
+        if amount <= 0:
+            raise ValueError("Bonus amount must be positive")
+        return await PointsService.create_transaction(
+            db=db,
+            user_id=user_id,
+            amount=amount,
+            transaction_type=TransactionType.ADMIN_BONUS,
+            reason=reason,
+        )
     
     @staticmethod
     async def create_transaction(

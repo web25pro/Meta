@@ -59,7 +59,9 @@ apiClient.interceptors.request.use(
 
     // Attach idempotency key to mutating requests
     const method = (config.method || '').toUpperCase();
-    if (['POST', 'PUT', 'PATCH'].includes(method)) {
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method) && !config.headers['X-Idempotency-Key']) {
+      // Preserve the original key when Axios retries a request. Generating a
+      // fresh key on retry turns a network retry into a second mutation.
       config.headers['X-Idempotency-Key'] = generateIdempotencyKey();
     }
 

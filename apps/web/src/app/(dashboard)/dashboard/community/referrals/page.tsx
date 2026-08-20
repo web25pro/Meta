@@ -7,7 +7,6 @@ import { toast } from 'sonner';
 import { Card, StatCard, Button, Skeleton } from '@meta-jungle/ui';
 import { communityAPI } from '@/api/community';
 import { useAuth } from '@/context/auth-context';
-import apiClient from '@/lib/api';
 
 interface ReferralData {
   referral_code: string;
@@ -35,14 +34,14 @@ export default function ReferralsPage() {
       try {
         const [codeRes, statsRes] = await Promise.all([
           communityAPI.getReferralCode(),
-          apiClient.get('/community/referral-stats').catch(() => ({ data: {} })),
+          communityAPI.getReferralStats(),
         ]);
         setReferralData({
           referral_code: codeRes.referral_code,
           referral_link: `${baseUrl}/auth/register?ref=${codeRes.referral_code}`,
-          total_referrals: statsRes.data.total_referrals ?? 0,
-          successful_referrals: statsRes.data.successful_referrals ?? 0,
-          referral_earnings: statsRes.data.referral_earnings ?? 0,
+          total_referrals: statsRes.total_referrals,
+          successful_referrals: statsRes.successful_referrals,
+          referral_earnings: statsRes.referral_earnings,
         });
       } catch {
         toast.error('Failed to load referral data');
@@ -106,7 +105,7 @@ export default function ReferralsPage() {
             </Button>
           </div>
           <p className="mt-md text-label text-brand-ice">
-            Referral reward: 300 PP when your friend completes 3 quests in 7 days.
+            You earn 10 PP when someone signs up with this link.
           </p>
         </div>
       </div>

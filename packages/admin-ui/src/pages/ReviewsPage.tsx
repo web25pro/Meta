@@ -31,7 +31,7 @@ export function ReviewsPage() {
       setRejecting(null);
       setReason('');
     } catch (e: any) {
-      toast.error(e?.response?.data?.detail || 'Failed');
+      toast.error(e?.response?.data?.error?.message || e?.response?.data?.detail || 'Failed');
     }
   };
 
@@ -115,8 +115,27 @@ export function ReviewsPage() {
                   {expanded === c.id && (
                     <div className="mt-md rounded-card border border-line bg-bg-elevated p-md">
                       <p className="mb-1 text-label font-medium text-ink-primary">Submitted proof</p>
+                      {typeof c.proof?.screenshot_image === 'string' && (
+                        <img
+                          src={c.proof.screenshot_image}
+                          alt="Submitted screenshot"
+                          className="mb-md max-h-64 max-w-full rounded-card border border-line object-contain"
+                        />
+                      )}
+                      {typeof c.proof?.screenshot_url === 'string' && (
+                        <a
+                          href={c.proof.screenshot_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mb-md block text-label font-medium text-brand-cobalt hover:underline"
+                        >
+                          Open screenshot link
+                        </a>
+                      )}
                       <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-words text-label text-ink-muted">
-                        {c.proof ? JSON.stringify(c.proof, null, 2) : 'No proof attached.'}
+                        {c.proof
+                          ? JSON.stringify({ ...c.proof, screenshot_image: c.proof.screenshot_image ? '[image attached]' : undefined }, null, 2)
+                          : 'No proof attached.'}
                       </pre>
                       {c.review_reason && (
                         <p className="mt-md text-label text-ink-muted">Review note: {c.review_reason}</p>

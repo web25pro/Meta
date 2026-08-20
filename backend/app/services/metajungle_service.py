@@ -1,6 +1,7 @@
 """Meta-Jungle ecosystem service layer (Chapters 5–13)."""
 import uuid
 import secrets
+import re
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
@@ -166,6 +167,40 @@ class MetaJungleService:
             return DAILY_CAP_ONE_NFT
         return DAILY_CAP_NO_NFT
 
+    @staticmethod
+    def validate_screenshot_proof(proof: Optional[dict]) -> None:
+        """Validate optional screenshot evidence without trusting the browser.
+
+        A screenshot task may be submitted with a link, an inline image, both,
+        or no attachment. Inline images are deliberately bounded so proof JSON
+        cannot become an unbounded database payload.
+        """
+        if not proof:
+            return
+
+        screenshot_url = proof.get("screenshot_url")
+        if screenshot_url is not None:
+            if not isinstance(screenshot_url, str) or not re.match(
+                r"^https?://[^\s]+$", screenshot_url
+            ):
+                raise ValueError("Screenshot link must be a valid http(s) URL")
+
+        proof_url = proof.get("proof_url")
+        if proof_url is not None and (
+            not isinstance(proof_url, str) or not re.match(r"^https?://[^\s]+$", proof_url)
+        ):
+            raise ValueError("Completion link must be a valid http(s) URL")
+
+        screenshot_image = proof.get("screenshot_image")
+        if screenshot_image is not None:
+            if not isinstance(screenshot_image, str) or not re.match(
+                r"^data:image/(?:png|jpeg|gif|webp);base64,[A-Za-z0-9+/=]+$",
+                screenshot_image,
+            ):
+                raise ValueError("Screenshot image must be a valid PNG, JPG, GIF, or WebP")
+            if len(screenshot_image) > 7_000_000:
+                raise ValueError("Screenshot image must be 5 MB or smaller")
+
     # ── Quests (Chapter 5.2) ────────────────────────────────────────────────
     @staticmethod
     async def list_quests(db: AsyncSession, page: int = 1, page_size: int = 20) -> tuple[list[Quest], int]:
@@ -174,6 +209,7 @@ class MetaJungleService:
         base = (
             Quest.is_active.is_(True),
             Quest.deleted_at.is_(None),
+            (Quest.starts_at.is_(None)) | (Quest.starts_at <= now),
             (Quest.ends_at.is_(None)) | (Quest.ends_at > now),
         )
         count_q = select(func.count()).select_from(Quest).where(*base)
@@ -265,9 +301,13 @@ class MetaJungleService:
                     "Please provide 'steps_completed' in your proof."
                 )
             steps_completed = proof.get("steps_completed")
-            if not isinstance(steps_completed, list) or len(steps_completed) != len(quest.steps):
+            if (
+                not isinstance(steps_completed, list)
+                or len(steps_completed) != len(quest.steps)
+                or not all(isinstance(step, bool) and step for step in steps_completed)
+            ):
                 raise ValueError(
-                    f"'steps_completed' must be a list of {len(quest.steps)} boolean values"
+                    f"'steps_completed' must contain {len(quest.steps)} completed boolean steps"
                 )
 
         # Validate proof based on verification_type.
@@ -279,15 +319,32 @@ class MetaJungleService:
         # types are review-gated like the rest until it does.
         vtype = quest.verification_type
 
+        proof = proof or {}
+        proof_url = proof.get("proof_url") or proof.get("screenshot_url")
+        if proof_url is not None and (
+            not isinstance(proof_url, str) or not re.match(r"^https?://[^\s]+$", proof_url)
+        ):
+            raise ValueError("Completion link must be a valid http(s) URL")
+        if quest.link_required and not proof_url:
+            raise ValueError("This quest requires a link showing the completed action")
+        if quest.screenshot_required:
+            screenshot = proof.get("screenshot_image")
+            if not isinstance(screenshot, str) or not screenshot.startswith("data:image/"):
+                raise ValueError("This quest requires an uploaded screenshot")
+        if proof.get("screenshot_image") or proof.get("screenshot_url") or proof.get("proof_url"):
+            MetaJungleService.validate_screenshot_proof(proof)
+
         if vtype == "on_chain":
             # Require tx_hash in proof
-            if not proof or not proof.get("tx_hash"):
+            tx_hash = proof.get("tx_hash")
+            if not isinstance(tx_hash, str) or not re.match(r"^0x[a-fA-F0-9]{64}$", tx_hash):
                 raise ValueError(
-                    "On-chain quests require a 'tx_hash' in your proof"
+                    "On-chain quests require a valid 0x transaction hash"
                 )
         elif vtype == "screenshot":
-            if not proof or not proof.get("screenshot_url"):
-                raise ValueError("Screenshot quests require a 'screenshot_url' in your proof")
+            if not (proof.get("screenshot_image") or proof.get("screenshot_url") or proof.get("proof_url")):
+                raise ValueError("Screenshot quests require a screenshot or completion link")
+            MetaJungleService.validate_screenshot_proof(proof)
 
         # Daily earn cap with role multiplier
         award = int(round(quest.pp_reward * rep["earn_multiplier"]))

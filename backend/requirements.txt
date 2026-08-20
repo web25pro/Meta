@@ -16,6 +16,7 @@ pydantic-settings==2.1.0
 python-json-logger==2.0.7
 aiofiles==23.2.1
 sentry-sdk[fastapi]==1.40.0
+redis==5.0.8
 
 # Development dependencies
 pytest==7.4.4

@@ -1,8 +1,11 @@
 """Pytest configuration and fixtures"""
 import asyncio
+import uuid
 import pytest
 from typing import AsyncGenerator, Generator
 from httpx import AsyncClient, ASGITransport
+from sqlalchemy import text
+from sqlalchemy.pool import NullPool
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 
 from app.main import app
@@ -12,13 +15,31 @@ from app.core.config import settings
 from app.core.security import create_access_token, hash_password
 from app.models import User, UserRole, UserType
 
-# Test database URL (use separate test database)
-TEST_DATABASE_URL = settings.DATABASE_URL.replace("/lpanda_db", "/lpanda_test_db")
+# Tests run in an isolated schema, not in ``public``. The old string-replace
+# approach silently reused the configured database whenever its name was not
+# literally ``lpanda_db`` (for example a managed Postgres ``postgres`` DB).
+TEST_DATABASE_URL = settings.DATABASE_URL
+TEST_SCHEMA = f"test_{uuid.uuid4().hex}"
+
+
+async def _truncate(session: AsyncSession) -> None:
+    tables = ", ".join(table.name for table in Base.metadata.sorted_tables)
+    await session.execute(text(f"TRUNCATE TABLE {tables} RESTART IDENTITY CASCADE"))
+    await session.commit()
 
 @pytest.fixture(scope="session")
 async def test_engine():
     """Create test database engine"""
-    engine = create_async_engine(TEST_DATABASE_URL, echo=False)
+    admin_engine = create_async_engine(TEST_DATABASE_URL, echo=False)
+    async with admin_engine.begin() as conn:
+        await conn.execute(text(f"CREATE SCHEMA {TEST_SCHEMA}"))
+
+    engine = create_async_engine(
+        TEST_DATABASE_URL,
+        echo=False,
+        poolclass=NullPool,
+        connect_args={"server_settings": {"search_path": f"{TEST_SCHEMA},public"}},
+    )
     
     # Create all tables
     async with engine.begin() as conn:
@@ -26,11 +47,10 @@ async def test_engine():
     
     yield engine
     
-    # Drop all tables
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
-    
     await engine.dispose()
+    async with admin_engine.begin() as conn:
+        await conn.execute(text(f"DROP SCHEMA {TEST_SCHEMA} CASCADE"))
+    await admin_engine.dispose()
 
 
 @pytest.fixture
@@ -43,10 +63,12 @@ async def db_session(test_engine) -> AsyncGenerator[AsyncSession, None]:
     )
     
     async with async_session() as session:
-        # Start a transaction
-        async with session.begin():
+        await _truncate(session)
+        try:
             yield session
-            # Rollback happens automatically when exiting the context
+        finally:
+            await session.rollback()
+            await _truncate(session)
 
 
 @pytest.fixture
