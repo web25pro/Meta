@@ -18,6 +18,7 @@ export interface CommunityUserResponse {
   level: number;
   current_streak: number;
   created_at: string;
+  verification_email_sent?: boolean | null;
 }
 
 export interface EmailVerificationResponse {
@@ -65,8 +66,8 @@ export const communityAPI = {
   /**
    * Resend verification email to email address
    */
-  resendVerificationEmail: async (email: string): Promise<{ message: string }> => {
-    const response = await apiClient.post<{ message: string }>('/community/resend-verification', undefined, {
+  resendVerificationEmail: async (email: string): Promise<{ message: string; email_sent: boolean }> => {
+    const response = await apiClient.post<{ message: string; email_sent: boolean }>('/community/resend-verification', undefined, {
       params: { email },
     });
     return response.data;

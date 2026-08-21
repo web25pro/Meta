@@ -50,10 +50,12 @@ from app.core.email import send_verification_email, send_password_reset_email
 from app.services.submission_service import SubmissionService
 from app.core.security import verify_password, create_access_token, create_refresh_token, hash_password
 from app.core.config import settings
+from app.core.logging import get_logger
 from app.models.user import User
 from app.api.user import get_current_user
 
 router = APIRouter(prefix="/api/v1/community", tags=["Community"])
+logger = get_logger(__name__)
 
 
 def get_client_ip(request: Request) -> str:
@@ -95,9 +97,12 @@ async def register_community_user(
     if user.email_verification_token:
         try:
             await send_verification_email(user.email, user.email_verification_token)
+            user.verification_email_sent = True
         except Exception:
-            # If email delivery fails, still return the user object
-            pass
+            logger.exception("Verification email could not be sent", extra={"user_id": str(user.id)})
+            # The account is still created so the user can retry later, but the
+            # response must not falsely claim that an email was delivered.
+            user.verification_email_sent = False
     
     return user
 
@@ -162,10 +167,10 @@ async def resend_verification_email(
     
     # Always return success for security (don't reveal if email exists)
     if not user:
-        return {"message": "If the email exists, a verification link has been sent"}
+        return {"message": "If the email exists, a verification link has been sent", "email_sent": True}
     
     if user.email_verified:
-        return {"message": "Email is already verified"}
+        return {"message": "Email is already verified", "email_sent": False}
 
     if not user.email_verification_token:
         user.email_verification_token = generate_verification_token(user.id)
@@ -175,9 +180,13 @@ async def resend_verification_email(
     try:
         await send_verification_email(user.email, user.email_verification_token)
     except Exception:
-        pass
+        logger.exception("Verification resend failed", extra={"user_id": str(user.id)})
+        return {
+            "message": "We could not send the verification email right now. Please try again shortly.",
+            "email_sent": False,
+        }
 
-    return {"message": "Verification email sent successfully"}
+    return {"message": "Verification email sent successfully", "email_sent": True}
 
 
 @router.post("/login", response_model=LoginResponse)

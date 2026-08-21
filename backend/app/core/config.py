@@ -39,7 +39,9 @@ class Settings(BaseSettings):
 
     # Email (Resend)
     RESEND_API_KEY: str = ""
-    EMAIL_FROM: str = "onboarding@resend.dev"
+    # Must be a sender verified in Resend. The Resend test sender only reaches
+    # the account owner's address and is not suitable for real sign-ups.
+    EMAIL_FROM: str = ""
     
     # Logging
     LOG_LEVEL: str = "INFO"

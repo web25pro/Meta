@@ -8,6 +8,10 @@ from app.core.logging import get_logger
 logger = get_logger(__name__)
 
 
+class EmailDeliveryError(RuntimeError):
+    """Raised when verification email cannot be handed to the provider."""
+
+
 def send_email(
     to_email: str,
     subject: str,
@@ -16,15 +20,13 @@ def send_email(
 ) -> None:
     """Send an email message using Resend SDK."""
     if not settings.RESEND_API_KEY:
-        logger.warning("RESEND_API_KEY is not configured, skipping email send")
-        return
+        raise EmailDeliveryError("Email delivery is not configured")
 
     resend.api_key = settings.RESEND_API_KEY
 
-    # Ensure a valid 'from' address is used, falling back to Resend's testing default if necessary
     from_email = settings.EMAIL_FROM
     if not from_email or "@" not in from_email:
-        from_email = "onboarding@resend.dev"
+        raise EmailDeliveryError("EMAIL_FROM must be a verified Resend sender address")
         
     # Format as 'Name <email@domain.com>' which Resend prefers
     formatted_from = f"LPanda Platform <{from_email}>" if "<" not in from_email else from_email
@@ -42,8 +44,8 @@ def send_email(
         response = resend.Emails.send(params)
         logger.info("Email sent via Resend", extra={"to": to_email, "subject": subject, "id": response.get("id")})
     except Exception as exc:
-        logger.error("Failed to send email via Resend", extra={"to": to_email, "subject": subject, "error": str(exc)})
-        raise
+        logger.exception("Failed to send email via Resend", extra={"to": to_email, "subject": subject})
+        raise EmailDeliveryError("Email provider rejected the message") from exc
 
 
 def build_verification_link(token: str) -> str:

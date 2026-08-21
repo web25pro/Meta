@@ -48,6 +48,7 @@ class CommunityUserResponse(BaseModel):
     level: int
     current_streak: int
     created_at: datetime
+    verification_email_sent: Optional[bool] = None
     
     model_config = {"from_attributes": True}
 

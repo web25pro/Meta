@@ -28,7 +28,11 @@ export default function ResendVerificationPage() {
   const onSubmit = async (data: ResendFormData) => {
     setIsLoading(true);
     try {
-      await communityAPI.resendVerificationEmail(data.email);
+      const response = await communityAPI.resendVerificationEmail(data.email);
+      if (!response.email_sent) {
+        toast.error(response.message);
+        return;
+      }
       setSubmittedEmail(data.email);
       setSubmitted(true);
       toast.success('Verification email sent! Check your inbox.');
