@@ -66,9 +66,21 @@ class IdempotencyMiddleware(BaseHTTPMiddleware):
     @staticmethod
     async def _body(request: Request) -> bytes:
         body = await request.body()
+        body_replayed = False
 
         async def receive():
-            return {"type": "http.request", "body": body, "more_body": False}
+            """Replay the body once, then signal end-of-stream.
+
+            Starlette may call ``receive`` again while it finishes a response.
+            Returning the same ``http.request`` event on every call causes an
+            ``Unexpected message received: http.request`` runtime error after
+            otherwise successful mutations such as quest completion.
+            """
+            nonlocal body_replayed
+            if not body_replayed:
+                body_replayed = True
+                return {"type": "http.request", "body": body, "more_body": False}
+            return {"type": "http.disconnect"}
 
         request._receive = receive  # noqa: SLF001
         return body

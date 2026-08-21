@@ -23,3 +23,21 @@ def test_authenticated_mutations_require_idempotency_tracking():
     middleware = IdempotencyMiddleware(lambda scope: None)
     assert not middleware._is_exempt(_request("POST", "/api/v1/quests/123/complete"))
     assert not middleware._is_exempt(_request("PATCH", "/api/v1/users/me"))
+
+
+async def test_body_is_replayed_once_then_disconnects():
+    """A repeated request event crashes Starlette after a successful handler."""
+    request = SimpleNamespace()
+
+    async def body():
+        return b'{"proof":{}}'
+
+    request.body = body
+    await IdempotencyMiddleware._body(request)
+
+    assert await request._receive() == {
+        "type": "http.request",
+        "body": b'{"proof":{}}',
+        "more_body": False,
+    }
+    assert await request._receive() == {"type": "http.disconnect"}
