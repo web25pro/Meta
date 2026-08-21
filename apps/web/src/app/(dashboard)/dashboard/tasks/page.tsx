@@ -8,6 +8,7 @@ import { Button, PPAmount, Skeleton, EmptyState, Badge, Modal, Input, cn } from 
 import { metajungleAPI, type ApiQuest } from '@/api/metajungle';
 import { fileToDataUrl, validateScreenshotFile } from '@/lib/screenshot-proof';
 import { useAuth } from '@/context/auth-context';
+import { handleAPIError } from '@/lib/api';
 
 const CATEGORY_TONE: Record<string, 'cobalt' | 'sky' | 'gold' | 'success' | 'amber' | 'neutral'> = {
   daily: 'amber',
@@ -68,8 +69,8 @@ export default function QuestsPage() {
       queryClient.invalidateQueries('mjQuests');
       queryClient.invalidateQueries('mjCompletions');
       queryClient.invalidateQueries('pointsHistory');
-    } catch (err: any) {
-      toast.error(err?.response?.data?.detail || 'Could not complete quest');
+    } catch (err: unknown) {
+      toast.error(handleAPIError(err));
     } finally {
       setCompleting(null);
     }
@@ -143,8 +144,8 @@ export default function QuestsPage() {
       queryClient.invalidateQueries('mjQuests');
       queryClient.invalidateQueries('mjCompletions');
       queryClient.invalidateQueries('pointsHistory');
-    } catch (err: any) {
-      toast.error(err?.response?.data?.detail || 'Could not complete quest');
+    } catch (err: unknown) {
+      toast.error(handleAPIError(err));
     } finally {
       setCompleting(null);
     }

@@ -8,6 +8,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
 
 from app.core.logging import get_logger
+from app.core.config import settings
 
 logger = get_logger(__name__)
 
@@ -132,7 +133,10 @@ class CSRFMiddleware(BaseHTTPMiddleware):
             max_age=86400,  # 1 day
             httponly=False,  # JS must be able to read it
             samesite="lax",
-            secure=True,
+            # Secure cookies are required in deployed environments, but an
+            # HTTPS-only cookie can never be returned by a local HTTP dev
+            # server. Without it every quest POST fails CSRF validation.
+            secure=settings.APP_ENV.lower() not in {"development", "dev", "test", "testing", "local"},
             path="/",
         )
 

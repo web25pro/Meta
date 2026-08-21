@@ -22,6 +22,7 @@ import {
 } from '@/api/metajungle';
 import { fileToDataUrl, validateScreenshotFile } from '@/lib/screenshot-proof';
 import { useAuth } from '@/context/auth-context';
+import { handleAPIError } from '@/lib/api';
 
 /**
  * Proof payload each verification type expects, mirroring the backend rules.
@@ -98,8 +99,8 @@ function TaskList({ campaign }: { campaign: ApiCampaign }) {
       }
       queryClient.invalidateQueries(['mjCampaignTasks', campaign.id]);
       queryClient.invalidateQueries('mjCampaigns');
-    } catch (err: any) {
-      toast.error(err?.response?.data?.detail || 'Could not complete this task');
+    } catch (err: unknown) {
+      toast.error(handleAPIError(err));
     } finally {
       setBusy(null);
     }
@@ -137,8 +138,8 @@ function TaskList({ campaign }: { campaign: ApiCampaign }) {
         : `Submitted for review — ${task.title}`);
       queryClient.invalidateQueries(['mjCampaignTasks', campaign.id]);
       queryClient.invalidateQueries('mjCampaigns');
-    } catch (err: any) {
-      toast.error(err?.response?.data?.detail || 'Could not complete this task');
+    } catch (err: unknown) {
+      toast.error(handleAPIError(err));
     } finally {
       setBusy(null);
     }

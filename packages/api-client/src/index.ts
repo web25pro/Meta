@@ -174,6 +174,10 @@ export default apiClient;
 export function handleAPIError(error: unknown): string {
   if (axios.isAxiosError(error)) {
     const apiError = error.response?.data as APIError;
+    const detail = (apiError as APIError & { detail?: unknown } | undefined)?.detail;
+    if (typeof detail === 'string' && detail) {
+      return detail;
+    }
     if (apiError?.error?.message) {
       return apiError.error.message;
     }
