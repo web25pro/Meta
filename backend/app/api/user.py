@@ -50,10 +50,10 @@ async def get_current_user(
             detail="User not found",
         )
 
-    if not user.is_active or user.deleted_at is not None:
+    if user.deleted_at is not None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User account is inactive",
+            detail="User not found",
             headers={"WWW-Authenticate": "Bearer"},
         )
     
@@ -73,6 +73,14 @@ async def get_economic_user(
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> User:
     """Authenticated user allowed to earn or spend platform value."""
+    if not current_user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=(
+                "Your account has been banned. You cannot complete quests, "
+                "join campaigns, or participate in campaign tasks."
+            ),
+        )
     if not current_user.email_verified:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

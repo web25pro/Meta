@@ -21,6 +21,7 @@ import {
   type ApiCampaignTask,
 } from '@/api/metajungle';
 import { fileToDataUrl, validateScreenshotFile } from '@/lib/screenshot-proof';
+import { useAuth } from '@/context/auth-context';
 
 /**
  * Proof payload each verification type expects, mirroring the backend rules.
@@ -71,6 +72,7 @@ function DeadlineBadge({ campaign }: { campaign: ApiCampaign }) {
 /** Task list for a joined campaign — the actual earn loop. */
 function TaskList({ campaign }: { campaign: ApiCampaign }) {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const [busy, setBusy] = useState<string | null>(null);
   const [proofTask, setProofTask] = useState<ApiCampaignTask | null>(null);
   const [proofInput, setProofInput] = useState('');
@@ -173,7 +175,7 @@ function TaskList({ campaign }: { campaign: ApiCampaign }) {
             {campaign.status === 'active' && task.can_complete ? (
               <Button
                 size="sm"
-                disabled={busy === task.id}
+                disabled={user?.is_banned || busy === task.id}
                 onClick={() => {
                   if (task.verification_type === 'screenshot' || task.screenshot_required || task.link_required) {
                     setProofTask(task);
@@ -296,6 +298,8 @@ function FeaturedCarousel({
 
 export default function CampaignsPage() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const isBanned = user?.is_banned === true;
   const { data, isLoading } = useQuery('mjCampaigns', metajungleAPI.listCampaigns, {
     retry: false,
   });
@@ -306,6 +310,10 @@ export default function CampaignsPage() {
   const rest = all.filter((c) => !c.featured);
 
   const join = async (c: ApiCampaign) => {
+    if (isBanned) {
+      toast.error('Your account has been banned and cannot join campaigns.');
+      return;
+    }
     try {
       await metajungleAPI.joinCampaign(c.id);
       toast.success(`Joined ${c.brand || 'campaign'}`);
@@ -348,7 +356,7 @@ export default function CampaignsPage() {
                 <div className="flex items-center justify-between gap-sm"><Badge tone="gold">{tierLabel(campaign.partner_tier)}</Badge><span className="text-label text-ink-muted">{campaign.brand}</span></div>
                 <h3 className="font-display text-body text-ink-primary">{campaign.title}</h3>
                 <p className="line-clamp-2 text-label text-ink-muted">{campaign.blurb}</p>
-                <div className="flex items-center justify-between"><PPAmount value={campaign.pp_per_task} size="sm" />{campaign.joined ? <Badge tone="success">Joined</Badge> : <Button size="sm" onClick={() => join(campaign)}>Join</Button>}</div>
+                <div className="flex items-center justify-between"><PPAmount value={campaign.pp_per_task} size="sm" />{campaign.joined ? <Badge tone="success">Joined</Badge> : <Button size="sm" disabled={isBanned} onClick={() => join(campaign)}>Join</Button>}</div>
               </Card>
             ))}
           </div>
@@ -411,7 +419,7 @@ export default function CampaignsPage() {
                 ) : (
                   <div className="mt-auto flex items-center justify-between">
                     <PPAmount value={c.pp_per_task} size="sm" />
-                    <Button size="sm" onClick={() => join(c)}>
+                    <Button size="sm" disabled={isBanned} onClick={() => join(c)}>
                       Join
                     </Button>
                   </div>

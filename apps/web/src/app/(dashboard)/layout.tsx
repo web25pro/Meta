@@ -22,9 +22,11 @@ import {
   ArrowLeftRight,
   Lock,
   Image as ImageIcon,
+  AlertTriangle,
 } from 'lucide-react';
 import { cn } from '@meta-jungle/ui';
 import { isAuthenticated, clearTokens, getAccessToken } from '@/lib/api';
+import { useAuth } from '@/context/auth-context';
 
 const navSections: {
   title?: string;
@@ -75,6 +77,7 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [streak, setStreak] = useState<number | null>(null);
+  const { user } = useAuth();
 
   useEffect(() => {
     if (!isAuthenticated()) router.push('/auth/login');
@@ -212,7 +215,21 @@ export default function DashboardLayout({
           </span>
         </header>
 
-        <main className="mx-auto max-w-6xl p-lg lg:p-xl">{children}</main>
+        <main className="mx-auto max-w-6xl p-lg lg:p-xl">
+          {user?.is_banned && (
+            <div
+              role="alert"
+              className="mb-lg flex items-start gap-md rounded-card border border-danger/30 bg-danger/10 p-md text-body text-danger"
+            >
+              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
+              <p>
+                Your account has been banned. You can view your account, but cannot
+                complete quests, join campaigns, or participate in campaign tasks.
+              </p>
+            </div>
+          )}
+          {children}
+        </main>
       </div>
     </div>
   );

@@ -47,6 +47,7 @@ class CommunityUserResponse(BaseModel):
     xp: float
     level: int
     current_streak: int
+    is_active: bool
     created_at: datetime
     verification_email_sent: Optional[bool] = None
     

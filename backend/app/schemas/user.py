@@ -164,6 +164,10 @@ class UserResponse(UserBase):
         description="User's current daily streak",
         examples=[3]
     )
+    is_active: bool = Field(
+        True,
+        description="Whether the account is allowed to participate in platform activities",
+    )
     last_activity_at: Optional[datetime] = Field(
         None,
         description="Timestamp of user's last activity",

@@ -214,7 +214,10 @@ async def login(
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="ACCOUNT_SUSPENDED"
+            detail=(
+                "Your account has been banned. You cannot complete quests, "
+                "join campaigns, or participate in campaign tasks."
+            ),
         )
     
     # Update last login IP

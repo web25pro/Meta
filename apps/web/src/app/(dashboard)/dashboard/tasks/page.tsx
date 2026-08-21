@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { Button, PPAmount, Skeleton, EmptyState, Badge, Modal, Input, cn } from '@meta-jungle/ui';
 import { metajungleAPI, type ApiQuest } from '@/api/metajungle';
 import { fileToDataUrl, validateScreenshotFile } from '@/lib/screenshot-proof';
+import { useAuth } from '@/context/auth-context';
 
 const CATEGORY_TONE: Record<string, 'cobalt' | 'sky' | 'gold' | 'success' | 'amber' | 'neutral'> = {
   daily: 'amber',
@@ -28,6 +29,7 @@ const NO_PROOF_TYPES = new Set(['oauth', 'webhook']);
 
 export default function QuestsPage() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const [completing, setCompleting] = useState<string | null>(null);
   const [category, setCategory] = useState<string>('all');
 
@@ -149,6 +151,10 @@ export default function QuestsPage() {
   };
 
   const handleComplete = (q: ApiQuest) => {
+    if (user?.is_banned) {
+      toast.error('Your account has been banned and cannot complete quests.');
+      return;
+    }
     if (NO_PROOF_TYPES.has(q.verification_type) && !q.link_required && !q.screenshot_required) {
       completeDirect(q);
     } else {
@@ -259,9 +265,9 @@ export default function QuestsPage() {
                     <Button
                       size="sm"
                       onClick={() => handleComplete(q)}
-                      disabled={completing === q.id}
+                      disabled={user?.is_banned || completing === q.id}
                     >
-                      {completing === q.id ? (
+                      {user?.is_banned ? 'Account banned' : completing === q.id ? (
                         <>
                           <Loader2 className="h-4 w-4 animate-spin" /> Claiming…
                         </>

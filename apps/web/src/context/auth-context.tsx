@@ -8,6 +8,7 @@ interface User {
   email: string;
   username?: string;
   email_verified?: boolean;
+  is_banned?: boolean;
 }
 
 interface AuthContextType {
@@ -40,6 +41,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               email: userData.email,
               username: userData.username,
               email_verified: userData.email_verified,
+              is_banned: userData.is_active === false,
             });
             // Cache user for faster subsequent loads
             localStorage.setItem('user', JSON.stringify(userData));
