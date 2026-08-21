@@ -40,9 +40,11 @@ class CommunityUserResponse(BaseModel):
     """Schema for community user response (public fields only)"""
     id: UUID
     email: str
-    username: str
+    username: Optional[str] = None
     email_verified: bool
-    referral_code: str
+    # Legacy accounts can predate the referral system and legitimately have
+    # no code. Returning them must not turn login or /me into a 500.
+    referral_code: Optional[str] = None
     points: float
     xp: float
     level: int
