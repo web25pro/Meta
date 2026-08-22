@@ -122,8 +122,23 @@ class CSRFMiddleware(BaseHTTPMiddleware):
                     },
                 )
 
-        # Process the request
-        response = await call_next(request)
+        # Process the request — catch exceptions so we always return a Response.
+        # Without this, an HTTPException raised by a dependency (e.g. expired
+        # JWT → 401) propagates through call_next and Starlette's
+        # BaseHTTPMiddleware raises "RuntimeError: No response returned".
+        try:
+            response = await call_next(request)
+        except Exception as exc:
+            # Starlette's BaseHTTPMiddleware.call_next raises RuntimeError
+            # ("No response returned") when the inner app errors before
+            # producing a response.  Convert it into a proper JSONResponse
+            # so the outer error-handler middleware can still format it.
+            if isinstance(exc, RuntimeError) and "No response returned" in str(exc):
+                return JSONResponse(
+                    status_code=500,
+                    content={"detail": "Internal server error"},
+                )
+            raise
 
         # Set CSRF cookie on every response (ensure it's always available)
         csrf_token = self._get_or_create_csrf_token(request)
