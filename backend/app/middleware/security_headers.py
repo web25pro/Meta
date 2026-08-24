@@ -25,7 +25,25 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         self.hsts_max_age = hsts_max_age
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
-        response = await call_next(request)
+        try:
+            response = await call_next(request)
+        except Exception:
+            # If the inner app fails to produce a response (e.g.
+            # "No response returned" RuntimeError from deeper
+            # BaseHTTPMiddleware layers), return a clean 500 instead
+            # of letting it propagate to ServerErrorMiddleware.
+            from fastapi.responses import JSONResponse
+            return JSONResponse(
+                status_code=500,
+                content={
+                    "success": False,
+                    "error": {
+                        "code": "INTERNAL_SERVER_ERROR",
+                        "message": "An unexpected error occurred.",
+                        "details": {},
+                    },
+                },
+            )
 
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
