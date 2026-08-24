@@ -1,7 +1,14 @@
 """Pytest configuration and fixtures"""
 import asyncio
+import os
 import uuid
 import pytest
+
+# Disable CSRF & idempotency for tests -- the test client (httpx ASGITransport)
+# cannot perform the double-submit cookie dance or send X-Idempotency-Key
+# headers. These middleware are unit-tested separately.
+os.environ.setdefault("CSRF_ENABLED", "false")
+os.environ.setdefault("IDEMPOTENCY_ENABLED", "false")
 from typing import AsyncGenerator, Generator
 from httpx import AsyncClient, ASGITransport
 from sqlalchemy import text

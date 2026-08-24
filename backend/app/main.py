@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.core.config import settings
 from app.core.logging import setup_logging, get_logger
@@ -341,6 +342,71 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
             }
         }
     )
+
+
+@app.exception_handler(SQLAlchemyError)
+async def sqlalchemy_exception_handler(request: Request, exc: SQLAlchemyError):
+    """Handle database errors at the FastAPI layer.
+
+    Registered here (not just in ErrorHandlerMiddleware) so that the
+    ExceptionMiddleware -- a pure ASGI middleware -- catches the error
+    *before* it hits the BaseHTTPMiddleware stack where it would surface
+    as a generic "No response returned" RuntimeError / 500.
+    """
+    logger.error(
+        "Database error occurred",
+        extra={
+            "error": str(exc),
+            "error_type": type(exc).__name__,
+            "endpoint": request.url.path,
+            "method": request.method,
+        },
+        exc_info=True,
+    )
+    return JSONResponse(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        content={
+            "success": False,
+            "error": {
+                "code": "DATABASE_ERROR",
+                "message": "A database error occurred. Please try again.",
+                "details": {"error_type": type(exc).__name__},
+            },
+        },
+    )
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    """Catch-all for any exception that escapes route handlers.
+
+    Registered at the FastAPI level so the ExceptionMiddleware (pure ASGI)
+    handles it cleanly, avoiding the ``BaseHTTPMiddleware`` "No response
+    returned" RuntimeError that the ErrorHandlerMiddleware would otherwise
+    catch and turn into a bare 500.
+    """
+    logger.error(
+        "Unhandled exception occurred",
+        extra={
+            "error": str(exc),
+            "error_type": type(exc).__name__,
+            "endpoint": request.url.path,
+            "method": request.method,
+        },
+        exc_info=True,
+    )
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={
+            "success": False,
+            "error": {
+                "code": "INTERNAL_SERVER_ERROR",
+                "message": "An unexpected error occurred. Please try again.",
+                "details": {"error_type": type(exc).__name__},
+            },
+        },
+    )
+
 
 
 # Register routers

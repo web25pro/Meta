@@ -90,6 +90,19 @@ async function proxyRequest(
       }
     });
 
+    // Forward Set-Cookie headers from the backend.
+    // Node.js 18+ (undici) filters Set-Cookie out of headers.forEach() —
+    // they are only accessible via getSetCookie(). Without this, cookies
+    // set by the backend (e.g. csrf_token) never reach the browser, causing
+    // every mutating request to fail CSRF validation.
+    const setCookies =
+      typeof backendResponse.headers.getSetCookie === 'function'
+        ? backendResponse.headers.getSetCookie()
+        : [];
+    for (const cookie of setCookies) {
+      responseHeaders.append('set-cookie', cookie);
+    }
+
     return new NextResponse(backendResponse.body, {
       status: backendResponse.status,
       statusText: backendResponse.statusText,

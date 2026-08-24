@@ -65,6 +65,16 @@ class Settings(BaseSettings):
     # Idempotency
     IDEMPOTENCY_TTL_SECONDS: int = 300  # 5 minutes
 
+    # Idempotency -- set to False in testing environments where the test
+    # client does not send X-Idempotency-Key headers.
+    IDEMPOTENCY_ENABLED: bool = True
+
+
+    # CSRF -- set to False in testing environments where the test client
+    # cannot easily perform the double-submit cookie dance.
+    CSRF_ENABLED: bool = True
+
+
     # Backend URL for Next.js proxy (server-side only, not exposed to browser)
     BACKEND_URL: str = ""
 

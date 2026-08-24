@@ -13,6 +13,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response as StarletteResponse
 from starlette.types import ASGIApp
 
+from app.core.config import settings
 from app.core.database import AsyncSessionLocal
 from app.core.logging import get_logger
 from app.core.security import verify_token
@@ -93,7 +94,7 @@ class IdempotencyMiddleware(BaseHTTPMiddleware):
         )
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
-        if self._is_exempt(request):
+        if not settings.IDEMPOTENCY_ENABLED or self._is_exempt(request):
             return await call_next(request)
 
         key = request.headers.get(IDEMPOTENCY_HEADER, "").strip()
