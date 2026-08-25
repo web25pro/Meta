@@ -27,6 +27,7 @@ import apiClient, { isAuthenticated } from '@/lib/api';
 import { User, DashboardStats } from '@/types';
 import { metajungleAPI, type ApiQuest } from '@/api/metajungle';
 import { MembershipStatusCard } from '@/components/membership-status';
+import { ConnectWalletButton } from '@/components/connect-wallet-button';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -92,11 +93,14 @@ export default function DashboardPage() {
             <p className="mt-sm text-brand-ice">
               Your actions have value here. Keep your streak alive and climb the jungle.
             </p>
-            <Link href="/dashboard/tasks" className="mt-lg inline-block">
-              <Button variant="jungle">
-                Continue Earning <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
+            <div className="mt-lg flex flex-wrap gap-sm">
+              <Link href="/dashboard/tasks">
+                <Button variant="jungle">
+                  Continue Earning <ArrowRight className="h-4 w-4" />
+                </Button>
+              </Link>
+              <ConnectWalletButton variant="gold" />
+            </div>
           </div>
           <div className="hidden shrink-0 sm:block">
             <PandaMascot size={120} />
