@@ -26,6 +26,7 @@ import {
 import apiClient, { isAuthenticated } from '@/lib/api';
 import { User, DashboardStats } from '@/types';
 import { metajungleAPI, type ApiQuest } from '@/api/metajungle';
+import { MembershipStatusCard } from '@/components/membership-status';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -127,6 +128,9 @@ export default function DashboardPage() {
           value={user?.current_streak ?? 0}
         />
       </div>
+
+      {/* Membership status */}
+      <MembershipStatusCard />
 
       <div className="grid gap-lg lg:grid-cols-3">
         {/* Active quests */}

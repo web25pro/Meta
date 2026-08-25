@@ -20,15 +20,6 @@ export interface CommunityUserResponse {
   created_at: string;
 }
 
-export interface PasswordResetResponse {
-  message: string;
-}
-
-export interface PasswordResetConfirmRequest {
-  token: string;
-  new_password: string;
-}
-
 export interface ReferralCodeResponse {
   referral_code: string;
   referral_link: string;
@@ -46,22 +37,6 @@ export const communityAPI = {
    */
   register: async (data: CommunityRegisterRequest): Promise<CommunityUserResponse> => {
     const response = await apiClient.post<CommunityUserResponse>('/community/register', data);
-    return response.data;
-  },
-
-  /**
-   * Request password reset link
-   */
-  requestPasswordReset: async (email: string): Promise<PasswordResetResponse> => {
-    const response = await apiClient.post<PasswordResetResponse>('/community/password-reset-request', { email });
-    return response.data;
-  },
-
-  /**
-   * Confirm password reset with token and new password
-   */
-  confirmPasswordReset: async (data: PasswordResetConfirmRequest): Promise<PasswordResetResponse> => {
-    const response = await apiClient.post<PasswordResetResponse>('/community/password-reset-confirm', data);
     return response.data;
   },
 

@@ -23,6 +23,8 @@ import {
   Lock,
   Image as ImageIcon,
   AlertTriangle,
+  Crown,
+  ArrowDownUp,
 } from 'lucide-react';
 import { cn } from '@meta-jungle/ui';
 import { isAuthenticated, clearTokens, getAccessToken } from '@/lib/api';
@@ -42,9 +44,16 @@ const navSections: {
     ],
   },
   {
+    title: 'Membership',
+    items: [
+      { name: 'Premium', href: '/dashboard/premium', icon: Crown },
+    ],
+  },
+  {
     title: 'Wallet',
     items: [
       { name: 'Panda Wallet', href: '/dashboard/points', icon: Wallet },
+      { name: 'Swap', href: '/dashboard/swap', icon: ArrowDownUp },
       { name: 'Marketplace', href: '/dashboard/marketplace', icon: ShoppingBag },
       { name: 'P2P Trade', href: '/dashboard/p2p', icon: ArrowLeftRight },
       { name: 'Staking', href: '/dashboard/staking', icon: Lock },

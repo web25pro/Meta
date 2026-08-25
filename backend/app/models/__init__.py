@@ -12,7 +12,7 @@ from app.models.leaderboard_schedule_announcement import (
 from app.models.metajungle import (
     Quest, QuestCompletion, NFTHolding, P2POrder, Stake,
     Partner, Campaign, CampaignParticipation, CampaignTask, CampaignTaskCompletion,
-    Course, CourseCompletion, Redemption,
+    Course, CourseCompletion, Redemption, CampaignRanking,
     CAMPAIGN_STATUSES, CAMPAIGN_COMPLETION_STATUSES,
 )
 
@@ -48,6 +48,7 @@ __all__ = [
     "CampaignParticipation",
     "CampaignTask",
     "CampaignTaskCompletion",
+    "CampaignRanking",
     "CAMPAIGN_STATUSES",
     "CAMPAIGN_COMPLETION_STATUSES",
     "Course",

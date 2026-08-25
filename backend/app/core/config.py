@@ -78,6 +78,11 @@ class Settings(BaseSettings):
     # Backend URL for Next.js proxy (server-side only, not exposed to browser)
     BACKEND_URL: str = ""
 
+    # LPanda NFT verification (EVM)
+    LPANDA_NFT_CONTRACT: str = ""          # ERC-721 contract address (0x...)
+    ETH_RPC_URL: str = ""                  # Alchemy / Infura JSON-RPC endpoint
+    NFT_VERIFICATION_CACHE_MINUTES: int = 30  # Re-check interval for tier validation
+
     # Admin bootstrap — if set, this user is created/promoted to Overall_Admin
     # on app startup (idempotent). Lets you mint the first admin on deploy
     # without shell/DB access. Clear the env var once the admin exists.

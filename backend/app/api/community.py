@@ -13,10 +13,6 @@ from app.schemas.community import (
     CommunityUserResponse,
     LoginRequest,
     LoginResponse,
-    PasswordResetRequest,
-    PasswordResetResponse,
-    PasswordResetConfirmRequest,
-    PasswordResetConfirmResponse,
     ReferralCodeResponse
 )
 from app.schemas.public_task import (
@@ -33,8 +29,6 @@ from app.schemas.submission import (
 )
 from app.services.community_service import (
     create_community_user,
-    generate_password_reset_token,
-    verify_password_reset_token,
     get_user_by_email
 )
 from app.models.points_and_audit import PointsTransaction, TransactionType
@@ -42,7 +36,6 @@ from app.services.public_task_service import (
     get_public_tasks,
     get_task_by_id,
 )
-from app.core.email import send_password_reset_email
 from app.services.submission_service import SubmissionService
 from app.core.security import verify_password, create_access_token, create_refresh_token, hash_password
 from app.core.config import settings
@@ -139,76 +132,6 @@ async def login(
         access_token=access_token,
         refresh_token=refresh_token,
         user=CommunityUserResponse.model_validate(user)
-    )
-
-
-@router.post("/password-reset-request", response_model=PasswordResetResponse)
-async def request_password_reset(
-    data: PasswordResetRequest,
-    db: AsyncSession = Depends(get_db)
-):
-    """
-    Request password reset link.
-    
-    - **email**: User's email address
-    
-    Returns success message (even if email doesn't exist for security).
-    """
-    user = await get_user_by_email(db, data.email)
-    
-    # Always return success for security (don't reveal if email exists)
-    if not user:
-        return PasswordResetResponse(
-            message="If the email exists, a password reset link has been sent"
-        )
-    
-    reset_token = generate_password_reset_token(user.id)
-    try:
-        await send_password_reset_email(user.email, reset_token)
-    except Exception:
-        pass
-    
-    return PasswordResetResponse(
-        message="Password reset link sent successfully"
-    )
-
-
-@router.post("/password-reset-confirm", response_model=PasswordResetConfirmResponse)
-async def confirm_password_reset(
-    data: PasswordResetConfirmRequest,
-    db: AsyncSession = Depends(get_db)
-):
-    """
-    Confirm password reset with token and new password.
-    
-    - **token**: JWT token from password reset email
-    - **new_password**: New password (min 8 characters with complexity)
-    
-    Returns success message if password is reset successfully.
-    """
-    user_id = verify_password_reset_token(data.token)
-    
-    if not user_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="INVALID_RESET_TOKEN"
-        )
-    
-    # Get user and update password
-    user = await db.get(User, user_id)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="USER_NOT_FOUND"
-        )
-    
-    # Hash new password
-    user.password_hash = hash_password(data.new_password)
-    user.password_changed_at = datetime.utcnow()
-    await db.commit()
-    
-    return PasswordResetConfirmResponse(
-        message="Password reset successfully"
     )
 
 

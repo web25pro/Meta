@@ -119,7 +119,29 @@ class User(Base):
         nullable=False,
         default=True
     )
-    
+
+    # Wallet & membership tier (LPanda Premium)
+    wallet_address: Mapped[str | None] = mapped_column(
+        String(42),
+        nullable=True,
+        index=True
+    )
+    wallet_verified_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+        default=None
+    )
+    membership_tier: Mapped[str] = mapped_column(
+        String(16),
+        nullable=False,
+        default="standard"
+    )
+    tier_updated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+        default=None
+    )
+
     # Gamification fields
     points: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False, default=0.0)
     # Transitional buckets. ``points`` remains the compatibility total.

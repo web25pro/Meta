@@ -23,6 +23,8 @@ from app.api import metajungle
 from app.api import campaigns
 from app.api import admin
 from app.api import public
+from app.api import premium
+from app.api import swap
 
 # Setup logging
 setup_logging()
@@ -431,6 +433,12 @@ app.include_router(campaigns.admin_router)
 
 # Admin panel router (Overall_Admin only)
 app.include_router(admin.router)
+
+# Premium membership (wallet connection, NFT verification, tier status)
+app.include_router(premium.router)
+
+# PP ↔ Token swap
+app.include_router(swap.router)
 
 # Public endpoints (no auth required — stats, leaderboard preview, partners)
 app.include_router(public.router)

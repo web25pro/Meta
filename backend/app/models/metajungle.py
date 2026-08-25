@@ -141,7 +141,7 @@ class Partner(Base):
 
 #: Campaign lifecycle states. Stored as a plain string + CHECK constraint rather
 #: than a PG enum, matching the convention in this module's docstring.
-CAMPAIGN_STATUSES = ("draft", "active", "paused", "ended")
+CAMPAIGN_STATUSES = ("draft", "funding_required", "funded", "active", "paused", "ended", "completed", "rewards_distributed")
 
 #: Completion review states, mirroring ``QuestCompletion.status``.
 CAMPAIGN_COMPLETION_STATUSES = ("pending", "approved", "rejected")
@@ -157,23 +157,39 @@ class Campaign(Base):
     __tablename__ = "campaigns"
     __table_args__ = (
         CheckConstraint(
-            "status IN ('draft', 'active', 'paused', 'ended')",
+            "status IN ('draft', 'funding_required', 'funded', 'active', 'paused', 'ended', 'completed', 'rewards_distributed')",
             name="ck_campaign_status",
         ),
     )
 
     id: Mapped[uuid.UUID] = _pk()
-    partner_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("partners.id", ondelete="CASCADE"), nullable=False, index=True
+    partner_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("partners.id", ondelete="CASCADE"), nullable=True, index=True
+    )
+    # NULL for admin campaigns, set for user-created campaigns
+    creator_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
     )
     slug: Mapped[str] = mapped_column(String(64), nullable=False, unique=True, index=True)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     blurb: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    # Full description (user campaigns)
+    description: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    # Campaign type: text, image, video, engagement, video_contest, bounty
+    campaign_type: Mapped[str] = mapped_column(String(32), nullable=False, default="text")
     pp_budget: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     pp_per_task: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     pp_claimed: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     pp_reserved: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    status: Mapped[str] = mapped_column(String(16), nullable=False, default="draft", index=True)
+    # Performance-based reward model (user campaigns)
+    num_qualifiers: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    pp_per_qualifier: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    total_escrow: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    pp_distributed: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    pp_refunded: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    ranking_criteria: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    required_actions: Mapped[list | None] = mapped_column(JSONB, nullable=True)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default="draft", index=True)
     featured: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     total_participants: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     max_participants: Mapped[int | None] = mapped_column(Integer, nullable=True)
@@ -301,3 +317,28 @@ class Redemption(Base):
     voucher_code: Mapped[str] = mapped_column(String(64), nullable=False, default="")
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="completed", index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow, index=True)
+
+
+class CampaignRanking(Base):
+    """A participant's ranking score in a performance-based campaign.
+
+    Populated when a campaign ends and the ranking service calculates scores.
+    The top ``campaign.num_qualifiers`` participants receive rewards.
+    """
+    __tablename__ = "campaign_rankings"
+    __table_args__ = (
+        UniqueConstraint("campaign_id", "user_id", name="uq_campaign_ranking"),
+    )
+
+    id: Mapped[uuid.UUID] = _pk()
+    campaign_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("campaigns.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    score: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False, default=0)
+    metrics: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    rank: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    qualified: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)

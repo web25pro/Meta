@@ -18,6 +18,11 @@ class TransactionType(str, Enum):
     QUEST_REWARD = "Quest_Reward"
     CAMPAIGN_REWARD = "Campaign_Reward"
     REFERRAL_REWARD = "Referral_Reward"
+    CAMPAIGN_FUNDING = "Campaign_Funding"
+    CAMPAIGN_ESCROW = "Campaign_Escrow"
+    CAMPAIGN_REFUND = "Campaign_Refund"
+    PP_SWAP = "PP_Swap"
+    SWAP_FEE = "Swap_Fee"
 
 
 class PPLedgerEntry(Base):

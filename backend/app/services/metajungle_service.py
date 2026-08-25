@@ -280,6 +280,12 @@ class MetaJungleService:
                 f"requirement ({quest.min_role}) for this quest"
             )
 
+        # Membership-tier global daily quest limit
+        from app.services.premium_service import PremiumService
+        can_quest, quest_limit_reason = await PremiumService.can_join_quest(db, user.id)
+        if not can_quest:
+            raise ValueError(quest_limit_reason)
+
         # Per-quest daily limit (rejected completions don't count — user can retry)
         start = now.replace(hour=0, minute=0, second=0, microsecond=0)
         done_today = int((await db.execute(

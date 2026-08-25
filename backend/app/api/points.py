@@ -3,15 +3,17 @@ import math
 import uuid
 from typing import Annotated, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.logging import get_logger
 from app.models import User, UserRole
+from app.models.points_and_audit import PointsTransaction, TransactionType
 from app.services.points_service import PointsService
 from app.services.leaderboard_service import LeaderboardService
 from app.schemas.points import (
-    PointsTransactionResponse, 
+    PointsTransactionResponse,
     PointsTransactionListResponse,
     UserPointsResponse,
     AdminBonusRequest,
@@ -149,3 +151,67 @@ async def apply_penalty_points(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@router.get("/wallet")
+async def get_wallet_summary(
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """Get full PP wallet summary with breakdown by category.
+
+    Returns available, locked, escrow, total earned, and total spent.
+    """
+    user_id = current_user.id
+
+    # Total earned (positive transactions)
+    earned_result = await db.execute(
+        select(func.coalesce(func.sum(PointsTransaction.amount), 0))
+        .where(
+            PointsTransaction.user_id == user_id,
+            PointsTransaction.amount > 0,
+        )
+    )
+    total_earned = float(earned_result.scalar() or 0)
+
+    # Total spent (negative transactions)
+    spent_result = await db.execute(
+        select(func.coalesce(func.sum(func.abs(PointsTransaction.amount)), 0))
+        .where(
+            PointsTransaction.user_id == user_id,
+            PointsTransaction.amount < 0,
+        )
+    )
+    total_spent = float(spent_result.scalar() or 0)
+
+    # Campaign rewards
+    campaign_result = await db.execute(
+        select(func.coalesce(func.sum(PointsTransaction.amount), 0))
+        .where(
+            PointsTransaction.user_id == user_id,
+            PointsTransaction.transaction_type == TransactionType.CAMPAIGN_REWARD,
+        )
+    )
+    campaign_rewards = float(campaign_result.scalar() or 0)
+
+    # Swap totals
+    swap_result = await db.execute(
+        select(func.coalesce(func.sum(func.abs(PointsTransaction.amount)), 0))
+        .where(
+            PointsTransaction.user_id == user_id,
+            PointsTransaction.transaction_type == TransactionType.PP_SWAP,
+        )
+    )
+    swap_total = float(swap_result.scalar() or 0)
+
+    return {
+        "user_id": str(user_id),
+        "available": float(current_user.available_points or 0),
+        "locked": float(current_user.locked_points or 0),
+        "escrow": float(current_user.escrow_points or 0),
+        "total_earned": total_earned,
+        "total_spent": total_spent,
+        "campaign_rewards": campaign_rewards,
+        "swap_total": swap_total,
+        "balance": float(current_user.points or 0),
+    }

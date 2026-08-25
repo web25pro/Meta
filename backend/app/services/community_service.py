@@ -2,7 +2,7 @@
 import secrets
 import string
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Optional
 from uuid import UUID
 from sqlalchemy import select
@@ -12,9 +12,7 @@ from fastapi import HTTPException, status
 from app.models.user import User, UserRole, UserType
 from app.models.points_and_audit import TransactionType
 from app.core.security import hash_password, verify_password
-from app.core.config import settings
 from app.services.points_service import PointsService
-from jose import JWTError, jwt
 
 
 def generate_referral_code() -> str:
@@ -69,46 +67,6 @@ async def generate_unique_referral_code(db: AsyncSession, max_retries: int = 5) 
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         detail="Unable to generate unique referral code. Please try again."
     )
-
-
-def generate_password_reset_token(user_id: UUID) -> str:
-    """
-    Generate JWT token for password reset.
-    
-    Args:
-        user_id: User's UUID
-        
-    Returns:
-        str: JWT token with 1-hour expiration
-    """
-    expiration = datetime.utcnow() + timedelta(hours=1)
-    payload = {
-        "user_id": str(user_id),
-        "type": "password_reset",
-        "exp": expiration
-    }
-    token = jwt.encode(payload, settings.SECRET_KEY, algorithm="HS256")
-    return token
-
-
-def verify_password_reset_token(token: str) -> Optional[UUID]:
-    """
-    Verify and decode password reset token.
-    
-    Args:
-        token: JWT token to verify
-        
-    Returns:
-        UUID: User ID if token is valid, None otherwise
-    """
-    try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
-        if payload.get("type") != "password_reset":
-            return None
-        user_id = UUID(payload.get("user_id"))
-        return user_id
-    except (JWTError, ValueError):
-        return None
 
 
 async def get_user_by_email(db: AsyncSession, email: str) -> Optional[User]:

@@ -109,10 +109,10 @@ class CampaignService:
         now = _utcnow()
         rows = (await db.execute(
             select(Campaign, Partner.name, Partner.tier)
-            .join(Partner, Partner.id == Campaign.partner_id)
+            .outerjoin(Partner, Partner.id == Campaign.partner_id)
             .where(
                 Campaign.deleted_at.is_(None),
-                Campaign.status.in_(["active", "ended"]),
+                Campaign.status.in_(["active", "ended", "funded"]),
             )
             .order_by(Campaign.featured.desc(), Campaign.created_at.desc())
         )).all()
@@ -238,6 +238,12 @@ class CampaignService:
         eligibility = await CampaignService.check_eligibility(db, user, campaign)
         if not eligibility["eligible"]:
             raise ValueError(eligibility["reason"])
+
+        # Membership-tier monthly campaign participation limit
+        from app.services.premium_service import PremiumService
+        can_join, join_reason = await PremiumService.can_join_campaign(db, user.id)
+        if not can_join:
+            raise ValueError(join_reason)
 
         existing = (await db.execute(
             select(CampaignParticipation).where(
@@ -507,7 +513,7 @@ class CampaignService:
         """Every campaign regardless of status, newest first. Excludes deleted."""
         rows = (await db.execute(
             select(Campaign, Partner.name, Partner.tier)
-            .join(Partner, Partner.id == Campaign.partner_id)
+            .outerjoin(Partner, Partner.id == Campaign.partner_id)
             .where(Campaign.deleted_at.is_(None))
             .order_by(Campaign.created_at.desc())
         )).all()
@@ -565,10 +571,14 @@ class CampaignService:
         if not campaign or campaign.deleted_at is not None:
             raise ValueError("Campaign not found")
         allowed = {
-            "draft": {"active"},
-            "active": {"paused", "ended"},
+            "draft": {"active", "funding_required"},
+            "funding_required": {"funded", "ended"},
+            "funded": {"active", "ended"},
+            "active": {"paused", "ended", "completed"},
             "paused": {"active", "ended"},
+            "completed": {"rewards_distributed"},
             "ended": set(),
+            "rewards_distributed": set(),
         }
         if status != campaign.status and status not in allowed.get(campaign.status, set()):
             raise ValueError(f"Campaign cannot move from {campaign.status} to {status}")

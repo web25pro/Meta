@@ -73,38 +73,3 @@ class LoginResponse(BaseModel):
     refresh_token: str
     token_type: str = "bearer"
     user: CommunityUserResponse
-
-
-class PasswordResetRequest(BaseModel):
-    """Schema for password reset request"""
-    email: EmailStr
-
-
-class PasswordResetResponse(BaseModel):
-    """Schema for password reset response"""
-    message: str
-
-
-class PasswordResetConfirmRequest(BaseModel):
-    """Schema for password reset confirmation"""
-    token: str = Field(..., description="Password reset JWT token")
-    new_password: str = Field(..., min_length=8, max_length=72, description="New password")
-    
-    @field_validator('new_password')
-    @classmethod
-    def validate_password(cls, v: str) -> str:
-        """Validate password complexity requirements"""
-        if len(v) < 8:
-            raise ValueError('Password must be at least 8 characters long')
-        if not re.search(r'[A-Z]', v):
-            raise ValueError('Password must contain at least one uppercase letter')
-        if not re.search(r'[a-z]', v):
-            raise ValueError('Password must contain at least one lowercase letter')
-        if not re.search(r'[0-9]', v):
-            raise ValueError('Password must contain at least one digit')
-        return v
-
-
-class PasswordResetConfirmResponse(BaseModel):
-    """Schema for password reset confirmation response"""
-    message: str
