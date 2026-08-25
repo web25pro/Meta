@@ -21,6 +21,11 @@ export const metadata: Metadata = {
   icons: {
     icon: '/favicon.svg',
   },
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 1,
+  },
 };
 
 export default function RootLayout({

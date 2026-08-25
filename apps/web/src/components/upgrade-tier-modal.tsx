@@ -17,6 +17,7 @@ import {
 import { Button, cn, Card } from '@meta-jungle/ui';
 import { premiumAPI, TierInfo, WalletConnectResponse } from '@/api/premium';
 import { toast } from 'sonner';
+import { WalletConnectModal } from '@/components/wallet-connect-modal';
 
 const TIER_ICONS: Record<string, typeof Crown> = {
   standard: Shield,
@@ -42,8 +43,7 @@ export function UpgradeTierModal({
 }: UpgradeTierModalProps) {
   const queryClient = useQueryClient();
   const [selectedTier, setSelectedTier] = useState<string | null>(null);
-  const [walletAddress, setWalletAddress] = useState('');
-  const [showWalletInput, setShowWalletInput] = useState(false);
+  const [showWalletModal, setShowWalletModal] = useState(false);
   const [insufficientNfts, setInsufficientNfts] = useState(false);
   const [requiredNfts, setRequiredNfts] = useState(0);
 
@@ -74,6 +74,7 @@ export function UpgradeTierModal({
         );
         queryClient.invalidateQueries('membershipStatus');
         queryClient.invalidateQueries('currentUser');
+        setShowWalletModal(false);
         onClose();
       },
       onError: (err: any) => {
@@ -84,34 +85,16 @@ export function UpgradeTierModal({
     },
   );
 
-  const handleConnect = async () => {
+  const handleConnectClick = () => {
     if (!selectedTier) {
       toast.error('Please select a tier first');
       return;
     }
-
-    // Try browser wallet first
-    if (typeof window !== 'undefined' && (window as any).ethereum) {
-      try {
-        const accounts = await (window as any).ethereum.request({
-          method: 'eth_requestAccounts',
-        });
-        if (accounts && accounts.length > 0) {
-          connectMutation.mutate(accounts[0]);
-          return;
-        }
-      } catch {
-        // Fall through to manual input
-      }
-    }
-    setShowWalletInput(true);
+    setShowWalletModal(true);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (walletAddress.trim()) {
-      connectMutation.mutate(walletAddress.trim());
-    }
+  const handleWalletConnect = (address: string) => {
+    connectMutation.mutate(address);
   };
 
   if (!isOpen) return null;
@@ -121,170 +104,131 @@ export function UpgradeTierModal({
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-bg-dark/60 p-md">
-      <Card className="relative w-full max-w-lg space-y-lg p-xl">
-        {/* Close button */}
-        <button
-          onClick={onClose}
-          className="absolute right-md top-md text-ink-muted hover:text-ink-primary"
-        >
-          <X className="h-5 w-5" />
-        </button>
+    <>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-bg-dark/60 p-md">
+        <Card className="relative w-full max-w-lg space-y-lg overflow-y-auto max-h-[90vh] p-xl">
+          {/* Close button */}
+          <button
+            onClick={onClose}
+            className="absolute right-md top-md text-ink-muted hover:text-ink-primary"
+          >
+            <X className="h-5 w-5" />
+          </button>
 
-        <div>
-          <h2 className="font-display text-h2 text-ink-primary">
-            Upgrade Your Tier
-          </h2>
-          <p className="mt-sm text-body text-ink-muted">
-            Select the tier you want to upgrade to, then connect your wallet to
-            verify NFT ownership.
-          </p>
-        </div>
+          <div>
+            <h2 className="font-display text-h2 text-ink-primary">
+              Upgrade Your Tier
+            </h2>
+            <p className="mt-sm text-body text-ink-muted">
+              Select the tier you want to upgrade to, then connect your wallet to
+              verify NFT ownership.
+            </p>
+          </div>
 
-        {/* Tier selection */}
-        {tiersLoading ? (
-          <div className="flex items-center gap-md">
-            <Loader2 className="h-5 w-5 animate-spin" />
-            <span className="text-body text-ink-muted">Loading tiers...</span>
-          </div>
-        ) : availableTiers.length === 0 ? (
-          <div className="rounded-card border border-reward-jungle/30 bg-reward-jungle/10 p-md text-body text-reward-jungle">
-            <CheckCircle2 className="mr-sm inline h-4 w-4" />
-            You&apos;re already on the highest tier!
-          </div>
-        ) : (
-          <div className="space-y-sm">
-            <p className="text-label text-ink-muted">Select target tier:</p>
-            {tiers
-              ?.filter((t) => availableTiers.includes(t.key))
-              .map((tier) => {
-                const TierIcon = TIER_ICONS[tier.key] || Shield;
-                const isSelected = selectedTier === tier.key;
-                return (
-                  <button
-                    key={tier.key}
-                    onClick={() => {
-                      setSelectedTier(tier.key);
-                      setInsufficientNfts(false);
-                    }}
-                    className={cn(
-                      'flex w-full items-center gap-md rounded-card border p-md text-left transition-colors',
-                      isSelected
-                        ? 'border-brand-cobalt bg-brand-ice'
-                        : 'border-line hover:border-brand-cobalt/50',
-                    )}
-                  >
-                    <div
+          {/* Tier selection */}
+          {tiersLoading ? (
+            <div className="flex items-center gap-md">
+              <Loader2 className="h-5 w-5 animate-spin" />
+              <span className="text-body text-ink-muted">Loading tiers...</span>
+            </div>
+          ) : availableTiers.length === 0 ? (
+            <div className="rounded-card border border-reward-jungle/30 bg-reward-jungle/10 p-md text-body text-reward-jungle">
+              <CheckCircle2 className="mr-sm inline h-4 w-4" />
+              You&apos;re already on the highest tier!
+            </div>
+          ) : (
+            <div className="space-y-sm">
+              <p className="text-label text-ink-muted">Select target tier:</p>
+              {tiers
+                ?.filter((t) => availableTiers.includes(t.key))
+                .map((tier) => {
+                  const TierIcon = TIER_ICONS[tier.key] || Shield;
+                  const isSelected = selectedTier === tier.key;
+                  return (
+                    <button
+                      key={tier.key}
+                      onClick={() => {
+                        setSelectedTier(tier.key);
+                        setInsufficientNfts(false);
+                      }}
                       className={cn(
-                        'flex h-10 w-10 items-center justify-center rounded-full',
-                        tier.key === 'panda_elite'
-                          ? 'bg-reward-jungle/10'
-                          : tier.key === 'panda_pro'
-                            ? 'bg-reward-amber/10'
-                            : tier.key === 'panda_plus'
-                              ? 'bg-brand-cobalt/10'
-                              : 'bg-bg-elevated',
+                        'flex w-full items-center gap-md rounded-card border p-md text-left transition-colors',
+                        isSelected
+                          ? 'border-brand-cobalt bg-brand-ice'
+                          : 'border-line hover:border-brand-cobalt/50',
                       )}
                     >
-                      <TierIcon
+                      <div
                         className={cn(
-                          'h-5 w-5',
+                          'flex h-10 w-10 items-center justify-center rounded-full',
                           tier.key === 'panda_elite'
-                            ? 'text-reward-jungle'
+                            ? 'bg-reward-jungle/10'
                             : tier.key === 'panda_pro'
-                              ? 'text-reward-amber'
+                              ? 'bg-reward-amber/10'
                               : tier.key === 'panda_plus'
-                                ? 'text-brand-cobalt'
-                                : 'text-ink-muted',
+                                ? 'bg-brand-cobalt/10'
+                                : 'bg-bg-elevated',
                         )}
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-display text-body font-semibold text-ink-primary">
-                        {tier.name}
-                      </p>
-                      <p className="text-label text-ink-muted">
-                        {tier.nft_required} NFT{tier.nft_required !== 1 ? 's' : ''}{' '}
-                        required
-                      </p>
-                    </div>
-                    {isSelected && (
-                      <CheckCircle2 className="h-5 w-5 text-brand-cobalt" />
-                    )}
-                  </button>
-                );
-              })}
-          </div>
-        )}
-
-        {/* Insufficient NFTs error */}
-        {insufficientNfts && (
-          <div className="space-y-sm rounded-card border border-danger/30 bg-danger/10 p-md">
-            <div className="flex items-center gap-sm text-body font-medium text-danger">
-              <AlertTriangle className="h-5 w-5" />
-              Insufficient NFTs in wallet
+                      >
+                        <TierIcon
+                          className={cn(
+                            'h-5 w-5',
+                            tier.key === 'panda_elite'
+                              ? 'text-reward-jungle'
+                              : tier.key === 'panda_pro'
+                                ? 'text-reward-amber'
+                                : tier.key === 'panda_plus'
+                                  ? 'text-brand-cobalt'
+                                  : 'text-ink-muted',
+                          )}
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-display text-body font-semibold text-ink-primary">
+                          {tier.name}
+                        </p>
+                        <p className="text-label text-ink-muted">
+                          {tier.nft_required} NFT{tier.nft_required !== 1 ? 's' : ''}{' '}
+                          required
+                        </p>
+                      </div>
+                      {isSelected && (
+                        <CheckCircle2 className="h-5 w-5 text-brand-cobalt" />
+                      )}
+                    </button>
+                  );
+                })}
             </div>
-            <p className="text-body text-ink-muted">
-              You need {requiredNfts} NFTs but your wallet only has{' '}
-              {currentNftCount}. Mint more NFTs to upgrade.
-            </p>
-            <a
-              href="https://lpanda-mint.vercel.app/"
-              target="_blank"
-              rel="noreferrer"
-            >
-              <Button variant="jungle" size="sm" className="mt-sm">
-                Mint More NFTs <ExternalLink className="ml-1 h-4 w-4" />
-              </Button>
-            </a>
-          </div>
-        )}
+          )}
 
-        {/* Wallet input (fallback) */}
-        {showWalletInput && (
-          <form onSubmit={handleSubmit} className="space-y-sm">
-            <input
-              type="text"
-              value={walletAddress}
-              onChange={(e) => setWalletAddress(e.target.value)}
-              placeholder="0x... wallet address"
-              className="w-full rounded-card border border-line bg-bg-primary px-md py-sm text-body text-ink-primary placeholder:text-ink-muted focus:border-brand-cobalt focus:outline-none"
-              disabled={connectMutation.isLoading}
-            />
-            <div className="flex gap-sm">
-              <Button
-                type="submit"
-                variant="jungle"
-                disabled={!walletAddress.trim() || connectMutation.isLoading}
-                className="flex-1"
+          {/* Insufficient NFTs error */}
+          {insufficientNfts && (
+            <div className="space-y-sm rounded-card border border-danger/30 bg-danger/10 p-md">
+              <div className="flex items-center gap-sm text-body font-medium text-danger">
+                <AlertTriangle className="h-5 w-5" />
+                Insufficient NFTs in wallet
+              </div>
+              <p className="text-body text-ink-muted">
+                You need {requiredNfts} NFTs but your wallet only has{' '}
+                {currentNftCount}. Mint more NFTs to upgrade.
+              </p>
+              <a
+                href="https://lpanda-mint.vercel.app/"
+                target="_blank"
+                rel="noreferrer"
               >
-                {connectMutation.isLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  'Verify NFTs'
-                )}
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => {
-                  setShowWalletInput(false);
-                  setWalletAddress('');
-                }}
-                disabled={connectMutation.isLoading}
-              >
-                Cancel
-              </Button>
+                <Button variant="jungle" size="sm" className="mt-sm">
+                  Mint More NFTs <ExternalLink className="ml-1 h-4 w-4" />
+                </Button>
+              </a>
             </div>
-          </form>
-        )}
+          )}
 
-        {/* Action buttons */}
-        {!showWalletInput && (
+          {/* Action buttons */}
           <div className="flex flex-col gap-sm">
             <Button
               variant="jungle"
-              onClick={handleConnect}
+              onClick={handleConnectClick}
               disabled={!selectedTier || connectMutation.isLoading || availableTiers.length === 0}
               className="w-full"
             >
@@ -310,8 +254,16 @@ export function UpgradeTierModal({
               </Button>
             </a>
           </div>
-        )}
-      </Card>
-    </div>
+        </Card>
+      </div>
+
+      {/* Wallet connection modal */}
+      <WalletConnectModal
+        isOpen={showWalletModal}
+        onClose={() => setShowWalletModal(false)}
+        onConnect={handleWalletConnect}
+        isConnecting={connectMutation.isLoading}
+      />
+    </>
   );
 }

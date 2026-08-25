@@ -103,16 +103,17 @@ export default function DashboardPage() {
             <p className="mt-sm text-brand-ice">
               Your actions have value here. Keep your streak alive and climb the jungle.
             </p>
-            <div className="mt-lg flex flex-wrap gap-sm">
+            <div className="mt-lg flex flex-col gap-sm sm:flex-row sm:flex-wrap">
               <Link href="/dashboard/tasks">
-                <Button variant="jungle">
+                <Button variant="jungle" className="w-full sm:w-auto">
                   Continue Earning <ArrowRight className="h-4 w-4" />
                 </Button>
               </Link>
-              <ConnectWalletButton variant="gold" />
+              <ConnectWalletButton variant="gold" className="w-full sm:w-auto" />
               <Button
                 variant="gold"
                 onClick={() => setUpgradeModalOpen(true)}
+                className="w-full sm:w-auto"
               >
                 <Crown className="h-4 w-4" /> Upgrade Tier
               </Button>
