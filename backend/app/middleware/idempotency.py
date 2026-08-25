@@ -106,7 +106,15 @@ async def _read_body(receive: Receive) -> bytes:
 
 
 def _make_replay_receive(body: bytes) -> Receive:
-    """Create a receive callable that replays the buffered body."""
+    """Create a receive callable that replays the buffered body once.
+
+    ASGI applications may call ``receive`` again after consuming the request
+    body while they wait for a client disconnect.  At that point the body has
+    already been fully replayed, so the only valid event is
+    ``http.disconnect``.  Returning another ``http.request`` here violates
+    Starlette's receive contract and causes BaseHTTPMiddleware to raise
+    ``RuntimeError: Unexpected message received: http.request``.
+    """
     sent = False
 
     async def replay_receive():
@@ -114,8 +122,7 @@ def _make_replay_receive(body: bytes) -> Receive:
         if not sent:
             sent = True
             return {"type": "http.request", "body": body, "more_body": False}
-        # After body is delivered, block until the app finishes.
-        return {"type": "http.request", "body": b"", "more_body": False}
+        return {"type": "http.disconnect"}
 
     return replay_receive
 
