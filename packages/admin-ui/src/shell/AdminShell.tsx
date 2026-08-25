@@ -14,6 +14,7 @@ import {
   ShieldAlert,
   Menu,
   X,
+  Trash2,
 } from 'lucide-react';
 import { PandaMascot, Button, cn } from '@meta-jungle/ui';
 import apiClient, { isAuthenticated } from '@meta-jungle/api-client';
@@ -25,6 +26,7 @@ const nav = [
   { name: 'Quests', href: '/quests', icon: Target },
   { name: 'Campaigns', href: '/campaigns', icon: Megaphone },
   { name: 'Reviews', href: '/reviews', icon: ClipboardCheck },
+  { name: 'Clear Data', href: '/clear-data', icon: Trash2 },
 ];
 
 export interface AdminShellProps {

@@ -13,6 +13,7 @@ from app.schemas.admin import (
     AdminQuestCreate, AdminQuestUpdate,
     AdminPartnerCreate, AdminPartner,
     AdminNFTGrant, AdminCompletionList, GenericOk,
+    AdminClearDataRequest, AdminClearDataResponse,
 )
 from app.schemas.metajungle import QuestResponse, NFTResponse
 
@@ -151,3 +152,20 @@ async def review_completion(
         return {"success": True, "message": "Reviewed"}
     except ValueError as e:
         raise _bad(e)
+
+
+# ── Clear site data ────────────────────────────────────────────────────────────
+@router.post("/clear-data", response_model=AdminClearDataResponse)
+async def admin_clear_data(
+    body: AdminClearDataRequest,
+    admin: Admin,
+    db: DB,
+):
+    """Clear selected site data categories. Only Overall_Admin can do this."""
+    options = body.model_dump()
+    cleared = await AdminService.clear_site_data(db, options)
+    return AdminClearDataResponse(
+        success=True,
+        message="Selected data cleared successfully.",
+        cleared=cleared,
+    )

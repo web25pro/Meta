@@ -138,3 +138,29 @@ class AdminCompletionList(BaseModel):
 class GenericOk(BaseModel):
     success: bool = True
     message: str = "ok"
+
+
+# ── Clear site data ────────────────────────────────────────────────────────
+class AdminClearDataRequest(BaseModel):
+    """Select which data categories to clear. All default to False."""
+    points_transactions: bool = Field(False, description="Clear all PP transaction history")
+    quest_completions: bool = Field(False, description="Clear all quest completion records")
+    submissions: bool = Field(False, description="Clear all task submissions")
+    campaign_data: bool = Field(False, description="Clear campaign participations, tasks, and completions")
+    leaderboard_cache: bool = Field(False, description="Clear leaderboard cache")
+    announcements: bool = Field(False, description="Clear all announcements")
+    schedules: bool = Field(False, description="Clear all schedules")
+    nft_holdings: bool = Field(False, description="Clear all NFT holdings")
+    p2p_orders: bool = Field(False, description="Clear all P2P trade orders")
+    stakes: bool = Field(False, description="Clear all staking records")
+    redemptions: bool = Field(False, description="Clear all marketplace redemptions")
+    audit_logs: bool = Field(False, description="Clear audit logs")
+    idempotency_keys: bool = Field(False, description="Clear idempotency key cache")
+    deadline_penalties: bool = Field(False, description="Clear applied deadline penalties")
+    reset_user_points: bool = Field(False, description="Reset all user points, XP, and levels to zero")
+
+
+class AdminClearDataResponse(BaseModel):
+    success: bool = True
+    message: str = "ok"
+    cleared: dict = {}

@@ -192,4 +192,7 @@ export const adminAPI = {
     (await apiClient.get('/admin/quest-completions', { params: { status, page, page_size: 20 } })).data,
   reviewCompletion: async (id: string, approve: boolean, reason?: string) =>
     (await apiClient.post(`/admin/quest-completions/${id}/review`, null, { params: { approve, reason } })).data,
+
+  clearData: async (options: Record<string, boolean>): Promise<{ success: boolean; message: string; cleared: Record<string, number> }> =>
+    (await apiClient.post('/admin/clear-data', options)).data,
 };

@@ -3,12 +3,16 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from sqlalchemy import select, func, desc
+from sqlalchemy import select, func, desc, delete, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import (
     User, UserRole, PointsTransaction, TransactionType,
     Quest, QuestCompletion, NFTHolding, Partner, Campaign, Redemption, Course,
+    TaskSubmission, SubmissionFile, CampaignParticipation, CampaignTask,
+    CampaignTaskCompletion, CampaignRanking, P2POrder, Stake,
+    LeaderboardCache, Schedule, Announcement,
+    PPLedgerEntry, IdempotencyKey, AuditLog, DeadlinePenaltyApplied,
 )
 from app.services.points_service import PointsService
 
@@ -245,3 +249,100 @@ class AdminService:
         await db.flush()
         await db.refresh(comp)
         return comp
+
+    # ── Clear site data ───────────────────────────────────────────────────────
+    @staticmethod
+    async def clear_site_data(db: AsyncSession, options: dict) -> dict:
+        """Clear selected data categories. Returns counts of deleted rows.
+
+        Wrapped in a savepoint so that if any single delete fails (e.g. a
+        foreign-key constraint), every preceding delete in this call is rolled
+        back and no partial data loss occurs.
+        """
+        cleared = {}
+        async with db.begin_nested():  # SAVEPOINT — auto-rollback on exception
+            if options.get("points_transactions"):
+                n = (await db.execute(delete(PointsTransaction))).rowcount
+                cleared["points_transactions"] = n
+                # Also clear ledger entries
+                n2 = (await db.execute(delete(PPLedgerEntry))).rowcount
+                cleared["pp_ledger_entries"] = n2
+
+            if options.get("quest_completions"):
+                n = (await db.execute(delete(QuestCompletion))).rowcount
+                cleared["quest_completions"] = n
+
+            if options.get("submissions"):
+                n1 = (await db.execute(delete(SubmissionFile))).rowcount
+                n2 = (await db.execute(delete(TaskSubmission))).rowcount
+                cleared["submission_files"] = n1
+                cleared["submissions"] = n2
+
+            if options.get("campaign_data"):
+                n1 = (await db.execute(delete(CampaignTaskCompletion))).rowcount
+                n2 = (await db.execute(delete(CampaignTask))).rowcount
+                n3 = (await db.execute(delete(CampaignParticipation))).rowcount
+                n4 = (await db.execute(delete(CampaignRanking))).rowcount
+                cleared["campaign_task_completions"] = n1
+                cleared["campaign_tasks"] = n2
+                cleared["campaign_participations"] = n3
+                cleared["campaign_rankings"] = n4
+
+            if options.get("leaderboard_cache"):
+                n = (await db.execute(delete(LeaderboardCache))).rowcount
+                cleared["leaderboard_cache"] = n
+
+            if options.get("announcements"):
+                n = (await db.execute(delete(Announcement))).rowcount
+                cleared["announcements"] = n
+
+            if options.get("schedules"):
+                n = (await db.execute(delete(Schedule))).rowcount
+                cleared["schedules"] = n
+
+            if options.get("nft_holdings"):
+                n = (await db.execute(delete(NFTHolding))).rowcount
+                cleared["nft_holdings"] = n
+
+            if options.get("p2p_orders"):
+                n = (await db.execute(delete(P2POrder))).rowcount
+                cleared["p2p_orders"] = n
+
+            if options.get("stakes"):
+                n = (await db.execute(delete(Stake))).rowcount
+                cleared["stakes"] = n
+
+            if options.get("redemptions"):
+                n = (await db.execute(delete(Redemption))).rowcount
+                cleared["redemptions"] = n
+
+            if options.get("audit_logs"):
+                n = (await db.execute(delete(AuditLog))).rowcount
+                cleared["audit_logs"] = n
+
+            if options.get("idempotency_keys"):
+                n = (await db.execute(delete(IdempotencyKey))).rowcount
+                cleared["idempotency_keys"] = n
+
+            if options.get("deadline_penalties"):
+                n = (await db.execute(delete(DeadlinePenaltyApplied))).rowcount
+                cleared["deadline_penalties"] = n
+
+            if options.get("reset_user_points"):
+                # Count affected users first, then reset all gamification fields to zero
+                user_count = int((await db.execute(select(func.count()).select_from(User))).scalar() or 0)
+                await db.execute(
+                    update(User).values(
+                        points=0.0,
+                        available_points=0.0,
+                        locked_points=0.0,
+                        escrow_points=0.0,
+                        xp=0.0,
+                        level=1,
+                        current_streak=0,
+                    )
+                )
+                cleared["users_reset"] = user_count
+
+        await db.flush()
+        return cleared

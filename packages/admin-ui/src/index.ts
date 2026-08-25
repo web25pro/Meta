@@ -10,6 +10,7 @@ export { UsersPage } from './pages/UsersPage';
 export { QuestsPage } from './pages/QuestsPage';
 export { CampaignsPage } from './pages/CampaignsPage';
 export { ReviewsPage } from './pages/ReviewsPage';
+export { ClearDataPage } from './pages/ClearDataPage';
 
 export { adminAPI } from './api/admin';
 export type {
