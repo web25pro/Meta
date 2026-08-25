@@ -9,15 +9,15 @@ import { toast } from 'sonner';
 
 interface ConnectWalletButtonProps {
   onConnected?: (result: WalletConnectResponse) => void;
-  variant?: 'default' | 'jungle' | 'gold' | 'ghost';
-  size?: 'default' | 'sm';
+  variant?: 'cobalt' | 'jungle' | 'gold' | 'ghost';
+  size?: 'sm' | 'md' | 'lg';
   className?: string;
 }
 
 export function ConnectWalletButton({
   onConnected,
   variant = 'jungle',
-  size = 'default',
+  size = 'md',
   className,
 }: ConnectWalletButtonProps) {
   const queryClient = useQueryClient();

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useQuery } from 'react-query';
@@ -13,6 +13,7 @@ import {
   CheckCircle,
   Clock,
   AlertCircle,
+  Crown,
 } from 'lucide-react';
 import {
   StatCard,
@@ -28,9 +29,12 @@ import { User, DashboardStats } from '@/types';
 import { metajungleAPI, type ApiQuest } from '@/api/metajungle';
 import { MembershipStatusCard } from '@/components/membership-status';
 import { ConnectWalletButton } from '@/components/connect-wallet-button';
+import { UpgradeTierModal } from '@/components/upgrade-tier-modal';
+import { premiumAPI, MembershipStatus } from '@/api/premium';
 
 export default function DashboardPage() {
   const router = useRouter();
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated()) router.push('/auth/login');
@@ -63,6 +67,12 @@ export default function DashboardPage() {
     'mjQuests',
     metajungleAPI.listQuests,
     { retry: false },
+  );
+
+  const { data: membershipStatus } = useQuery<MembershipStatus>(
+    'membershipStatus',
+    () => premiumAPI.getStatus(),
+    { staleTime: 60_000 },
   );
 
   if (userLoading || statsLoading) {
@@ -100,6 +110,12 @@ export default function DashboardPage() {
                 </Button>
               </Link>
               <ConnectWalletButton variant="gold" />
+              <Button
+                variant="gold"
+                onClick={() => setUpgradeModalOpen(true)}
+              >
+                <Crown className="h-4 w-4" /> Upgrade Tier
+              </Button>
             </div>
           </div>
           <div className="hidden shrink-0 sm:block">
@@ -187,6 +203,14 @@ export default function DashboardPage() {
           </Link>
         </Card>
       </div>
+
+      {/* Upgrade tier modal */}
+      <UpgradeTierModal
+        isOpen={upgradeModalOpen}
+        onClose={() => setUpgradeModalOpen(false)}
+        currentTier={membershipStatus?.tier || 'standard'}
+        currentNftCount={membershipStatus?.nft_count || 0}
+      />
     </div>
   );
 }

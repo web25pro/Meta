@@ -1,9 +1,11 @@
 'use client';
 
+import { useState } from 'react';
 import { useQuery } from 'react-query';
-import { Crown, Star, Shield, Zap, Lock, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Crown, Star, Shield, Zap, Lock, CheckCircle2, ArrowRight, ExternalLink } from 'lucide-react';
 import { cn, Card, Badge, Button, Skeleton } from '@meta-jungle/ui';
 import { premiumAPI, MembershipStatus as MembershipStatusType } from '@/api/premium';
+import { UpgradeTierModal } from '@/components/upgrade-tier-modal';
 
 const TIER_ICONS: Record<string, typeof Crown> = {
   standard: Shield,
@@ -54,6 +56,7 @@ function UsageBar({ used, limit, unlimited, label }: {
 }
 
 export function MembershipStatusCard() {
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
   const { data: status, isLoading } = useQuery<MembershipStatusType>(
     'membershipStatus',
     () => premiumAPI.getStatus(),
@@ -195,6 +198,37 @@ export function MembershipStatusCard() {
           )}
         </ul>
       </div>
+
+      {/* Upgrade & Mint buttons */}
+      <div className="flex flex-col gap-sm sm:flex-row">
+        {status.next_tier && (
+          <Button
+            variant="jungle"
+            onClick={() => setUpgradeModalOpen(true)}
+            className="flex-1"
+          >
+            <Crown className="h-4 w-4" /> Upgrade to {status.next_tier.name}
+          </Button>
+        )}
+        <a
+          href="https://lpanda-mint.vercel.app/"
+          target="_blank"
+          rel="noreferrer"
+          className="flex-1"
+        >
+          <Button variant="gold" className="w-full">
+            Mint NFTs <ExternalLink className="ml-1 h-4 w-4" />
+          </Button>
+        </a>
+      </div>
+
+      {/* Upgrade modal */}
+      <UpgradeTierModal
+        isOpen={upgradeModalOpen}
+        onClose={() => setUpgradeModalOpen(false)}
+        currentTier={status.tier}
+        currentNftCount={status.nft_count}
+      />
     </Card>
   );
 }
