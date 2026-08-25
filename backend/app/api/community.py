@@ -11,8 +11,6 @@ from app.core.database import get_db
 from app.schemas.community import (
     CommunityUserRegisterRequest,
     CommunityUserResponse,
-    EmailVerificationRequest,
-    EmailVerificationResponse,
     LoginRequest,
     LoginResponse,
     PasswordResetRequest,
@@ -35,8 +33,6 @@ from app.schemas.submission import (
 )
 from app.services.community_service import (
     create_community_user,
-    generate_verification_token,
-    verify_verification_token,
     generate_password_reset_token,
     verify_password_reset_token,
     get_user_by_email
@@ -46,7 +42,7 @@ from app.services.public_task_service import (
     get_public_tasks,
     get_task_by_id,
 )
-from app.core.email import send_verification_email, send_password_reset_email
+from app.core.email import send_password_reset_email
 from app.services.submission_service import SubmissionService
 from app.core.security import verify_password, create_access_token, create_refresh_token, hash_password
 from app.core.config import settings
@@ -74,17 +70,16 @@ async def register_community_user(
 ):
     """
     Register a new community user account.
-    
+
     - **email**: Valid email address (unique)
     - **password**: Minimum 8 characters with complexity requirements
     - **username**: 3-20 characters, alphanumeric + underscore (unique)
     - **referral_code**: Optional 8-character referral code from existing user
-    
-    Returns the created user with email_verified=False.
-    A verification email will be sent to the provided email address.
+
+    Returns the created user. Account is immediately active — no email verification required.
     """
     registration_ip = get_client_ip(request)
-    
+
     user = await create_community_user(
         db=db,
         email=data.email,
@@ -93,102 +88,8 @@ async def register_community_user(
         registration_ip=registration_ip,
         referral_code=data.referral_code
     )
-    
-    if user.email_verification_token:
-        try:
-            await send_verification_email(user.email, user.email_verification_token)
-            user.verification_email_sent = True
-        except Exception:
-            logger.exception("Verification email could not be sent", extra={"user_id": str(user.id)})
-            # The account is still created so the user can retry later, but the
-            # response must not falsely claim that an email was delivered.
-            user.verification_email_sent = False
-    
+
     return user
-
-
-@router.post("/verify-email", response_model=EmailVerificationResponse)
-async def verify_email(
-    data: EmailVerificationRequest,
-    db: AsyncSession = Depends(get_db)
-):
-    """
-    Verify user's email address using the token sent via email.
-    
-    - **token**: JWT token from verification email
-    
-    Returns success message if verification is successful.
-    """
-    user_id = verify_verification_token(data.token)
-    
-    if not user_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="INVALID_VERIFICATION_TOKEN"
-        )
-    
-    # Get user and update email_verified
-    user = await db.get(User, user_id)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="USER_NOT_FOUND"
-        )
-    
-    if user.email_verified:
-        return EmailVerificationResponse(
-            message="Email already verified",
-            email_verified=True
-        )
-    
-    user.email_verified = True
-    user.email_verification_token = None
-    await db.commit()
-    
-    return EmailVerificationResponse(
-        message="Email verified successfully",
-        email_verified=True
-    )
-
-
-@router.post("/resend-verification", status_code=status.HTTP_200_OK)
-async def resend_verification_email(
-    email: str,
-    db: AsyncSession = Depends(get_db)
-):
-    """
-    Resend email verification link.
-    
-    - **email**: User's email address
-    
-    Returns success message (even if email doesn't exist for security).
-    """
-    user = await get_user_by_email(db, email)
-    
-    # Always return success for security (don't reveal if email exists)
-    if not user:
-        return {"message": "If the email exists, a verification link has been sent", "email_sent": True}
-    
-    if user.email_verified:
-        return {"message": "Email is already verified", "email_sent": False}
-
-    # Always issue a fresh token when resending.  The original token may have
-    # expired after 24 hours, and reusing it would deliver a link that can
-    # never verify the account.
-    user.email_verification_token = generate_verification_token(user.id)
-    user.email_verification_sent_at = datetime.utcnow()
-    await db.commit()
-
-    try:
-        await send_verification_email(user.email, user.email_verification_token)
-    except Exception:
-        logger.exception("Verification resend failed", extra={"user_id": str(user.id)})
-        return {
-            "message": "We could not send the verification email right now. Please try again shortly.",
-            "email_sent": False,
-        }
-
-    return {"message": "Verification email sent successfully", "email_sent": True}
 
 
 @router.post("/login", response_model=LoginResponse)
@@ -361,8 +262,6 @@ async def submit_public_task(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="TASK_NOT_FOUND")
     if not task.is_active:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="TASK_NOT_ACTIVE")
-    if not current_user.email_verified:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="EMAIL_NOT_VERIFIED")
     if task.deadline < datetime.utcnow():
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="DEADLINE_PASSED")
     if task.max_submissions and task.current_submissions >= task.max_submissions:

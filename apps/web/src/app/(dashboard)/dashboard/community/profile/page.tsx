@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from 'react-query';
-import { CheckCircle, Mail, Loader2, Target, Flame, Users, Award } from 'lucide-react';
+import { CheckCircle, Loader2, Target, Flame, Users, Award } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   ReputationRings,
@@ -115,15 +115,9 @@ export default function ProfilePage() {
           <h1 className="mt-md font-display text-h1 text-ink-inverse">{stats.username}</h1>
           <div className="mt-sm flex items-center gap-sm">
             <RoleBadge role={r.role as Role} />
-            {stats.email_verified ? (
-              <span className="flex items-center gap-1 rounded-pill bg-success/15 px-sm py-[2px] text-label text-success">
-                <CheckCircle className="h-4 w-4" /> Verified
-              </span>
-            ) : (
-              <span className="flex items-center gap-1 rounded-pill bg-reward-amber/15 px-sm py-[2px] text-label text-reward-amber">
-                <Mail className="h-4 w-4" /> Unverified
-              </span>
-            )}
+            <span className="flex items-center gap-1 rounded-pill bg-success/15 px-sm py-[2px] text-label text-success">
+              <CheckCircle className="h-4 w-4" /> Verified
+            </span>
           </div>
           <p className="mt-sm text-label text-brand-ice">{stats.email}</p>
         </div>

@@ -81,11 +81,6 @@ async def get_economic_user(
                 "join campaigns, or participate in campaign tasks."
             ),
         )
-    if not current_user.email_verified:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Email verification is required for economic features",
-        )
     return current_user
 
 

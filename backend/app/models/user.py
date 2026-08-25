@@ -74,7 +74,7 @@ class User(Base):
     )
     email_verified: Mapped[bool] = mapped_column(
         nullable=False,
-        default=False
+        default=True
     )
     email_verification_token: Mapped[str | None] = mapped_column(
         String(500),

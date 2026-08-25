@@ -32,7 +32,6 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         "/api/v1/auth/refresh",
         "/api/v1/community/login",
         "/api/v1/community/register",
-        "/api/v1/community/verify-email",
         "/api/v1/community/password-reset",
     )
 

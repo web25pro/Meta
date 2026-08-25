@@ -175,14 +175,6 @@ async def create_task_submission(
             detail="SUBMISSION_LIMIT_REACHED"
         )
     
-    # Get user to check email verification
-    user = await db.get(User, user_id)
-    if not user or not user.email_verified:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="EMAIL_NOT_VERIFIED"
-        )
-    
     # Create submission
     submission = TaskSubmission(
         task_id=task_id,

@@ -51,20 +51,8 @@ class CommunityUserResponse(BaseModel):
     current_streak: int
     is_active: bool
     created_at: datetime
-    verification_email_sent: Optional[bool] = None
-    
+
     model_config = {"from_attributes": True}
-
-
-class EmailVerificationRequest(BaseModel):
-    """Schema for email verification request"""
-    token: str = Field(..., description="Email verification JWT token")
-
-
-class EmailVerificationResponse(BaseModel):
-    """Schema for email verification response"""
-    message: str
-    email_verified: bool
 
 
 class ReferralCodeResponse(BaseModel):

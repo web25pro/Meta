@@ -18,12 +18,6 @@ export interface CommunityUserResponse {
   level: number;
   current_streak: number;
   created_at: string;
-  verification_email_sent?: boolean | null;
-}
-
-export interface EmailVerificationResponse {
-  message: string;
-  email_verified: boolean;
 }
 
 export interface PasswordResetResponse {
@@ -52,24 +46,6 @@ export const communityAPI = {
    */
   register: async (data: CommunityRegisterRequest): Promise<CommunityUserResponse> => {
     const response = await apiClient.post<CommunityUserResponse>('/community/register', data);
-    return response.data;
-  },
-
-  /**
-   * Verify email with token from email link
-   */
-  verifyEmail: async (token: string): Promise<EmailVerificationResponse> => {
-    const response = await apiClient.post<EmailVerificationResponse>('/community/verify-email', { token });
-    return response.data;
-  },
-
-  /**
-   * Resend verification email to email address
-   */
-  resendVerificationEmail: async (email: string): Promise<{ message: string; email_sent: boolean }> => {
-    const response = await apiClient.post<{ message: string; email_sent: boolean }>('/community/resend-verification', undefined, {
-      params: { email },
-    });
     return response.data;
   },
 

@@ -71,46 +71,6 @@ async def generate_unique_referral_code(db: AsyncSession, max_retries: int = 5) 
     )
 
 
-def generate_verification_token(user_id: UUID) -> str:
-    """
-    Generate JWT token for email verification.
-    
-    Args:
-        user_id: User's UUID
-        
-    Returns:
-        str: JWT token with 24-hour expiration
-    """
-    expiration = datetime.utcnow() + timedelta(hours=24)
-    payload = {
-        "user_id": str(user_id),
-        "type": "email_verification",
-        "exp": expiration
-    }
-    token = jwt.encode(payload, settings.SECRET_KEY, algorithm="HS256")
-    return token
-
-
-def verify_verification_token(token: str) -> Optional[UUID]:
-    """
-    Verify and decode email verification token.
-    
-    Args:
-        token: JWT token to verify
-        
-    Returns:
-        UUID: User ID if token is valid, None otherwise
-    """
-    try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
-        if payload.get("type") != "email_verification":
-            return None
-        user_id = UUID(payload.get("user_id"))
-        return user_id
-    except (JWTError, ValueError):
-        return None
-
-
 def generate_password_reset_token(user_id: UUID) -> str:
     """
     Generate JWT token for password reset.
@@ -272,7 +232,7 @@ async def create_community_user(
         username=username,
         role=UserRole.COMMUNITY_USER,
         user_type=UserType.COMMUNITY_USER,
-        email_verified=False,
+        email_verified=True,
         referral_code=user_referral_code,
         referred_by_id=referred_by_id,
         registration_ip=registration_ip,
@@ -282,15 +242,6 @@ async def create_community_user(
         level=1,
         current_streak=0
     )
-    # Generate and persist email verification token and timestamp
-    try:
-        new_user.email_verification_token = generate_verification_token(user_id)
-        new_user.email_verification_sent_at = datetime.utcnow()
-    except Exception:
-        # If token generation fails for any reason, proceed without blocking user creation
-        new_user.email_verification_token = None
-        new_user.email_verification_sent_at = None
-
     db.add(new_user)
     await db.flush()
 

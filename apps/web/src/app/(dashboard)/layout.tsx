@@ -27,7 +27,6 @@ import {
 import { cn } from '@meta-jungle/ui';
 import { isAuthenticated, clearTokens, getAccessToken } from '@/lib/api';
 import { useAuth } from '@/context/auth-context';
-import { EmailVerificationBanner } from '@/components/email-verification-banner';
 
 const navSections: {
   title?: string;
@@ -217,7 +216,6 @@ export default function DashboardLayout({
         </header>
 
         <main className="mx-auto max-w-6xl p-lg lg:p-xl">
-          <EmailVerificationBanner />
           {user?.is_banned && (
             <div
               role="alert"

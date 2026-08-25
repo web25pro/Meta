@@ -48,32 +48,9 @@ def send_email(
         raise EmailDeliveryError("Email provider rejected the message") from exc
 
 
-def build_verification_link(token: str) -> str:
-    base_url = settings.SITE_BASE_URL.rstrip('/')
-    return f"{base_url}/auth/verify-email?token={token}"
-
-
 def build_password_reset_link(token: str) -> str:
     base_url = settings.SITE_BASE_URL.rstrip('/')
     return f"{base_url}/auth/password-reset-confirm?token={token}"
-
-
-async def send_verification_email(to_email: str, token: str) -> None:
-    """Send an account verification email."""
-    verification_url = build_verification_link(token)
-    subject = "Verify your LPanda account"
-    text_body = (
-        f"Welcome to LPanda!\n\n"
-        f"Please verify your email by clicking the link below:\n{verification_url}\n\n"
-        "If you did not create an account, please ignore this message."
-    )
-    html_body = (
-        f"<p>Welcome to LPanda!</p>"
-        f"<p>Please verify your email by clicking the button below:</p>"
-        f"<p><a href=\"{verification_url}\">Verify Email</a></p>"
-        f"<p>If you did not create an account, please ignore this message.</p>"
-    )
-    send_email(to_email=to_email, subject=subject, html_body=html_body, text_body=text_body)
 
 
 async def send_password_reset_email(to_email: str, token: str) -> None:

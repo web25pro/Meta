@@ -62,21 +62,14 @@ function RegisterContent() {
   const onSubmit = async (data: RegisterFormData) => {
     setIsLoading(true);
     try {
-      const response = await communityAPI.register({
+      await communityAPI.register({
         email: data.email,
         username: data.username,
         password: data.password,
         referral_code: data.referralCode || undefined,
       });
-      if (response.verification_email_sent === false) {
-        toast.error('Account created, but we could not send the verification email. Please try again from the resend page.');
-      } else {
-        toast.success('Account created! Check your email to verify your address.');
-      }
-      setTimeout(
-        () => router.push('/auth/check-email?email=' + encodeURIComponent(data.email)),
-        1500,
-      );
+      toast.success('Account created! You can now sign in.');
+      setTimeout(() => router.push('/auth/login'), 1500);
     } catch (error: any) {
       toast.error(
         error.response?.data?.error?.message ||

@@ -1,7 +1,18 @@
 {
   "permissions": {
     "allow": [
-      "Bash(gh api *)"
+      "Bash(gh api *)",
+      "Bash(.\\\\venv\\\\Scripts\\\\python.exe -m pytest tests/ -x -q --tb=short)",
+      "Bash(./venv/Scripts/python.exe -m pytest tests/ -x -q --tb=short)",
+      "Bash(./venv/Scripts/python.exe -m pytest tests/test_metajungle_integration.py tests/test_admin_integration.py tests/test_campaign_integration.py -x -q --tb=short)",
+      "Bash(./venv/Scripts/python.exe -m pytest tests/test_metajungle_integration.py tests/test_admin_integration.py tests/test_campaign_integration.py -q --tb=short)",
+      "Bash(./venv/Scripts/python.exe -m pytest tests/test_metajungle_integration.py tests/test_admin_integration.py tests/test_campaign_integration.py -q --tb=short --no-header)",
+      "Bash(./venv/Scripts/python.exe -m pytest tests/test_metajungle_integration.py tests/test_admin_integration.py tests/test_campaign_integration.py --tb=short)",
+      "Bash(./venv/Scripts/python.exe -m pytest tests/test_metajungle_integration.py tests/test_admin_integration.py tests/test_campaign_integration.py --tb=short --no-cov)",
+      "Bash(./venv/Scripts/python.exe -m pytest tests/test_metajungle_integration.py --tb=short --no-cov -v)",
+      "Bash(./venv/Scripts/python.exe -m pytest tests/ --tb=short --no-cov -v)",
+      "Bash(./venv/Scripts/python.exe -c \"from app.api.community import router; from app.services.community_service import create_community_user; from app.core.email import send_password_reset_email; from app.models.user import User; print\\('All imports OK'\\)\")",
+      "Bash(npx tsc *)"
     ]
   }
 }
