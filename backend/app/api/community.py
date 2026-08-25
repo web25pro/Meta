@@ -172,8 +172,10 @@ async def resend_verification_email(
     if user.email_verified:
         return {"message": "Email is already verified", "email_sent": False}
 
-    if not user.email_verification_token:
-        user.email_verification_token = generate_verification_token(user.id)
+    # Always issue a fresh token when resending.  The original token may have
+    # expired after 24 hours, and reusing it would deliver a link that can
+    # never verify the account.
+    user.email_verification_token = generate_verification_token(user.id)
     user.email_verification_sent_at = datetime.utcnow()
     await db.commit()
 

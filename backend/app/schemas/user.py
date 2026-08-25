@@ -144,6 +144,10 @@ class UserResponse(UserBase):
         description="User's type",
         examples=["Team_Member"]
     )
+    email_verified: bool = Field(
+        False,
+        description="Whether the user's email address has been verified",
+    )
     points: float = Field(
         ...,
         description="User's current Panda Points (PP) balance",
