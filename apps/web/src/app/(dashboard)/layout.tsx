@@ -26,7 +26,7 @@ import {
   Crown,
   ArrowDownUp,
 } from 'lucide-react';
-import { cn } from '@meta-jungle/ui';
+import { cn, ForestBackground, ForestParticles } from '@meta-jungle/ui';
 import { isAuthenticated, clearTokens, getAccessToken } from '@/lib/api';
 import { useAuth } from '@/context/auth-context';
 
@@ -118,7 +118,9 @@ export default function DashboardLayout({
   };
 
   return (
-    <div className="min-h-screen bg-bg-surface">
+    <div className="relative min-h-screen bg-bg-surface">
+      <ForestBackground />
+      <ForestParticles />
       {/* Mobile backdrop */}
       {sidebarOpen && (
         <div
@@ -130,7 +132,7 @@ export default function DashboardLayout({
       {/* Sidebar — 240px, off-white blue-tint surface */}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-30 flex w-60 flex-col bg-bg-surface',
+          'fixed inset-y-0 left-0 z-30 flex w-60 flex-col bg-bg-surface/95 backdrop-blur-sm',
           'border-r border-line transition-transform duration-300 lg:translate-x-0',
           sidebarOpen ? 'translate-x-0' : '-translate-x-full',
         )}
@@ -212,7 +214,7 @@ export default function DashboardLayout({
       {/* Main */}
       <div className="lg:pl-60">
         {/* Mobile top bar */}
-        <header className="flex h-16 items-center border-b border-line bg-bg-primary px-lg lg:hidden">
+        <header className="flex h-16 items-center border-b border-line bg-bg-primary/95 backdrop-blur-sm px-lg lg:hidden">
           <button
             onClick={() => setSidebarOpen(true)}
             className="mr-md text-ink-muted hover:text-ink-primary"
@@ -224,7 +226,7 @@ export default function DashboardLayout({
           </span>
         </header>
 
-        <main className="mx-auto max-w-6xl p-lg lg:p-xl">
+        <main className="relative z-[2] mx-auto max-w-6xl p-lg lg:p-xl">
           {user?.is_banned && (
             <div
               role="alert"

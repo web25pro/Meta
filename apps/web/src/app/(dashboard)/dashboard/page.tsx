@@ -23,6 +23,9 @@ import {
   QuestCard,
   PandaMascot,
   Foliage,
+  ForestBackground,
+  ForestParticles,
+  getPandaTier,
 } from '@meta-jungle/ui';
 import apiClient, { isAuthenticated } from '@/lib/api';
 import { User, DashboardStats } from '@/types';
@@ -89,8 +92,14 @@ export default function DashboardPage() {
     );
   }
 
+  const pandaTier = getPandaTier(stats?.total_points ?? 0);
+
   return (
     <div className="animate-page-in space-y-xl">
+      {/* Forest ambient layers */}
+      <ForestBackground />
+      <ForestParticles />
+
       {/* Welcome hero — gradient + bamboo texture */}
       <div className="relative overflow-hidden rounded-card bg-hero-gradient p-xl text-ink-inverse">
         <div className="bamboo-texture pointer-events-none absolute inset-0 opacity-40" />
@@ -120,7 +129,7 @@ export default function DashboardPage() {
             </div>
           </div>
           <div className="hidden shrink-0 sm:block">
-            <PandaMascot size={120} />
+            <PandaMascot tier={pandaTier} />
           </div>
         </div>
       </div>

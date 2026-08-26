@@ -31,8 +31,11 @@ export { PPAmount } from './components/PPAmount';
 export type { PPAmountProps } from './components/PPAmount';
 
 export { Skeleton } from './components/Skeleton';
-export { PandaMascot } from './components/PandaMascot';
-export type { PandaMascotProps } from './components/PandaMascot';
+export { PandaMascot, getPandaTier } from './components/PandaMascot';
+export type { PandaMascotProps, PandaTier } from './components/PandaMascot';
+
+export { ForestBackground } from './components/ForestBackground';
+export { ForestParticles } from './components/ForestParticles';
 
 export { Foliage } from './components/Foliage';
 export type { FoliageProps } from './components/Foliage';
