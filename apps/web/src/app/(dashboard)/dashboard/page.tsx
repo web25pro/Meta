@@ -23,8 +23,6 @@ import {
   QuestCard,
   PandaMascot,
   Foliage,
-  ForestBackground,
-  ForestParticles,
   getPandaTier,
 } from '@meta-jungle/ui';
 import apiClient, { isAuthenticated } from '@/lib/api';
@@ -96,10 +94,6 @@ export default function DashboardPage() {
 
   return (
     <div className="animate-page-in space-y-xl">
-      {/* Forest ambient layers */}
-      <ForestBackground />
-      <ForestParticles />
-
       {/* Welcome hero — gradient + bamboo texture */}
       <div className="relative overflow-hidden rounded-card bg-hero-gradient p-xl text-ink-inverse">
         <div className="bamboo-texture pointer-events-none absolute inset-0 opacity-40" />

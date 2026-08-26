@@ -46,6 +46,7 @@ module.exports = {
         reward: {
           gold: '#B8860B',
           amber: '#D97706', // Streak fire, warnings, expiring timers
+          jungle: '#16A063', // Premium elite tier, success accents
         },
         // Semantic
         success: '#10B981',
@@ -89,6 +90,7 @@ module.exports = {
         h2: ['24px', { lineHeight: '1.25', fontWeight: '600' }],
         body: ['15px', { lineHeight: '1.6', fontWeight: '400' }],
         label: ['12px', { lineHeight: '1.4', fontWeight: '500' }],
+        caption: ['12px', { lineHeight: '1.5', fontWeight: '400' }],
       },
 
       // ── Chapter 3.4 — Spacing System (8px base grid) ─────────────────────

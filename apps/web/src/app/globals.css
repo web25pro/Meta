@@ -147,3 +147,48 @@
   0%, 100% { transform: translateX(-10%); }
   50% { transform: translateX(10%); }
 }
+
+/* Jumping pandas — arc motion between tree positions */
+.forest-panda-jump-1 {
+  animation: panda-jump-1 8s ease-in-out infinite;
+}
+
+.forest-panda-jump-2 {
+  animation: panda-jump-2 10s ease-in-out infinite;
+  animation-delay: 2s;
+}
+
+.forest-panda-jump-3 {
+  animation: panda-jump-3 12s ease-in-out infinite;
+  animation-delay: 4s;
+}
+
+@keyframes panda-jump-1 {
+  0%, 100% { transform: translate(0, 0) scaleX(1); }
+  15% { transform: translate(40px, -60px) scaleX(1); }
+  30% { transform: translate(80px, -20px) scaleX(1); }
+  35% { transform: translate(80px, 0) scaleX(-1); }
+  50% { transform: translate(40px, -50px) scaleX(-1); }
+  65% { transform: translate(0, -10px) scaleX(-1); }
+  70% { transform: translate(0, 0) scaleX(1); }
+}
+
+@keyframes panda-jump-2 {
+  0%, 100% { transform: translate(0, 0) scaleX(1); }
+  20% { transform: translate(-50px, -45px) scaleX(-1); }
+  40% { transform: translate(-100px, 0) scaleX(-1); }
+  45% { transform: translate(-100px, 0) scaleX(1); }
+  65% { transform: translate(-50px, -55px) scaleX(1); }
+  85% { transform: translate(0, -5px) scaleX(1); }
+}
+
+@keyframes panda-jump-3 {
+  0%, 100% { transform: translate(0, 0) scaleX(1); }
+  10% { transform: translate(30px, -70px) scaleX(1); }
+  25% { transform: translate(60px, -30px) scaleX(1); }
+  30% { transform: translate(60px, 0) scaleX(-1); }
+  50% { transform: translate(20px, -40px) scaleX(-1); }
+  70% { transform: translate(-20px, -10px) scaleX(-1); }
+  75% { transform: translate(-20px, 0) scaleX(1); }
+  90% { transform: translate(0, -20px) scaleX(1); }
+}

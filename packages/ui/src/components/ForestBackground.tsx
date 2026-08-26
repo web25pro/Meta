@@ -69,6 +69,38 @@ export function ForestBackground({ className }: { className?: string }) {
       <div className="absolute bottom-0 right-[10%] h-[42vh] w-[3px] bg-gradient-to-t from-forest-800/20 to-forest-600/10" />
       <div className="absolute bottom-0 right-[15%] h-[35vh] w-[2px] bg-gradient-to-t from-forest-800/15 to-forest-600/8" />
 
+      {/* Jumping pandas — small silhouettes arcing between trees */}
+      <div className="forest-panda-jump-1 absolute" style={{ bottom: '30vh', left: '15%' }}>
+        <svg viewBox="0 0 40 40" width="28" height="28" fill="none" aria-hidden="true">
+          <circle cx="20" cy="22" r="12" fill="#1a1a2e" opacity="0.35" />
+          <circle cx="13" cy="12" r="5" fill="#1a1a2e" opacity="0.35" />
+          <circle cx="27" cy="12" r="5" fill="#1a1a2e" opacity="0.35" />
+          <circle cx="20" cy="22" r="10" fill="#2d2d44" opacity="0.3" />
+          <circle cx="16" cy="20" r="2" fill="#4a4a6a" opacity="0.3" />
+          <circle cx="24" cy="20" r="2" fill="#4a4a6a" opacity="0.3" />
+        </svg>
+      </div>
+      <div className="forest-panda-jump-2 absolute" style={{ bottom: '25vh', right: '20%' }}>
+        <svg viewBox="0 0 40 40" width="22" height="22" fill="none" aria-hidden="true">
+          <circle cx="20" cy="22" r="12" fill="#1a1a2e" opacity="0.3" />
+          <circle cx="13" cy="12" r="5" fill="#1a1a2e" opacity="0.3" />
+          <circle cx="27" cy="12" r="5" fill="#1a1a2e" opacity="0.3" />
+          <circle cx="20" cy="22" r="10" fill="#2d2d44" opacity="0.25" />
+          <circle cx="16" cy="20" r="2" fill="#4a4a6a" opacity="0.25" />
+          <circle cx="24" cy="20" r="2" fill="#4a4a6a" opacity="0.25" />
+        </svg>
+      </div>
+      <div className="forest-panda-jump-3 absolute" style={{ bottom: '35vh', left: '55%' }}>
+        <svg viewBox="0 0 40 40" width="20" height="20" fill="none" aria-hidden="true">
+          <circle cx="20" cy="22" r="12" fill="#1a1a2e" opacity="0.25" />
+          <circle cx="13" cy="12" r="5" fill="#1a1a2e" opacity="0.25" />
+          <circle cx="27" cy="12" r="5" fill="#1a1a2e" opacity="0.25" />
+          <circle cx="20" cy="22" r="10" fill="#2d2d44" opacity="0.2" />
+          <circle cx="16" cy="20" r="2" fill="#4a4a6a" opacity="0.2" />
+          <circle cx="24" cy="20" r="2" fill="#4a4a6a" opacity="0.2" />
+        </svg>
+      </div>
+
       {/* Vignette — darken edges so content in center pops */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_40%,rgba(8,19,13,0.4)_100%)]" />
     </div>

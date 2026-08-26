@@ -26,13 +26,6 @@ const TIER_ICONS: Record<string, typeof Crown> = {
   panda_elite: Zap,
 };
 
-const TIER_GRADIENTS: Record<string, string> = {
-  standard: 'from-gray-50 to-gray-100',
-  panda_plus: 'from-blue-50 to-indigo-50',
-  panda_pro: 'from-amber-50 to-yellow-50',
-  panda_elite: 'from-emerald-50 to-green-50',
-};
-
 function TierCard({
   tier,
   isCurrentTier,

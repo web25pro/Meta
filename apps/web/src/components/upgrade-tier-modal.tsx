@@ -13,8 +13,9 @@ import {
   ExternalLink,
   AlertTriangle,
   X,
+  ArrowRight,
 } from 'lucide-react';
-import { Button, cn, Card } from '@meta-jungle/ui';
+import { Button, cn, Card, Badge } from '@meta-jungle/ui';
 import { premiumAPI, TierInfo, WalletConnectResponse } from '@/api/premium';
 import { toast } from 'sonner';
 import { WalletConnectModal } from '@/components/wallet-connect-modal';
@@ -27,6 +28,19 @@ const TIER_ICONS: Record<string, typeof Crown> = {
 };
 
 const TIER_ORDER = ['standard', 'panda_plus', 'panda_pro', 'panda_elite'];
+
+const TIER_COLORS: Record<string, { bg: string; text: string; ring: string; glow: string }> = {
+  standard: { bg: 'bg-bg-elevated', text: 'text-ink-muted', ring: 'ring-line', glow: '' },
+  panda_plus: { bg: 'bg-brand-cobalt/10', text: 'text-brand-cobalt', ring: 'ring-brand-cobalt/40', glow: '' },
+  panda_pro: { bg: 'bg-reward-amber/10', text: 'text-reward-amber', ring: 'ring-reward-amber/40', glow: 'shadow-[0_0_20px_rgba(217,119,6,0.15)]' },
+  panda_elite: { bg: 'bg-reward-jungle/10', text: 'text-reward-jungle', ring: 'ring-reward-jungle/40', glow: 'shadow-[0_0_24px_rgba(22,160,99,0.2)]' },
+};
+
+const TIER_BENEFITS: Record<string, string[]> = {
+  panda_plus: ['15 daily quests', '5 campaigns/month', 'Campaign creator tools'],
+  panda_pro: ['30 daily quests', '15 campaigns/month', 'Image campaigns', 'Video contests'],
+  panda_elite: ['Unlimited quests', 'Unlimited campaigns', 'Video campaigns', 'Bounties', 'Priority support'],
+};
 
 interface UpgradeTierModalProps {
   isOpen: boolean;
@@ -57,7 +71,6 @@ export function UpgradeTierModal({
     (address: string) => premiumAPI.connectWallet(address),
     {
       onSuccess: (data: WalletConnectResponse) => {
-        // Check if the wallet has enough NFTs for the selected tier
         const targetTier = tiers?.find((t) => t.key === selectedTier);
         if (targetTier && data.nft_count < targetTier.nft_required) {
           setInsufficientNfts(true);
@@ -105,8 +118,8 @@ export function UpgradeTierModal({
 
   return (
     <>
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-bg-dark/60 p-md">
-        <Card className="relative w-full max-w-lg space-y-lg overflow-y-auto max-h-[90vh] p-xl">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-bg-dark/60 p-md backdrop-blur-sm">
+        <Card className="relative w-full max-w-2xl space-y-lg overflow-y-auto max-h-[90vh] p-xl">
           {/* Close button */}
           <button
             onClick={onClose}
@@ -120,30 +133,43 @@ export function UpgradeTierModal({
               Upgrade Your Tier
             </h2>
             <p className="mt-sm text-body text-ink-muted">
-              Select the tier you want to upgrade to, then connect your wallet to
-              verify NFT ownership.
+              Hold more LPanda NFTs to unlock higher tiers with more earning power.
             </p>
           </div>
 
-          {/* Tier selection */}
+          {/* Current tier indicator */}
+          <div className="flex items-center gap-sm rounded-card bg-bg-elevated px-md py-sm">
+            <span className="text-label text-ink-muted">Current tier:</span>
+            <Badge tone="cobalt">{currentTier.replace('panda_', 'Panda ').replace('standard', 'Standard')}</Badge>
+            <span className="text-label text-ink-muted ml-auto">{currentNftCount} NFTs held</span>
+          </div>
+
+          {/* Tier selection cards */}
           {tiersLoading ? (
             <div className="flex items-center gap-md">
               <Loader2 className="h-5 w-5 animate-spin" />
               <span className="text-body text-ink-muted">Loading tiers...</span>
             </div>
           ) : availableTiers.length === 0 ? (
-            <div className="rounded-card border border-reward-jungle/30 bg-reward-jungle/10 p-md text-body text-reward-jungle">
-              <CheckCircle2 className="mr-sm inline h-4 w-4" />
-              You&apos;re already on the highest tier!
+            <div className="rounded-card border border-reward-jungle/30 bg-reward-jungle/10 p-lg text-center">
+              <CheckCircle2 className="mx-auto mb-sm h-8 w-8 text-reward-jungle" />
+              <p className="font-display text-body font-semibold text-reward-jungle">
+                You&apos;re on the highest tier!
+              </p>
+              <p className="mt-xs text-caption text-ink-muted">
+                Enjoy all premium features and unlimited access.
+              </p>
             </div>
           ) : (
-            <div className="space-y-sm">
-              <p className="text-label text-ink-muted">Select target tier:</p>
+            <div className="grid gap-md sm:grid-cols-2">
               {tiers
                 ?.filter((t) => availableTiers.includes(t.key))
                 .map((tier) => {
                   const TierIcon = TIER_ICONS[tier.key] || Shield;
+                  const colors = TIER_COLORS[tier.key] || TIER_COLORS.standard;
+                  const benefits = TIER_BENEFITS[tier.key] || [];
                   const isSelected = selectedTier === tier.key;
+
                   return (
                     <button
                       key={tier.key}
@@ -152,49 +178,70 @@ export function UpgradeTierModal({
                         setInsufficientNfts(false);
                       }}
                       className={cn(
-                        'flex w-full items-center gap-md rounded-card border p-md text-left transition-colors',
+                        'group relative flex flex-col rounded-card border-2 p-lg text-left transition-all',
                         isSelected
-                          ? 'border-brand-cobalt bg-brand-ice'
-                          : 'border-line hover:border-brand-cobalt/50',
+                          ? `border-reward-gold bg-reward-gold/5 ${colors.glow}`
+                          : `border-transparent bg-bg-surface hover:border-stroke-hover`,
                       )}
                     >
-                      <div
-                        className={cn(
-                          'flex h-10 w-10 items-center justify-center rounded-full',
-                          tier.key === 'panda_elite'
-                            ? 'bg-reward-jungle/10'
-                            : tier.key === 'panda_pro'
-                              ? 'bg-reward-amber/10'
-                              : tier.key === 'panda_plus'
-                                ? 'bg-brand-cobalt/10'
-                                : 'bg-bg-elevated',
-                        )}
-                      >
-                        <TierIcon
-                          className={cn(
-                            'h-5 w-5',
-                            tier.key === 'panda_elite'
-                              ? 'text-reward-jungle'
-                              : tier.key === 'panda_pro'
-                                ? 'text-reward-amber'
-                                : tier.key === 'panda_plus'
-                                  ? 'text-brand-cobalt'
-                                  : 'text-ink-muted',
-                          )}
-                        />
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-display text-body font-semibold text-ink-primary">
-                          {tier.name}
-                        </p>
-                        <p className="text-label text-ink-muted">
-                          {tier.nft_required} NFT{tier.nft_required !== 1 ? 's' : ''}{' '}
-                          required
-                        </p>
-                      </div>
+                      {/* Selected indicator */}
                       {isSelected && (
-                        <CheckCircle2 className="h-5 w-5 text-brand-cobalt" />
+                        <div className="absolute -right-2 -top-2">
+                          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-reward-gold text-white">
+                            <CheckCircle2 className="h-4 w-4" />
+                          </div>
+                        </div>
                       )}
+
+                      {/* Tier header */}
+                      <div className="mb-md flex items-center gap-md">
+                        <div className={cn(
+                          'flex h-12 w-12 items-center justify-center rounded-full transition-transform group-hover:scale-110',
+                          colors.bg,
+                        )}>
+                          <TierIcon className={cn('h-6 w-6', colors.text)} />
+                        </div>
+                        <div>
+                          <h3 className="font-display text-body font-semibold text-ink-primary">
+                            {tier.name}
+                          </h3>
+                          <p className="text-caption text-ink-muted">
+                            {tier.nft_required} NFT{tier.nft_required !== 1 ? 's' : ''} required
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Benefits preview */}
+                      <ul className="flex-1 space-y-xs">
+                        {benefits.map((b) => (
+                          <li key={b} className="flex items-center gap-xs text-caption text-ink-muted">
+                            <ArrowRight className="h-3 w-3 text-forest-500" />
+                            {b}
+                          </li>
+                        ))}
+                      </ul>
+
+                      {/* NFT progress */}
+                      <div className="mt-md pt-md border-t border-line">
+                        <div className="flex items-center justify-between text-caption">
+                          <span className="text-ink-muted">Your NFTs</span>
+                          <span className={cn(
+                            'font-display font-semibold',
+                            currentNftCount >= tier.nft_required ? 'text-success' : 'text-reward-amber',
+                          )}>
+                            {currentNftCount}/{tier.nft_required}
+                          </span>
+                        </div>
+                        <div className="mt-xs h-1.5 overflow-hidden rounded-full bg-bg-elevated">
+                          <div
+                            className={cn(
+                              'h-full rounded-full transition-all',
+                              currentNftCount >= tier.nft_required ? 'bg-success' : 'bg-reward-amber',
+                            )}
+                            style={{ width: `${Math.min(100, (currentNftCount / tier.nft_required) * 100)}%` }}
+                          />
+                        </div>
+                      </div>
                     </button>
                   );
                 })}
@@ -257,13 +304,15 @@ export function UpgradeTierModal({
         </Card>
       </div>
 
-      {/* Wallet connection modal */}
-      <WalletConnectModal
-        isOpen={showWalletModal}
-        onClose={() => setShowWalletModal(false)}
-        onConnect={handleWalletConnect}
-        isConnecting={connectMutation.isLoading}
-      />
+      {/* Wallet connection modal — higher z-index to appear above upgrade modal */}
+      <div className="z-[60]">
+        <WalletConnectModal
+          isOpen={showWalletModal}
+          onClose={() => setShowWalletModal(false)}
+          onConnect={handleWalletConnect}
+          isConnecting={connectMutation.isLoading}
+        />
+      </div>
     </>
   );
 }

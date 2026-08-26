@@ -226,7 +226,7 @@ export default function DashboardLayout({
           </span>
         </header>
 
-        <main className="relative z-[2] mx-auto max-w-6xl p-lg lg:p-xl">
+        <main className="relative z-[2] mx-auto max-w-6xl rounded-tl-card bg-bg-surface/90 p-lg backdrop-blur-sm lg:p-xl">
           {user?.is_banned && (
             <div
               role="alert"
